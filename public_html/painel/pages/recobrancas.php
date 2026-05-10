@@ -233,8 +233,8 @@
         <label for="auto">Auto-refresh</label>
       </div>
 
-      <button id="btnRunQueue" class="btn-secondary"><i class="fa-solid fa-paper-plane"></i> Processar fila</button>
-      <button id="btnReload" class="btn-primary">Atualizar <i class="fa-solid fa-rotate"></i></button>
+      <button type="button" id="btnRunQueue" class="btn-secondary"><i class="fa-solid fa-paper-plane"></i> Processar fila</button>
+      <button type="button" id="btnReload" class="btn-primary">Atualizar <i class="fa-solid fa-rotate"></i></button>
     </div>
 
     <div class="summary-grid">
@@ -331,7 +331,7 @@
       if (!totalPages || totalPages <= 1){ pager.innerHTML = ''; return; }
       const parts = [];
       const addBtn = (p,label,disabled=false,active=false) => {
-        parts.push(`<button class="page-btn ${active?'active':''}" data-page="${p}" ${disabled?'disabled':''}>${label}</button>`);
+        parts.push(`<button type="button" class="page-btn ${active?'active':''}" data-page="${p}" ${disabled?'disabled':''}>${label}</button>`);
       };
       addBtn(Math.max(1,page-1),'‹', page===1);
       const start=Math.max(1,page-2), end=Math.min(totalPages,page+2);
@@ -348,12 +348,15 @@
       fd.set('action', action);
       fd.set('bill_id', String(billId));
       const r = await fetch('/painel/api/recobranca_action.php', { method:'POST', body: fd });
-      const j = await r.json().catch(() => null);
-      if (!j || !j.ok) throw new Error(j?.error || 'Falha na acao');
+      const text = await r.text();
+      let j = null;
+      try { j = JSON.parse(text); } catch(e) {}
+      if (!r.ok) throw new Error(`HTTP ${r.status}: ${text.slice(0, 180)}`);
+      if (!j || !j.ok) throw new Error(j?.error || text.slice(0, 180) || 'Falha na acao');
       return j;
     }
 
-    async function runQueue(limit=20){
+    async function runQueue(limit=20, billId=null){
       const btn = document.getElementById('btnRunQueue');
       const original = btn.innerHTML;
       btn.disabled = true;
@@ -361,14 +364,20 @@
       try{
         const url = new URL('/painel/api/cron_recobranca.php', location.origin);
         url.searchParams.set('limit', String(limit));
+        if (billId) url.searchParams.set('bill_id', String(billId));
         const r = await fetch(url.toString(), { cache:'no-store' });
         const text = await r.text();
+        if (!r.ok) throw new Error(`HTTP ${r.status}: ${text.slice(0, 180)}`);
+        if (/^\s*ERRO/i.test(text)) throw new Error(text.trim());
+        if (billId && /\bsent=0\b/.test(text)) throw new Error(text.trim() || 'Nenhuma mensagem foi enviada');
         setStatus((text || 'Fila processada').trim(), 'ok');
         previousHash = null;
         await load(true);
       } catch(e){
         console.error(e);
-        setStatus('Erro ao processar fila', 'error');
+        previousHash = null;
+        await load(true);
+        setStatus(e.message || 'Erro ao processar fila', 'error');
       } finally {
         btn.disabled = false;
         btn.innerHTML = original;
@@ -441,13 +450,13 @@
           const lastOk = row.last_message_ok;
           const lastStatus = row.last_status ? esc(row.last_status) : '-';
 
-          const btnNow = `<button class="btn-mini" data-act="send_now" data-id="${billId}" ${blocked || !ready ? 'disabled' : ''} title="${ready ? 'Agenda e processa agora' : 'So libera apos 7 dias de atraso'}">
+          const btnNow = `<button type="button" class="btn-mini" data-act="send_now" data-id="${billId}" ${blocked || !ready ? 'disabled' : ''} title="${ready ? 'Agenda e processa agora' : 'So libera apos 7 dias de atraso'}">
             <i class="fa-solid fa-bolt"></i> Enviar
           </button>`;
-          const btnPause = `<button class="btn-mini danger" data-act="pause" data-id="${billId}" ${blocked ? 'disabled' : ''}>
+          const btnPause = `<button type="button" class="btn-mini danger" data-act="pause" data-id="${billId}" ${blocked ? 'disabled' : ''}>
             <i class="fa-solid fa-pause"></i> Parar
           </button>`;
-          const btnResume = `<button class="btn-mini ok" data-act="resume" data-id="${billId}" ${blocked ? '' : 'disabled'}>
+          const btnResume = `<button type="button" class="btn-mini ok" data-act="resume" data-id="${billId}" ${blocked ? '' : 'disabled'}>
             <i class="fa-solid fa-play"></i> Reativar
           </button>`;
           const btnBill = billUrl
@@ -509,6 +518,7 @@
     document.getElementById('tbody').addEventListener('click', async (e) => {
       const btn = e.target.closest('button[data-act]');
       if (!btn) return;
+      e.preventDefault();
       const act = btn.getAttribute('data-act');
       const id = btn.getAttribute('data-id');
       const original = btn.innerHTML;
@@ -516,7 +526,7 @@
       btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i>`;
       try{
         await postAction(act, id);
-        if (act === 'send_now') await runQueue(1);
+        if (act === 'send_now') await runQueue(1, id);
         else {
           previousHash = null;
           await load(true);
@@ -541,6 +551,7 @@
     document.getElementById('pager').onclick = (e) => {
       const b = e.target.closest('button[data-page]');
       if (!b) return;
+      e.preventDefault();
       const p = parseInt(b.getAttribute('data-page'), 10);
       if (!p || p === currentPage) return;
       currentPage = p;

@@ -50,6 +50,7 @@ $TEMPLATE_LANG = cfg($cfg, 'META_TEMPLATE_LANG', 'pt_BR');
 
 $DRY_RUN = (isset($_GET['dry_run']) && $_GET['dry_run'] === '1');
 $LIMIT   = isset($_GET['limit']) ? max(1, (int)$_GET['limit']) : 50;
+$ONLY_BILL_ID = isset($_GET['bill_id']) ? max(0, (int)$_GET['bill_id']) : 0;
 
 $INTERVAL_DAYS = (int) cfg($cfg, 'RECOBRANCA_INTERVAL_DAYS', 7);
 $FIRST_DELAY_DAYS = max(1, (int) cfg($cfg, 'RECOBRANCA_FIRST_DELAY_DAYS', '7'));
@@ -57,6 +58,8 @@ $MAX_OVERDUE   = (int) cfg($cfg, 'RECOBRANCA_MAX_OVERDUE', 12);
 
 if ($META_PHONE_NUMBER_ID === '' || $META_ACCESS_TOKEN === '' || $VINDI_API_KEY === '') {
   logLine("ERRO config incompleta META/VINDI.");
+  header('Content-Type: text/plain; charset=utf-8');
+  echo "ERRO config incompleta META/VINDI.\n";
   http_response_code(200);
   exit;
 }
@@ -263,17 +266,28 @@ WHERE active = 1
   AND (due_at IS NULL OR due_at <= DATE_SUB(NOW(), INTERVAL {$FIRST_DELAY_DAYS} DAY))
   AND (next_reminder_at IS NULL OR next_reminder_at <= NOW())
   AND (overdue_sent_count IS NULL OR overdue_sent_count < :max_overdue)
+  " . ($ONLY_BILL_ID > 0 ? "AND bill_id = :only_bill_id\n" : "") . "
 ORDER BY COALESCE(next_reminder_at, due_at) ASC
 LIMIT {$LIMIT}
 ";
 $st = $pdo->prepare($sql);
-$st->execute([':max_overdue' => $MAX_OVERDUE]);
+$params = [':max_overdue' => $MAX_OVERDUE];
+if ($ONLY_BILL_ID > 0) $params[':only_bill_id'] = $ONLY_BILL_ID;
+$st->execute($params);
 $rows = $st->fetchAll(PDO::FETCH_ASSOC);
 
 logLine("CRON start candidatos=" . count($rows) . " dry_run=" . ($DRY_RUN ? '1' : '0'));
 
 $sent = 0;
 $skipped = 0;
+$issues = [];
+
+if ($ONLY_BILL_ID > 0 && count($rows) === 0) {
+  logLine("bill_id={$ONLY_BILL_ID} nao_elegivel");
+  header('Content-Type: text/plain; charset=utf-8');
+  echo "ERRO bill_id={$ONLY_BILL_ID} nao esta elegivel para recobranca agora.\n";
+  exit;
+}
 
 foreach ($rows as $r) {
   $billId = (int)$r['bill_id'];
@@ -304,6 +318,7 @@ foreach ($rows as $r) {
       WHERE bill_id = ?
     ")->execute([$billId]);
     logLine("bill_id={$billId} erro_vindi");
+    $issues[] = "bill_id={$billId} vindi_error";
     $skipped++;
     continue;
   }
@@ -320,6 +335,7 @@ foreach ($rows as $r) {
       WHERE bill_id=?
     ")->execute([$vindiStatus, $billId]);
     logLine("bill_id={$billId} pago_desativado");
+    $issues[] = "bill_id={$billId} pago";
     $skipped++;
     continue;
   }
@@ -331,6 +347,7 @@ foreach ($rows as $r) {
       WHERE bill_id=?
     ")->execute([$vindiStatus, $billId]);
     logLine("bill_id={$billId} cancelado_desativado");
+    $issues[] = "bill_id={$billId} cancelado";
     $skipped++;
     continue;
   }
@@ -356,6 +373,7 @@ foreach ($rows as $r) {
       $billId
     ]);
     logLine("bill_id={$billId} ainda_nao_completou_{$FIRST_DELAY_DAYS}_dias");
+    $issues[] = "bill_id={$billId} menos_de_{$FIRST_DELAY_DAYS}_dias";
     $skipped++;
     continue;
   }
@@ -382,6 +400,7 @@ foreach ($rows as $r) {
       WHERE bill_id = ?
     ")->execute([$billId]);
     logLine("bill_id={$billId} sem_telefone");
+    $issues[] = "bill_id={$billId} sem_telefone";
     $skipped++;
     continue;
   }
@@ -423,6 +442,7 @@ foreach ($rows as $r) {
       WHERE bill_id = ?
     ")->execute([$billId]);
     logLine("bill_id={$billId} dry_run");
+    $issues[] = "bill_id={$billId} dry_run";
     $skipped++;
     continue;
   }
@@ -499,10 +519,12 @@ foreach ($rows as $r) {
     ")->execute([$ls, $billId]);
 
     logLine("bill_id={$billId} falha http={$resp['http']} curl=" . ($resp['curl_error'] ?? ''));
+    $issues[] = "bill_id={$billId} {$ls}";
     $skipped++;
   }
 }
 
 logLine("CRON end sent={$sent} skipped={$skipped}");
 header('Content-Type: text/plain; charset=utf-8');
-echo "OK sent={$sent} skipped={$skipped}\n";
+$suffix = $issues ? ' | ' . implode(' | ', array_slice($issues, 0, 5)) : '';
+echo "OK sent={$sent} skipped={$skipped}{$suffix}\n";
