@@ -386,8 +386,12 @@ ORDER BY COALESCE(next_reminder_at, due_at) ASC
 LIMIT {$LIMIT}
 ";
 $st = $pdo->prepare($sql);
-$params = [':max_overdue' => $MAX_OVERDUE];
-if ($ONLY_BILL_ID > 0) $params[':only_bill_id'] = $ONLY_BILL_ID;
+$params = [];
+if ($ONLY_BILL_ID > 0) {
+  $params[':only_bill_id'] = $ONLY_BILL_ID;
+} else {
+  $params[':max_overdue'] = $MAX_OVERDUE;
+}
 $st->execute($params);
 $rows = $st->fetchAll(PDO::FETCH_ASSOC);
 
