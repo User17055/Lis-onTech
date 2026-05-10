@@ -1,0 +1,224 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Alkatra&family=Anton&family=Bebas+Neue&family=Jost:ital,wght@1,600&family=Lexend:wght@700&family=Nova+Oval&family=Oswald:wght@500&family=PT+Serif:wght@700&family=Titillium+Web&display=swap');
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&display=swap');
+
+
+* {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+  }
+  
+  :root {
+    --font1: "Poppins";
+    --fontSizeMenu: 1vw;
+    --fontSizeH1: 19vw;
+    --fontSizeIntro: 3vw;
+    --fontSizeP: 1.48vw;
+    --maxWidth: 1100px;
+  }
+  body {
+    margin: 0;
+    font-family: var(--font1);
+    background-color: #000;
+    color: #fff;
+    overflow-x: hidden;
+  }
+  
+  .flex, .flex__col {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .flex__col {
+    flex-direction: column;
+  }
+  
+  ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  
+  main.flex__col {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  
+  .menu {
+    position: fixed;
+    z-index: 999;
+    top: 0;
+    left: 50%;
+    width: calc(100% - 80px);
+    justify-content: space-between;
+    margin: 40px 0;
+    transform: translatex(-50%);
+  }
+  
+  .menu a {
+    font-size: var(--fontSizeMenu);
+    font-weight: 600;
+    color: var(--dark);
+    text-decoration: none;
+  }
+  
+  .intro {
+    position: fixed;
+    z-index: 1000;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: #000;
+    font-size: var(--fontSizeIntro);
+    transform-origin: top;
+  }
+  
+  .intro__red {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 30%;
+    background-color: #f21010;
+    font-family: var(--font1);
+    font-size: 30vw;
+    font-weight: 900;
+    line-height: 30vh;
+    overflow: hidden;
+    color: transparent;
+    text-align: center;
+    -webkit-text-stroke: 1px #222;
+    transform: scaleY(0);
+    transform-origin: bottom;
+  }
+  
+  .intro__red div {
+    transform: scaleX(0.5) scaleY(1.5);
+    letter-spacing: -1vw;
+  }
+  /*Section2*/
+*{
+    margin: 0;
+    padding:0;
+    box-sizing: border-box;
+}
+
+img{
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+section {
+    position: relative;
+    width: 100vw;
+    height: 100svh;
+    background-color: #0f0f0f;
+    color: #e3e3db;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 2.5em;
+    overflow: hidden;
+}
+
+.profile-images{
+    width: max-content;
+    display: flex;
+    justify-content: center;
+}
+
+.img{
+    position: relative;
+    width: 70px;
+    height: 70px;
+    padding: 5px;
+    cursor: pointer;
+    will-change: width, height;
+}
+
+.img img{
+    border-radius: 0.5rem;
+}
+
+.profile-names{
+    width: 100%;
+    height: 20rem;
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%);
+    overflow: hidden;
+}
+
+.name h1{
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    text-transform:uppercase;
+    font-family: "Barlow Condensed";
+    font-size: 20rem;
+    font-weight: 900;
+    letter-spacing: -0.5rem;
+    line-height: 1;
+    color: red;
+    user-select: none;
+    transform: translateY(100%);
+}
+
+.name.default h1{
+    color:#e3e3db;
+    transform: translateY(-100%);
+}
+
+.name h1 .letter{
+    position: relative;
+    transform: translateY(0%);
+    will-change: transform;
+}
+
+.outro {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.outro h1 {
+    width: 50%;
+    text-align: center;
+}
+
+
+@media(max-width: 900px){
+    section{
+        flex-direction: column-reverse;
+    }
+
+    .profile-images{
+        flex-wrap: wrap;
+        max-width: 90%;
+        justify-content: center;
+    }
+
+    .img{
+        height:60px;
+        padding:2.5px ;
+        width:60px;
+    }
+
+    .name h1{
+        font-size: 4rem;
+        letter-spacing: 0;
+    }
+
+    .profile-names{
+        height: 3.8rem; /*4 rem ideal*/
+    }
+}
+
+  
+  

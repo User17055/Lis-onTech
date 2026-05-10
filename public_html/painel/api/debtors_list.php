@@ -6,8 +6,8 @@ ini_set('display_errors', '0');
 error_reporting(E_ALL);
 
 try {
-    require_once __DIR__ . '/../config.php';
-    require_once __DIR__ . '/../db.php';
+    require_once __DIR__ . '/../../config.php';
+    require_once __DIR__ . '/../../db.php';
 } catch (Throwable $e) {
     echo json_encode(['ok' => false, 'error' => 'Falha ao carregar includes: ' . $e->getMessage()]);
     exit;

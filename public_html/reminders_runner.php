@@ -4,7 +4,11 @@ date_default_timezone_set('America/Sao_Paulo');
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/db.php';
 
-$LOG_FILE = __DIR__ . '/log_reminders.txt';
+$LOG_DIR = __DIR__ . '/storage/logs';
+if (!is_dir($LOG_DIR)) {
+  @mkdir($LOG_DIR, 0755, true);
+}
+$LOG_FILE = $LOG_DIR . '/reminders.log';
 
 function logCron($msg) {
   global $LOG_FILE;

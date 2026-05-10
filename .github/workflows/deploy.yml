@@ -1,17 +1,17 @@
-name: LisonTechh
+name: LisonTech
 
 on:
   push:
     branches:
-      - main 
+      - main
 
 jobs:
   deploy:
-    name: Sincronizar FTP
+    name: Deploy FTP
     runs-on: ubuntu-latest
-    
+
     steps:
-      - name: Checkout do codigo
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Deploy via FTP
@@ -20,13 +20,16 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          
           server-dir: ./
-          
           exclude: |
             **/.git*
             **/.git*/**
-            .env.example
             .github/**
             README.md
             .gitignore
+            secure/config.env
+            public_html/config.env
+            public_html/.ftp-deploy-sync-state.json
+            public_html/log_*.txt
+            public_html/painel/api/log_*.txt
+            public_html/storage/logs/**

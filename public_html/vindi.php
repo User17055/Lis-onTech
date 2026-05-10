@@ -1,7 +1,11 @@
 <?php
 date_default_timezone_set('America/Sao_Paulo');
 
-$LOG_FILE = __DIR__ . '/log_vindi.txt';
+$LOG_DIR = __DIR__ . '/storage/logs';
+if (!is_dir($LOG_DIR)) {
+    @mkdir($LOG_DIR, 0755, true);
+}
+$LOG_FILE = $LOG_DIR . '/vindi.log';
 
 ini_set('log_errors', '1');
 ini_set('error_log', $LOG_FILE);
@@ -109,7 +113,7 @@ $VINDI_API_BASE = cfg($cfg, 'VINDI_API_BASE', 'https://app.vindi.com.br/api/v1')
 $TEMPLATE_NAME = cfg($cfg, 'META_TEMPLATE_NAME', 'fatura22');
 $TEMPLATE_LANG = cfg($cfg, 'META_TEMPLATE_LANG', 'pt_BR');
 
-$LOG_FILE = __DIR__ . '/log_vindi.txt';
+$LOG_FILE = $LOG_DIR . '/vindi.log';
 
 
 

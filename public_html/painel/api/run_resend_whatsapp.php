@@ -3,7 +3,11 @@ date_default_timezone_set('America/Sao_Paulo');
 header('Content-Type: application/json; charset=utf-8');
 
 // ✅ Log simples
-$LOG = __DIR__ . '/log_resend_whatsapp.txt';
+$LOG_DIR = __DIR__ . '/../../storage/logs';
+if (!is_dir($LOG_DIR)) {
+  @mkdir($LOG_DIR, 0755, true);
+}
+$LOG = $LOG_DIR . '/resend_whatsapp.log';
 function rlog($msg) {
   global $LOG;
   @file_put_contents($LOG, "[".date('d/m/Y H:i:s')."] ".$msg.PHP_EOL, FILE_APPEND);
