@@ -252,6 +252,24 @@ function logReminderAttempt(PDO $pdo, int $billId, bool $ok, int $httpCode, stri
 /**
  * Seleciona bills vencidas e liberadas pra enviar
  */
+$whereSql = "
+  active = 1
+  AND blocked = 0
+  AND (status IS NULL OR status = '' OR status = 'unpaid')
+  AND (due_at IS NULL OR due_at <= DATE_SUB(NOW(), INTERVAL {$FIRST_DELAY_DAYS} DAY))
+  AND (next_reminder_at IS NULL OR next_reminder_at <= NOW())
+  AND (overdue_sent_count IS NULL OR overdue_sent_count < :max_overdue)
+";
+
+if ($ONLY_BILL_ID > 0) {
+  $whereSql = "
+    bill_id = :only_bill_id
+    AND active = 1
+    AND blocked = 0
+    AND (overdue_sent_count IS NULL OR overdue_sent_count < :max_overdue)
+  ";
+}
+
 $sql = "
 SELECT
   bill_id, customer_id, customer_name, phone, bill_url, items_text, amount, due_at,
@@ -260,13 +278,7 @@ SELECT
   last_status, last_status_check_at,
   last_overdue_sent_at, next_reminder_at
 FROM bill_reminders
-WHERE active = 1
-  AND blocked = 0
-  AND (status IS NULL OR status = '' OR status = 'unpaid')
-  AND (due_at IS NULL OR due_at <= DATE_SUB(NOW(), INTERVAL {$FIRST_DELAY_DAYS} DAY))
-  AND (next_reminder_at IS NULL OR next_reminder_at <= NOW())
-  AND (overdue_sent_count IS NULL OR overdue_sent_count < :max_overdue)
-  " . ($ONLY_BILL_ID > 0 ? "AND bill_id = :only_bill_id\n" : "") . "
+WHERE {$whereSql}
 ORDER BY COALESCE(next_reminder_at, due_at) ASC
 LIMIT {$LIMIT}
 ";
@@ -285,7 +297,7 @@ $issues = [];
 if ($ONLY_BILL_ID > 0 && count($rows) === 0) {
   logLine("bill_id={$ONLY_BILL_ID} nao_elegivel");
   header('Content-Type: text/plain; charset=utf-8');
-  echo "ERRO bill_id={$ONLY_BILL_ID} nao esta elegivel para recobranca agora.\n";
+  echo "ERRO bill_id={$ONLY_BILL_ID} nao esta no controle local, esta bloqueada, inativa ou atingiu o limite de envios.\n";
   exit;
 }
 
@@ -299,9 +311,11 @@ foreach ($rows as $r) {
     WHERE bill_id = ?
       AND active = 1
       AND blocked = 0
+      " . ($ONLY_BILL_ID > 0 ? "" : "
       AND (status IS NULL OR status = '' OR status = 'unpaid')
       AND (due_at IS NULL OR due_at <= DATE_SUB(NOW(), INTERVAL {$FIRST_DELAY_DAYS} DAY))
       AND (next_reminder_at IS NULL OR next_reminder_at <= NOW())
+      ") . "
   ");
   $claim->execute([$billId]);
   if ($claim->rowCount() !== 1) { $skipped++; continue; }
@@ -356,6 +370,7 @@ foreach ($rows as $r) {
   $minDueTs = strtotime("-{$FIRST_DELAY_DAYS} days");
 
   if (!$dueTs || $dueTs > $minDueTs) {
+    $eligibleAt = $dueTs ? date('d/m/Y H:i', $dueTs + ($FIRST_DELAY_DAYS * 86400)) : 'sem vencimento';
     $nextAt = $dueTs
       ? date('Y-m-d H:i:s', max($dueTs + ($FIRST_DELAY_DAYS * 86400), time() + 86400))
       : date('Y-m-d H:i:s', time() + 86400);
@@ -373,7 +388,7 @@ foreach ($rows as $r) {
       $billId
     ]);
     logLine("bill_id={$billId} ainda_nao_completou_{$FIRST_DELAY_DAYS}_dias");
-    $issues[] = "bill_id={$billId} menos_de_{$FIRST_DELAY_DAYS}_dias";
+    $issues[] = "bill_id={$billId} so_pode_recobrar_em={$eligibleAt}";
     $skipped++;
     continue;
   }
