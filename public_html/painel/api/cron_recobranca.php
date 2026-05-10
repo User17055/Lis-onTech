@@ -16,6 +16,30 @@ function logLine(string $msg): void {
   @file_put_contents($LOG_FILE, "[" . date('d/m/Y H:i:s') . "] " . $msg . PHP_EOL, FILE_APPEND);
 }
 
+function respondCronError(string $message): void {
+  logLine("ERRO fatal: " . $message);
+  if (!headers_sent()) {
+    http_response_code(200);
+    header('Content-Type: text/plain; charset=utf-8');
+  }
+  echo "ERRO " . $message . "\n";
+}
+
+set_exception_handler(function (Throwable $e): void {
+  respondCronError($e->getMessage());
+  exit;
+});
+
+register_shutdown_function(function (): void {
+  $err = error_get_last();
+  if (!$err) return;
+  $fatalTypes = [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR];
+  if (!in_array((int)$err['type'], $fatalTypes, true)) return;
+  $file = isset($err['file']) ? basename((string)$err['file']) : 'arquivo desconhecido';
+  $line = isset($err['line']) ? (string)$err['line'] : '?';
+  respondCronError((string)$err['message'] . " em {$file}:{$line}");
+});
+
 function findRootWithFiles(array $files): string {
   $dir = __DIR__;
   for ($i = 0; $i < 10; $i++) {

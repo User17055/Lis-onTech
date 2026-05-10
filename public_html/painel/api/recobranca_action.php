@@ -5,6 +5,43 @@ header('Content-Type: application/json; charset=utf-8');
 ini_set('display_errors', '0');
 error_reporting(E_ALL);
 
+$LOG_DIR = __DIR__ . '/../../storage/logs';
+if (!is_dir($LOG_DIR)) {
+  @mkdir($LOG_DIR, 0755, true);
+}
+$LOG_FILE = $LOG_DIR . '/recobranca_action.log';
+ini_set('log_errors', '1');
+ini_set('error_log', $LOG_FILE);
+
+function actionLogLine(string $msg): void {
+  global $LOG_FILE;
+  @file_put_contents($LOG_FILE, "[" . date('d/m/Y H:i:s') . "] " . $msg . PHP_EOL, FILE_APPEND);
+}
+
+function respondActionError(string $message): void {
+  actionLogLine("ERRO fatal: " . $message);
+  if (!headers_sent()) {
+    http_response_code(200);
+    header('Content-Type: application/json; charset=utf-8');
+  }
+  echo json_encode(['ok' => false, 'error' => $message], JSON_UNESCAPED_UNICODE);
+}
+
+set_exception_handler(function (Throwable $e): void {
+  respondActionError($e->getMessage());
+  exit;
+});
+
+register_shutdown_function(function (): void {
+  $err = error_get_last();
+  if (!$err) return;
+  $fatalTypes = [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR];
+  if (!in_array((int)$err['type'], $fatalTypes, true)) return;
+  $file = isset($err['file']) ? basename((string)$err['file']) : 'arquivo desconhecido';
+  $line = isset($err['line']) ? (string)$err['line'] : '?';
+  respondActionError((string)$err['message'] . " em {$file}:{$line}");
+});
+
 function findRootWithFiles(array $files): string {
   $dir = __DIR__;
   for ($i = 0; $i < 10; $i++) {
