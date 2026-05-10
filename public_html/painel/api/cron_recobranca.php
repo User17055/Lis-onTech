@@ -158,6 +158,78 @@ function buildBillItemsText(array $bill): string {
   return waClean(implode(" | ", $linhas));
 }
 
+function mysqlDateTimeOrNull($value): ?string {
+  if ($value === null || trim((string)$value) === '') return null;
+  $ts = strtotime((string)$value);
+  return $ts ? date('Y-m-d H:i:s', $ts) : null;
+}
+
+function billAmountOrNull(array $bill): ?float {
+  foreach (['amount', 'total', 'price'] as $key) {
+    if (isset($bill[$key]) && is_numeric($bill[$key])) return (float)$bill[$key];
+  }
+  return null;
+}
+
+function ensureManualReminderRow(PDO $pdo, int $billId, string $base, string $apiKey): ?string {
+  $st = $pdo->prepare("SELECT bill_id FROM bill_reminders WHERE bill_id = ? LIMIT 1");
+  $st->execute([$billId]);
+  if ($st->fetch(PDO::FETCH_ASSOC)) {
+    $pdo->prepare("
+      UPDATE bill_reminders
+      SET active = 1,
+          blocked = 0,
+          status = 'unpaid',
+          next_reminder_at = NOW()
+      WHERE bill_id = ?
+    ")->execute([$billId]);
+    return null;
+  }
+
+  $bill = vindiGetBill($billId, $base, $apiKey);
+  if (!$bill) return "nao consegui buscar esta bill na Vindi";
+
+  $customer = $bill['customer'] ?? [];
+  if (!is_array($customer)) $customer = [];
+  $customerId = (int)($customer['id'] ?? ($bill['customer_id'] ?? 0));
+  $phone = extractPhoneFromBill($bill);
+  if ((!$phone || trim($phone) === '') && $customerId > 0) {
+    $phone = getCustomerPhoneFromVindi($customerId, $base, $apiKey);
+  }
+
+  $st = $pdo->prepare("
+    INSERT INTO bill_reminders (
+      bill_id, customer_id, customer_name, phone, bill_url, items_text,
+      amount, due_at, active, blocked, status, next_reminder_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 0, 'unpaid', NOW())
+    ON DUPLICATE KEY UPDATE
+      customer_id = VALUES(customer_id),
+      customer_name = VALUES(customer_name),
+      phone = VALUES(phone),
+      bill_url = VALUES(bill_url),
+      items_text = VALUES(items_text),
+      amount = VALUES(amount),
+      due_at = VALUES(due_at),
+      active = 1,
+      blocked = 0,
+      status = 'unpaid',
+      next_reminder_at = NOW()
+  ");
+  $st->execute([
+    $billId,
+    $customerId > 0 ? $customerId : null,
+    (string)($customer['name'] ?? 'Cliente'),
+    (string)($phone ?? ''),
+    (string)($bill['url'] ?? ''),
+    buildBillItemsText($bill),
+    billAmountOrNull($bill),
+    mysqlDateTimeOrNull($bill['due_at'] ?? null),
+  ]);
+
+  return null;
+}
+
 function enviarTemplateWhatsApp(
   string $phoneNumberId,
   string $token,
@@ -252,6 +324,16 @@ function logReminderAttempt(PDO $pdo, int $billId, bool $ok, int $httpCode, stri
 /**
  * Seleciona bills vencidas e liberadas pra enviar
  */
+if ($ONLY_BILL_ID > 0) {
+  $manualSeedError = ensureManualReminderRow($pdo, $ONLY_BILL_ID, $VINDI_API_BASE, $VINDI_API_KEY);
+  if ($manualSeedError !== null) {
+    logLine("bill_id={$ONLY_BILL_ID} manual_seed_fail={$manualSeedError}");
+    header('Content-Type: text/plain; charset=utf-8');
+    echo "ERRO bill_id={$ONLY_BILL_ID} {$manualSeedError}.\n";
+    exit;
+  }
+}
+
 $whereSql = "
   active = 1
   AND blocked = 0
@@ -264,9 +346,6 @@ $whereSql = "
 if ($ONLY_BILL_ID > 0) {
   $whereSql = "
     bill_id = :only_bill_id
-    AND active = 1
-    AND blocked = 0
-    AND (overdue_sent_count IS NULL OR overdue_sent_count < :max_overdue)
   ";
 }
 
@@ -297,7 +376,7 @@ $issues = [];
 if ($ONLY_BILL_ID > 0 && count($rows) === 0) {
   logLine("bill_id={$ONLY_BILL_ID} nao_elegivel");
   header('Content-Type: text/plain; charset=utf-8');
-  echo "ERRO bill_id={$ONLY_BILL_ID} nao esta no controle local, esta bloqueada, inativa ou atingiu o limite de envios.\n";
+  echo "ERRO bill_id={$ONLY_BILL_ID} nao encontrei esta bill no controle local depois de preparar o envio.\n";
   exit;
 }
 
@@ -309,9 +388,9 @@ foreach ($rows as $r) {
     UPDATE bill_reminders
     SET next_reminder_at = DATE_ADD(NOW(), INTERVAL 10 MINUTE)
     WHERE bill_id = ?
+      " . ($ONLY_BILL_ID > 0 ? "" : "
       AND active = 1
       AND blocked = 0
-      " . ($ONLY_BILL_ID > 0 ? "" : "
       AND (status IS NULL OR status = '' OR status = 'unpaid')
       AND (due_at IS NULL OR due_at <= DATE_SUB(NOW(), INTERVAL {$FIRST_DELAY_DAYS} DAY))
       AND (next_reminder_at IS NULL OR next_reminder_at <= NOW())
