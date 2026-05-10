@@ -210,6 +210,42 @@ function enviarTemplateWhatsApp(
   ];
 }
 
+function ensureReminderLogsTable(PDO $pdo): void {
+  static $done = false;
+  if ($done) return;
+
+  $pdo->exec("
+    CREATE TABLE IF NOT EXISTS reminder_logs (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      bill_id BIGINT UNSIGNED NOT NULL,
+      ok TINYINT(1) NOT NULL DEFAULT 0,
+      http_code INT NULL,
+      message VARCHAR(255) NULL,
+      response_raw MEDIUMTEXT NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY idx_reminder_logs_bill_created (bill_id, created_at),
+      KEY idx_reminder_logs_created (created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  ");
+
+  $done = true;
+}
+
+function logReminderAttempt(PDO $pdo, int $billId, bool $ok, int $httpCode, string $message, string $raw): void {
+  try {
+    ensureReminderLogsTable($pdo);
+    $message = substr($message, 0, 255);
+    $st = $pdo->prepare("
+      INSERT INTO reminder_logs (bill_id, ok, http_code, message, response_raw)
+      VALUES (?, ?, ?, ?, ?)
+    ");
+    $st->execute([$billId, $ok ? 1 : 0, $httpCode, $message, $raw]);
+  } catch (Throwable $e) {
+    logLine("bill_id={$billId} reminder_logs_fail=" . $e->getMessage());
+  }
+}
+
 /**
  * Seleciona bills vencidas e liberadas pra enviar
  */
@@ -407,6 +443,15 @@ foreach ($rows as $r) {
     && empty($respArr['error']);
 
   if ($ok) {
+    logReminderAttempt(
+      $pdo,
+      $billId,
+      true,
+      (int)$resp['http'],
+      'Recobranca enviada via WhatsApp',
+      (string)($resp['response_raw'] ?? '')
+    );
+
     $pdo->prepare("
       UPDATE bill_reminders
       SET last_overdue_sent_at = NOW(),
@@ -429,6 +474,19 @@ foreach ($rows as $r) {
     $ls   = "meta_fail";
     if ($code !== '') $ls = "m{$code}";
     if ($sub  !== '') $ls = substr($ls . "_s{$sub}", 0, 30);
+
+    $failMessage = "Falha ao enviar recobranca";
+    if (!empty($respArr['error']['message'])) {
+      $failMessage .= ': ' . (string)$respArr['error']['message'];
+    }
+    logReminderAttempt(
+      $pdo,
+      $billId,
+      false,
+      (int)$resp['http'],
+      $failMessage,
+      (string)($resp['response_raw'] ?? '')
+    );
 
     $pdo->prepare("
       UPDATE bill_reminders

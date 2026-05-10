@@ -99,6 +99,66 @@ function vindiListCustomersByName(string $base, string $apiKey, string $name, in
   return $ids;
 }
 
+function latestReminderLogs(PDO $pdo, array $billIds): array {
+  $billIds = array_values(array_unique(array_filter(array_map('intval', $billIds))));
+  if (empty($billIds)) return [];
+
+  $in = implode(',', array_fill(0, count($billIds), '?'));
+  try {
+    $st = $pdo->prepare("
+      SELECT rl.bill_id, rl.created_at, rl.message, rl.ok, rl.http_code
+      FROM reminder_logs rl
+      INNER JOIN (
+        SELECT bill_id, MAX(created_at) AS created_at
+        FROM reminder_logs
+        WHERE bill_id IN ($in)
+        GROUP BY bill_id
+      ) last_log
+        ON last_log.bill_id = rl.bill_id
+       AND last_log.created_at = rl.created_at
+    ");
+    $st->execute($billIds);
+
+    $map = [];
+    foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $row) {
+      $map[(int)$row['bill_id']] = $row;
+    }
+    return $map;
+  } catch (Throwable $e) {
+    return [];
+  }
+}
+
+function applyLastMessage(array &$row, array $lastLogs): void {
+  $billId = (int)($row['bill_id'] ?? 0);
+  $log = $lastLogs[$billId] ?? null;
+
+  if ($log) {
+    $row['last_message_at'] = $log['created_at'] ?? null;
+    $row['last_message'] = (string)($log['message'] ?? 'Mensagem registrada');
+    $row['last_message_ok'] = isset($log['ok']) ? (int)$log['ok'] : null;
+    $row['last_message_http'] = isset($log['http_code']) ? (int)$log['http_code'] : null;
+    return;
+  }
+
+  $lastSent = $row['last_overdue_sent_at'] ?? ($row['last_reminder_sent_at'] ?? null);
+  $lastCheck = $row['last_status_check_at'] ?? null;
+  $lastStatus = (string)($row['last_status'] ?? '');
+
+  $row['last_message_at'] = $lastSent ?: ($lastStatus !== '' ? $lastCheck : null);
+  if ($lastSent) {
+    $row['last_message'] = 'Recobranca enviada via WhatsApp';
+    $row['last_message_ok'] = 1;
+  } elseif ($lastStatus !== '') {
+    $row['last_message'] = 'Ultima tentativa: ' . $lastStatus;
+    $row['last_message_ok'] = 0;
+  } else {
+    $row['last_message'] = 'Nenhuma mensagem enviada ainda';
+    $row['last_message_ok'] = null;
+  }
+  $row['last_message_http'] = null;
+}
+
 try {
   $ROOT = findRootWithFiles(['config.php', 'db.php']);
   require_once $ROOT . '/config.php';
@@ -126,8 +186,9 @@ try {
   // Se quiser listar "blocked" (é local), a gente lista do banco e opcionalmente puxa detalhes por ID depois.
   if ($statusUI === 'blocked') {
     $st = $pdo->prepare("
-      SELECT bill_id, customer_name, amount, due_at, status, blocked,
-             overdue_sent_count, reminder_attempts, next_reminder_at, last_overdue_sent_at, last_status
+      SELECT bill_id, customer_name, phone, bill_url, amount, due_at, status, blocked,
+             overdue_sent_count, reminder_attempts, next_reminder_at, last_overdue_sent_at,
+             last_reminder_sent_at, last_status, last_status_check_at
       FROM bill_reminders
       WHERE blocked=1
       ORDER BY updated_at DESC
@@ -135,12 +196,14 @@ try {
     );
     $st->execute();
     $rows = $st->fetchAll(PDO::FETCH_ASSOC);
+    $lastLogs = latestReminderLogs($pdo, array_column($rows, 'bill_id'));
     foreach ($rows as &$row) {
       $row['days_overdue'] = null;
       if (!empty($row['due_at'])) {
         $days = (int)floor((time() - strtotime((string)$row['due_at'])) / 86400);
         $row['days_overdue'] = max(0, $days);
       }
+      applyLastMessage($row, $lastLogs);
     }
     unset($row);
 
@@ -207,10 +270,11 @@ try {
   }
 
   $localMap = [];
+  $lastLogMap = [];
   if (!empty($ids)) {
     $in = implode(',', array_fill(0, count($ids), '?'));
     $st = $pdo->prepare("
-      SELECT bill_id, phone, bill_url, blocked, overdue_sent_count, reminder_attempts, next_reminder_at, last_overdue_sent_at, last_status
+      SELECT bill_id, phone, bill_url, blocked, overdue_sent_count, reminder_attempts, next_reminder_at, last_overdue_sent_at, last_reminder_sent_at, last_status, last_status_check_at
       FROM bill_reminders
       WHERE bill_id IN ($in)
     ");
@@ -218,6 +282,7 @@ try {
     foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) {
       $localMap[(int)$r['bill_id']] = $r;
     }
+    $lastLogMap = latestReminderLogs($pdo, $ids);
   }
 
   $rows = [];
@@ -241,7 +306,7 @@ try {
       $daysOverdue = max(0, (int)floor((time() - strtotime((string)$dueAt)) / 86400));
     }
 
-    $rows[] = [
+    $row = [
       'bill_id' => $billId,
       'customer_id' => $custId,
       'customer_name' => $custName,
@@ -258,8 +323,13 @@ try {
       'reminder_attempts' => (int)($loc['reminder_attempts'] ?? 0),
       'next_reminder_at' => $loc['next_reminder_at'] ?? null,
       'last_overdue_sent_at' => $loc['last_overdue_sent_at'] ?? null,
+      'last_reminder_sent_at' => $loc['last_reminder_sent_at'] ?? null,
       'last_status' => $loc['last_status'] ?? null,
+      'last_status_check_at' => $loc['last_status_check_at'] ?? null,
     ];
+
+    applyLastMessage($row, $lastLogMap);
+    $rows[] = $row;
   }
 
   echo json_encode([

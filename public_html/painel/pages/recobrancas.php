@@ -147,6 +147,22 @@
 
     .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:var(--bg-panel);border:2px solid var(--border-color);font-weight:800;font-size:12px;color:var(--text-main);white-space:nowrap;}
 
+    .customer-cell{display:grid;grid-template-columns:10px 1fr;gap:14px;align-items:center;}
+    .status-dot{width:10px;height:46px;border-radius:99px;background:var(--primary);box-shadow:0 0 0 4px #eff6ff;}
+    .status-dot.ready{background:#2563eb;}
+    .status-dot.wait{background:#f59e0b;box-shadow:0 0 0 4px #fef3c7;}
+    .status-dot.blocked{background:#d97706;box-shadow:0 0 0 4px #fef3c7;}
+    .status-dot.paid{background:#059669;box-shadow:0 0 0 4px #d1fae5;}
+
+    .status-stack{display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-width:270px;}
+    .last-message{display:flex;align-items:flex-start;gap:9px;background:#f8fafc;border:2px solid var(--border-color);border-radius:14px;padding:9px 11px;max-width:340px;color:var(--text-main);font-size:12px;font-weight:800;line-height:1.3;}
+    .last-message i{color:var(--primary);margin-top:1px;}
+    .last-message.fail{background:var(--red-bg);border-color:var(--red-bg);color:var(--red-text);}
+    .last-message.fail i{color:var(--red-text);}
+    .date-line{display:inline-flex;align-items:center;gap:7px;color:var(--text-muted);font-weight:800;font-size:12px;}
+    .date-line i{color:#94a3b8;}
+    .action-grid{display:grid;grid-template-columns:repeat(2,max-content);gap:10px;justify-content:end;}
+
     .btn-mini{
       border:2px solid var(--border-color);
       background:#fff;
@@ -234,7 +250,7 @@
           <th>Cliente / Bill</th>
           <th>Valor</th>
           <th>Vencimento</th>
-          <th>Status</th>
+          <th>Status / Ultima mensagem</th>
           <th>Envios</th>
           <th style="text-align:right;">Acoes</th>
         </tr>
@@ -282,6 +298,13 @@
       if (normalized === 'canceled') return `<span class="badge b-canceled"><i class="fa-solid fa-ban"></i> Cancelado</span>`;
       if (ready) return `<span class="badge b-ready"><i class="fa-solid fa-bolt"></i> Pronto</span>`;
       return `<span class="badge b-unpaid"><i class="fa-solid fa-clock"></i> Aguardando</span>`;
+    }
+
+    function rowDotClass(normalized, ready){
+      if (normalized === 'blocked') return 'blocked';
+      if (normalized === 'paid') return 'paid';
+      if (ready) return 'ready';
+      return 'wait';
     }
 
     function setStatus(text, type='ok'){
@@ -413,7 +436,9 @@
           const billUrl = String(row.bill_url || '');
           const phone = row.phone ? `Tel ${esc(row.phone)}` : 'Tel nao salvo';
           const next = row.next_reminder_at ? fmtDateTimeBr(row.next_reminder_at) : '-';
-          const last = row.last_overdue_sent_at ? fmtDateTimeBr(row.last_overdue_sent_at) : '-';
+          const lastAt = row.last_message_at ? fmtDateTimeBr(row.last_message_at) : 'Sem envio';
+          const lastMessage = row.last_message || 'Nenhuma mensagem enviada ainda';
+          const lastOk = row.last_message_ok;
           const lastStatus = row.last_status ? esc(row.last_status) : '-';
 
           const btnNow = `<button class="btn-mini" data-act="send_now" data-id="${billId}" ${blocked || !ready ? 'disabled' : ''} title="${ready ? 'Agenda e processa agora' : 'So libera apos 7 dias de atraso'}">
@@ -432,9 +457,14 @@
           return `
             <tr>
               <td>
-                <span class="customer-name">${esc(row.customer_name || 'Cliente')}</span>
-                <span class="bill-id">Bill ${esc(billId)}</span>
-                <span class="muted">${phone} • ${days} dias em atraso</span>
+                <div class="customer-cell">
+                  <span class="status-dot ${rowDotClass(normalized, ready)}"></span>
+                  <div>
+                    <span class="customer-name">${esc(row.customer_name || 'Cliente')}</span>
+                    <span class="bill-id">Bill ${esc(billId)}</span>
+                    <span class="muted">${phone} | ${days} dias em atraso</span>
+                  </div>
+                </div>
               </td>
               <td><span class="pill"><i class="fa-solid fa-coins"></i> ${fmtMoney(row.amount)}</span></td>
               <td>
@@ -442,15 +472,21 @@
                 <span class="muted">Prox: ${esc(next)}</span>
               </td>
               <td>
-                ${badge(row.status, row.blocked, ready)}
-                <span class="muted">Ultimo: ${esc(last)} • ${lastStatus}</span>
+                <div class="status-stack">
+                  ${badge(row.status, row.blocked, ready)}
+                  <div class="last-message ${lastOk === 0 ? 'fail' : ''}">
+                    <i class="fa-solid ${lastOk === 0 ? 'fa-triangle-exclamation' : 'fa-message'}"></i>
+                    <span>${esc(lastMessage)}</span>
+                  </div>
+                  <span class="date-line"><i class="fa-regular fa-clock"></i> ${esc(lastAt)} | ${lastStatus}</span>
+                </div>
               </td>
               <td>
                 <span class="pill"><i class="fa-solid fa-paper-plane"></i> ${Number(row.overdue_sent_count || 0)}</span>
                 <span class="pill" style="margin-left:6px;"><i class="fa-solid fa-triangle-exclamation"></i> ${Number(row.reminder_attempts || 0)}</span>
               </td>
               <td style="text-align:right;">
-                <div style="display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;">
+                <div class="action-grid">
                   ${btnNow}${btnPause}${btnResume}${btnBill}
                 </div>
               </td>
