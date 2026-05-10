@@ -1,5 +1,6 @@
 <?php
 date_default_timezone_set('America/Sao_Paulo');
+header('Content-Type: application/json; charset=utf-8');
 
 function findRootWithFiles(array $files): string {
   $dir = __DIR__;
@@ -11,19 +12,21 @@ function findRootWithFiles(array $files): string {
     if ($ok) return $dir;
     $dir = dirname($dir);
   }
-  throw new RuntimeException("Raiz não encontrada");
+  throw new RuntimeException('Raiz nao encontrada');
 }
 
-header('Content-Type: application/json; charset=utf-8');
-
 try {
-  if ($_SERVER['REQUEST_METHOD'] !== 'POST') throw new RuntimeException("POST obrigatório");
+  if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    throw new RuntimeException('POST obrigatorio');
+  }
 
   $billId = (int)($_POST['bill_id'] ?? 0);
   $action = trim((string)($_POST['action'] ?? ''));
 
-  if ($billId <= 0) throw new RuntimeException("bill_id inválido");
-  if (!in_array($action, ['pause','resume','send_now'], true)) throw new RuntimeException("action inválida");
+  if ($billId <= 0) throw new RuntimeException('bill_id invalido');
+  if (!in_array($action, ['pause', 'resume', 'send_now'], true)) {
+    throw new RuntimeException('action invalida');
+  }
 
   $ROOT = findRootWithFiles(['config.php', 'db.php']);
   require_once $ROOT . '/config.php';
@@ -31,35 +34,44 @@ try {
 
   if ($action === 'pause') {
     $st = $pdo->prepare("
-      UPDATE bill_reminders
-      SET blocked=1, status='blocked', next_reminder_at=NULL
-      WHERE bill_id=?
-      LIMIT 1
+      INSERT INTO bill_reminders (bill_id, active, blocked, status, next_reminder_at)
+      VALUES (?, 1, 1, 'blocked', NULL)
+      ON DUPLICATE KEY UPDATE
+        active=1,
+        blocked=1,
+        status='blocked',
+        next_reminder_at=NULL
     ");
-    $st->execute([$billId]);
-  }
-
-  if ($action === 'resume') {
+  } elseif ($action === 'resume') {
     $st = $pdo->prepare("
-      UPDATE bill_reminders
-      SET blocked=0, active=1, status='unpaid', next_reminder_at=NOW()
-      WHERE bill_id=?
-      LIMIT 1
+      INSERT INTO bill_reminders (bill_id, active, blocked, status, next_reminder_at)
+      VALUES (?, 1, 0, 'unpaid', NOW())
+      ON DUPLICATE KEY UPDATE
+        active=1,
+        blocked=0,
+        status='unpaid',
+        next_reminder_at=NOW()
     ");
-    $st->execute([$billId]);
-  }
-
-  if ($action === 'send_now') {
+  } else {
     $st = $pdo->prepare("
-      UPDATE bill_reminders
-      SET next_reminder_at=NOW()
-      WHERE bill_id=? AND active=1 AND blocked=0 AND status='unpaid'
-      LIMIT 1
+      INSERT INTO bill_reminders (bill_id, active, blocked, status, next_reminder_at)
+      VALUES (?, 1, 0, 'unpaid', NOW())
+      ON DUPLICATE KEY UPDATE
+        active=1,
+        blocked=0,
+        status='unpaid',
+        next_reminder_at=NOW()
     ");
-    $st->execute([$billId]);
   }
 
-  echo json_encode(['ok'=>true], JSON_UNESCAPED_UNICODE);
+  $st->execute([$billId]);
+
+  echo json_encode([
+    'ok' => true,
+    'action' => $action,
+    'bill_id' => $billId,
+    'changed' => $st->rowCount(),
+  ], JSON_UNESCAPED_UNICODE);
 } catch (Throwable $e) {
-  echo json_encode(['ok'=>false, 'error'=>$e->getMessage()], JSON_UNESCAPED_UNICODE);
+  echo json_encode(['ok' => false, 'error' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
 }

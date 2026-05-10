@@ -121,6 +121,7 @@ try {
   if ($statusUI === '' || $statusUI === 'unpaid') $statusVindi = 'pending';
   if ($statusUI === 'paid') $statusVindi = 'paid';
   if ($statusUI === 'canceled') $statusVindi = 'canceled';
+  if ($statusUI === 'all') $statusVindi = '';
 
   // Se quiser listar "blocked" (é local), a gente lista do banco e opcionalmente puxa detalhes por ID depois.
   if ($statusUI === 'blocked') {
@@ -134,6 +135,14 @@ try {
     );
     $st->execute();
     $rows = $st->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($rows as &$row) {
+      $row['days_overdue'] = null;
+      if (!empty($row['due_at'])) {
+        $days = (int)floor((time() - strtotime((string)$row['due_at'])) / 86400);
+        $row['days_overdue'] = max(0, $days);
+      }
+    }
+    unset($row);
 
     echo json_encode([
       'ok'=>true,
@@ -178,7 +187,7 @@ try {
   }
 
   $query = implode(" AND ", $parts);
-  if ($query === '') $query = 'status=pending'; // padrão: devendo
+  if ($query === '' && $statusUI !== 'all') $query = 'status=pending'; // padrão: devendo
 
   $v = vindiListBills($VINDI_API_BASE, $VINDI_API_KEY, $query, $page, $limit);
   if (!$v['ok']) {
@@ -201,7 +210,7 @@ try {
   if (!empty($ids)) {
     $in = implode(',', array_fill(0, count($ids), '?'));
     $st = $pdo->prepare("
-      SELECT bill_id, blocked, overdue_sent_count, reminder_attempts, next_reminder_at, last_overdue_sent_at, last_status
+      SELECT bill_id, phone, bill_url, blocked, overdue_sent_count, reminder_attempts, next_reminder_at, last_overdue_sent_at, last_status
       FROM bill_reminders
       WHERE bill_id IN ($in)
     ");
@@ -221,9 +230,16 @@ try {
     $dueAt  = $b['due_at'] ?? null;
     $status = (string)($b['status'] ?? '');
 
-    $url = (string)($b['url'] ?? '');
-
     $loc = $localMap[$billId] ?? [];
+    $url = (string)($b['url'] ?? ($loc['bill_url'] ?? ''));
+    $phone = (string)($loc['phone'] ?? '');
+    if ($phone === '' && is_array($cust)) {
+      $phone = (string)($cust['phone_number'] ?? $cust['mobile'] ?? $cust['phone'] ?? '');
+    }
+    $daysOverdue = null;
+    if (!empty($dueAt)) {
+      $daysOverdue = max(0, (int)floor((time() - strtotime((string)$dueAt)) / 86400));
+    }
 
     $rows[] = [
       'bill_id' => $billId,
@@ -233,6 +249,8 @@ try {
       'due_at' => $dueAt,
       'status' => $status, // AO VIVO da Vindi
       'bill_url' => $url,
+      'phone' => $phone,
+      'days_overdue' => $daysOverdue,
 
       // controle interno (do seu banco)
       'blocked' => (int)($loc['blocked'] ?? 0),
