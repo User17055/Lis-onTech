@@ -69,7 +69,16 @@ $META_ACCESS_TOKEN    = cfg($cfg, 'META_ACCESS_TOKEN');
 $VINDI_API_KEY  = cfg($cfg, 'VINDI_API_KEY');
 $VINDI_API_BASE = cfg($cfg, 'VINDI_API_BASE', 'https://app.vindi.com.br/api/v1');
 
-$TEMPLATE_NAME = cfg($cfg, 'META_TEMPLATE_RECOBRANCA', cfg($cfg, 'META_TEMPLATE_NAME', 'fatura22'));
+$TEMPLATE_NAME = cfg($cfg, 'META_TEMPLATE_RECOBRANCA');
+if ($TEMPLATE_NAME === '') {
+  $TEMPLATE_NAME = cfg($cfg, 'META_TEMPLATE_REMINDER_NAME');
+}
+if ($TEMPLATE_NAME === '') {
+  $TEMPLATE_NAME = cfg($cfg, 'META_TEMPLATE_NAME');
+}
+if ($TEMPLATE_NAME === '') {
+  $TEMPLATE_NAME = 'fatura22';
+}
 $TEMPLATE_LANG = cfg($cfg, 'META_TEMPLATE_LANG', 'pt_BR');
 
 $DRY_RUN = (isset($_GET['dry_run']) && $_GET['dry_run'] === '1');
@@ -80,10 +89,10 @@ $INTERVAL_DAYS = (int) cfg($cfg, 'RECOBRANCA_INTERVAL_DAYS', 7);
 $FIRST_DELAY_DAYS = max(1, (int) cfg($cfg, 'RECOBRANCA_FIRST_DELAY_DAYS', '7'));
 $MAX_OVERDUE   = (int) cfg($cfg, 'RECOBRANCA_MAX_OVERDUE', 12);
 
-if ($META_PHONE_NUMBER_ID === '' || $META_ACCESS_TOKEN === '' || $VINDI_API_KEY === '') {
-  logLine("ERRO config incompleta META/VINDI.");
+if ($META_PHONE_NUMBER_ID === '' || $META_ACCESS_TOKEN === '' || $VINDI_API_KEY === '' || $TEMPLATE_NAME === '') {
+  logLine("ERRO config incompleta META/VINDI/TEMPLATE.");
   header('Content-Type: text/plain; charset=utf-8');
-  echo "ERRO config incompleta META/VINDI.\n";
+  echo "ERRO config incompleta META/VINDI/TEMPLATE.\n";
   http_response_code(200);
   exit;
 }

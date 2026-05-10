@@ -158,12 +158,15 @@ try {
   // configs Meta
   $META_PHONE_NUMBER_ID = cfg($cfg, 'META_PHONE_NUMBER_ID');
   $META_ACCESS_TOKEN    = cfg($cfg, 'META_ACCESS_TOKEN');
-  $TEMPLATE_NAME        = cfg($cfg, 'META_TEMPLATE_NAME', 'fatura22');
+  $TEMPLATE_NAME        = cfg($cfg, 'META_TEMPLATE_NAME');
+  if ($TEMPLATE_NAME === '') {
+    $TEMPLATE_NAME = 'fatura22';
+  }
   $TEMPLATE_LANG        = cfg($cfg, 'META_TEMPLATE_LANG', 'pt_BR');
 
-  if ($META_PHONE_NUMBER_ID === '' || $META_ACCESS_TOKEN === '') {
+  if ($META_PHONE_NUMBER_ID === '' || $META_ACCESS_TOKEN === '' || $TEMPLATE_NAME === '') {
     http_response_code(500);
-    echo json_encode(['ok' => false, 'error' => 'Config META incompleta']);
+    echo json_encode(['ok' => false, 'error' => 'Config META/template incompleta']);
     exit;
   }
 

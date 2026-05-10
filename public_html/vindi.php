@@ -110,7 +110,10 @@ $META_ACCESS_TOKEN = cfg($cfg, 'META_ACCESS_TOKEN');
 $VINDI_API_KEY = cfg($cfg, 'VINDI_API_KEY');
 $VINDI_API_BASE = cfg($cfg, 'VINDI_API_BASE', 'https://app.vindi.com.br/api/v1');
 
-$TEMPLATE_NAME = cfg($cfg, 'META_TEMPLATE_NAME', 'fatura22');
+$TEMPLATE_NAME = cfg($cfg, 'META_TEMPLATE_NAME');
+if ($TEMPLATE_NAME === '') {
+    $TEMPLATE_NAME = 'fatura22';
+}
 $TEMPLATE_LANG = cfg($cfg, 'META_TEMPLATE_LANG', 'pt_BR');
 $FIRST_DELAY_DAYS = max(1, (int) cfg($cfg, 'RECOBRANCA_FIRST_DELAY_DAYS', '7'));
 
@@ -247,12 +250,13 @@ dbg($LOG_FILE, $DEBUG, $pdo ?? null, null, 'BOOT', [
 
 
 
-if ($META_PHONE_NUMBER_ID === '' || $META_ACCESS_TOKEN === '' || $VINDI_API_KEY === '') {
+if ($META_PHONE_NUMBER_ID === '' || $META_ACCESS_TOKEN === '' || $VINDI_API_KEY === '' || $TEMPLATE_NAME === '') {
     logLine($LOG_FILE, "ERRO: config.env incompleto (META/VINDI).");
     dbg($LOG_FILE, $DEBUG, $pdo, $runId, 'ENV_FAIL', [
         'META_PHONE_NUMBER_ID' => mask($META_PHONE_NUMBER_ID),
         'META_ACCESS_TOKEN' => mask($META_ACCESS_TOKEN),
         'VINDI_API_KEY' => mask($VINDI_API_KEY),
+        'TEMPLATE_NAME' => $TEMPLATE_NAME,
     ]);
     http_response_code(200);
     exit;
