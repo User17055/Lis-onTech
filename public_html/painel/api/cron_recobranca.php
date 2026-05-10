@@ -262,7 +262,7 @@ SELECT
 FROM bill_reminders
 WHERE active = 1
   AND blocked = 0
-  AND COALESCE(NULLIF(status, ''), 'unpaid') = 'unpaid'
+  AND (status IS NULL OR status = '' OR status = 'unpaid')
   AND (due_at IS NULL OR due_at <= DATE_SUB(NOW(), INTERVAL {$FIRST_DELAY_DAYS} DAY))
   AND (next_reminder_at IS NULL OR next_reminder_at <= NOW())
   AND (overdue_sent_count IS NULL OR overdue_sent_count < :max_overdue)
@@ -299,7 +299,7 @@ foreach ($rows as $r) {
     WHERE bill_id = ?
       AND active = 1
       AND blocked = 0
-      AND COALESCE(NULLIF(status, ''), 'unpaid') = 'unpaid'
+      AND (status IS NULL OR status = '' OR status = 'unpaid')
       AND (due_at IS NULL OR due_at <= DATE_SUB(NOW(), INTERVAL {$FIRST_DELAY_DAYS} DAY))
       AND (next_reminder_at IS NULL OR next_reminder_at <= NOW())
   ");
@@ -408,10 +408,10 @@ foreach ($rows as $r) {
   // Atualiza cache local
   $pdo->prepare("
     UPDATE bill_reminders
-    SET customer_name = COALESCE(customer_name, ?),
-        phone = COALESCE(phone, ?),
-        bill_url = COALESCE(bill_url, ?),
-        items_text = COALESCE(items_text, ?),
+    SET customer_name = ?,
+        phone = ?,
+        bill_url = ?,
+        items_text = ?,
         due_at = ?,
         last_status = ?,
         status = 'unpaid',

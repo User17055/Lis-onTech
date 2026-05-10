@@ -360,8 +360,8 @@ try {
                     ON DUPLICATE KEY UPDATE
                         customer_id = VALUES(customer_id),
                         customer_name = VALUES(customer_name),
-                        bill_url = COALESCE(NULLIF(VALUES(bill_url), ''), bill_url),
-                        items_text = COALESCE(NULLIF(VALUES(items_text), ''), items_text),
+                        bill_url = VALUES(bill_url),
+                        items_text = VALUES(items_text),
                         amount = COALESCE(VALUES(amount), amount),
                         due_at = COALESCE(VALUES(due_at), due_at),
                         active = IF(status IN ('paid', 'canceled', 'cancelled'), active, 1),
@@ -459,9 +459,9 @@ try {
                     ON DUPLICATE KEY UPDATE
                         customer_id = VALUES(customer_id),
                         customer_name = VALUES(customer_name),
-                        phone = COALESCE(NULLIF(VALUES(phone), ''), phone),
-                        bill_url = COALESCE(NULLIF(VALUES(bill_url), ''), bill_url),
-                        items_text = COALESCE(NULLIF(VALUES(items_text), ''), items_text),
+                        phone = VALUES(phone),
+                        bill_url = VALUES(bill_url),
+                        items_text = VALUES(items_text),
                         amount = COALESCE(VALUES(amount), amount),
                         due_at = COALESCE(VALUES(due_at), due_at),
                         active = IF(status IN ('paid', 'canceled', 'cancelled'), active, 1),

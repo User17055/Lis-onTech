@@ -171,6 +171,12 @@ function blankSeed(): array {
   ];
 }
 
+function preferFilled($newValue, $oldValue) {
+  if ($newValue === null) return $oldValue;
+  if (is_string($newValue) && trim($newValue) === '') return $oldValue;
+  return $newValue;
+}
+
 try {
   if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     throw new RuntimeException('POST obrigatorio');
@@ -192,7 +198,7 @@ try {
   $VINDI_API_BASE = cfg($cfg, 'VINDI_API_BASE', 'https://app.vindi.com.br/api/v1');
 
   $st = $pdo->prepare("
-    SELECT bill_id, customer_name, phone, bill_url, items_text, amount, due_at
+    SELECT bill_id, customer_id, customer_name, phone, bill_url, items_text, amount, due_at
     FROM bill_reminders
     WHERE bill_id = ?
     LIMIT 1
@@ -227,15 +233,25 @@ try {
   $nextReminderAt = $action === 'pause' ? null : date('Y-m-d H:i:s');
 
   if ($existing) {
+    $merged = [
+      'customer_id' => preferFilled($seed['customer_id'], $existing['customer_id'] ?? null),
+      'customer_name' => preferFilled($seed['customer_name'], $existing['customer_name'] ?? ''),
+      'phone' => preferFilled($seed['phone'], $existing['phone'] ?? ''),
+      'bill_url' => preferFilled($seed['bill_url'], $existing['bill_url'] ?? ''),
+      'items_text' => preferFilled($seed['items_text'], $existing['items_text'] ?? ''),
+      'amount' => preferFilled($seed['amount'], $existing['amount'] ?? null),
+      'due_at' => preferFilled($seed['due_at'], $existing['due_at'] ?? null),
+    ];
+
     $st = $pdo->prepare("
       UPDATE bill_reminders
-      SET customer_id = COALESCE(?, customer_id),
-          customer_name = COALESCE(NULLIF(?, ''), customer_name),
-          phone = COALESCE(NULLIF(?, ''), phone),
-          bill_url = COALESCE(NULLIF(?, ''), bill_url),
-          items_text = COALESCE(NULLIF(?, ''), items_text),
-          amount = COALESCE(?, amount),
-          due_at = COALESCE(?, due_at),
+      SET customer_id = ?,
+          customer_name = ?,
+          phone = ?,
+          bill_url = ?,
+          items_text = ?,
+          amount = ?,
+          due_at = ?,
           active = 1,
           blocked = ?,
           status = ?,
@@ -243,13 +259,13 @@ try {
       WHERE bill_id = ?
     ");
     $st->execute([
-      $seed['customer_id'],
-      $seed['customer_name'],
-      $seed['phone'],
-      $seed['bill_url'],
-      $seed['items_text'],
-      $seed['amount'],
-      $seed['due_at'],
+      $merged['customer_id'],
+      $merged['customer_name'],
+      $merged['phone'],
+      $merged['bill_url'],
+      $merged['items_text'],
+      $merged['amount'],
+      $merged['due_at'],
       $blocked,
       $status,
       $nextReminderAt,
