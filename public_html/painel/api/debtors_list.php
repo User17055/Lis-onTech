@@ -25,7 +25,7 @@ $q      = trim((string)($_GET['q'] ?? ''));
 $filter = trim((string)($_GET['filter'] ?? '')); // ready | waiting | all
 
 $params = [];
-$where  = " WHERE br.active = 1 ";
+$where  = " WHERE br.active = 1 AND br.due_at IS NOT NULL ";
 
 if ($q !== '') {
     if (ctype_digit($q)) {
@@ -48,14 +48,14 @@ SELECT
   COALESCE(MAX(ar.customer_name), 'Cliente') AS customer_name,
   COUNT(*) AS open_bills,
   MIN(br.created_sent_at) AS first_sent_at,
-  MAX(brOALESCE(br.weekly_last_sent_at, NULL)) AS last_weekly_sent_at,
-  TIMESTAMPDIFF(DAY, MIN(br.created_sent_at), NOW()) AS days_open,
+  MAX(br.weekly_last_sent_at) AS last_weekly_sent_at,
+  TIMESTAMPDIFF(DAY, MIN(br.due_at), NOW()) AS days_open,
   CASE
-    WHEN MIN(br.created_sent_at) <= DATE_SUB(NOW(), INTERVAL 7 DAY)
+    WHEN MIN(br.due_at) <= DATE_SUB(NOW(), INTERVAL 7 DAY)
      AND (MAX(br.weekly_last_sent_at) IS NULL OR MAX(br.weekly_last_sent_at) <= DATE_SUB(NOW(), INTERVAL 7 DAY))
     THEN 1 ELSE 0
   END AS ready_weekly,
-  GROUP_CONCAT(br.bill_id ORDER BY br.created_sent_at ASC SEPARATOR ', ') AS bill_ids
+  GROUP_CONCAT(br.bill_id ORDER BY br.due_at ASC SEPARATOR ', ') AS bill_ids
 FROM bill_reminders br
 LEFT JOIN (
     SELECT bill_id, MAX(created_at) AS last_created
@@ -85,12 +85,12 @@ SELECT
   COUNT(*) AS open_bills,
   MIN(br.created_sent_at) AS first_sent_at,
   NULL AS last_weekly_sent_at,
-  TIMESTAMPDIFF(DAY, MIN(br.created_sent_at), NOW()) AS days_open,
+  TIMESTAMPDIFF(DAY, MIN(br.due_at), NOW()) AS days_open,
   CASE
-    WHEN MIN(br.created_sent_at) <= DATE_SUB(NOW(), INTERVAL 7 DAY)
+    WHEN MIN(br.due_at) <= DATE_SUB(NOW(), INTERVAL 7 DAY)
     THEN 1 ELSE 0
   END AS ready_weekly,
-  GROUP_CONCAT(br.bill_id ORDER BY br.created_sent_at ASC SEPARATOR ', ') AS bill_ids
+  GROUP_CONCAT(br.bill_id ORDER BY br.due_at ASC SEPARATOR ', ') AS bill_ids
 FROM bill_reminders br
 LEFT JOIN (
     SELECT bill_id, MAX(created_at) AS last_created

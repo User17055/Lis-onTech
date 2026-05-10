@@ -112,6 +112,7 @@ $VINDI_API_BASE = cfg($cfg, 'VINDI_API_BASE', 'https://app.vindi.com.br/api/v1')
 
 $TEMPLATE_NAME = cfg($cfg, 'META_TEMPLATE_NAME', 'fatura22');
 $TEMPLATE_LANG = cfg($cfg, 'META_TEMPLATE_LANG', 'pt_BR');
+$FIRST_DELAY_DAYS = max(1, (int) cfg($cfg, 'RECOBRANCA_FIRST_DELAY_DAYS', '7'));
 
 $LOG_FILE = $LOG_DIR . '/vindi.log';
 
@@ -153,6 +154,27 @@ function dbg(string $logFile, bool $debug, ?PDO $pdo, ?string $runId, string $st
         } catch (Throwable $e) {
         }
     }
+}
+
+function mysqlDateTimeOrNull($value): ?string
+{
+    if (!is_string($value) || trim($value) === '') {
+        return null;
+    }
+
+    $ts = strtotime($value);
+    return $ts ? date('Y-m-d H:i:s', $ts) : null;
+}
+
+function billAmountOrNull(array $bill): ?string
+{
+    foreach (['amount', 'total', 'value'] as $key) {
+        if (isset($bill[$key]) && $bill[$key] !== '') {
+            return (string) $bill[$key];
+        }
+    }
+
+    return null;
 }
 
 $runId = null;
@@ -318,6 +340,54 @@ try {
             }
         }
 
+        if ($billIdInt > 0) {
+            $seedItemsText = buildBillItemsText($bill);
+            $seedDueAtSql = mysqlDateTimeOrNull($bill['due_at'] ?? null);
+            $seedAmount = billAmountOrNull($bill);
+
+            try {
+                $st = $pdo->prepare("
+                    INSERT INTO bill_reminders (
+                        bill_id, customer_id, customer_name, phone, bill_url, items_text,
+                        amount, due_at, active, blocked, status, next_reminder_at
+                    )
+                    VALUES (?, ?, ?, NULL, ?, ?, ?, ?, 1, 0, 'unpaid',
+                        CASE
+                            WHEN ? IS NULL THEN NULL
+                            ELSE DATE_ADD(?, INTERVAL {$FIRST_DELAY_DAYS} DAY)
+                        END
+                    )
+                    ON DUPLICATE KEY UPDATE
+                        customer_id = VALUES(customer_id),
+                        customer_name = VALUES(customer_name),
+                        bill_url = COALESCE(NULLIF(VALUES(bill_url), ''), bill_url),
+                        items_text = COALESCE(NULLIF(VALUES(items_text), ''), items_text),
+                        amount = COALESCE(VALUES(amount), amount),
+                        due_at = COALESCE(VALUES(due_at), due_at),
+                        active = IF(status IN ('paid', 'canceled', 'cancelled'), active, 1),
+                        status = IF(status IN ('paid', 'canceled', 'cancelled'), status, 'unpaid'),
+                        next_reminder_at = CASE
+                            WHEN next_reminder_at IS NOT NULL THEN next_reminder_at
+                            WHEN VALUES(due_at) IS NULL THEN next_reminder_at
+                            ELSE DATE_ADD(VALUES(due_at), INTERVAL {$FIRST_DELAY_DAYS} DAY)
+                        END
+                ");
+                $st->execute([
+                    $billIdInt,
+                    !empty($customerId) ? (int) $customerId : null,
+                    $nome,
+                    $link_fatura,
+                    $seedItemsText,
+                    $seedAmount,
+                    $seedDueAtSql,
+                    $seedDueAtSql,
+                    $seedDueAtSql,
+                ]);
+            } catch (Throwable $e) {
+                logLine($LOG_FILE, "ERRO ao criar controle inicial bill_reminders: " . $e->getMessage());
+            }
+        }
+
 
         dbg($LOG_FILE, $DEBUG, $pdo, $runId, 'RUN_CREATE_START', [
             'evento' => $evento,
@@ -370,6 +440,55 @@ try {
         runLog($pdo, $runId, 'info', "Montado envio WhatsApp. Itens: {$itens_texto}");
         dbg($LOG_FILE, $DEBUG, $pdo, $runId, 'ITEMS_OK', ['itens' => $itens_texto]);
 
+        $dueAtSql = mysqlDateTimeOrNull($bill['due_at'] ?? null);
+        $amount = billAmountOrNull($bill);
+
+        if ($billIdInt > 0) {
+            try {
+                $st = $pdo->prepare("
+                    INSERT INTO bill_reminders (
+                        bill_id, customer_id, customer_name, phone, bill_url, items_text,
+                        amount, due_at, active, blocked, status, next_reminder_at
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 0, 'unpaid',
+                        CASE
+                            WHEN ? IS NULL THEN NULL
+                            ELSE DATE_ADD(?, INTERVAL {$FIRST_DELAY_DAYS} DAY)
+                        END
+                    )
+                    ON DUPLICATE KEY UPDATE
+                        customer_id = VALUES(customer_id),
+                        customer_name = VALUES(customer_name),
+                        phone = COALESCE(NULLIF(VALUES(phone), ''), phone),
+                        bill_url = COALESCE(NULLIF(VALUES(bill_url), ''), bill_url),
+                        items_text = COALESCE(NULLIF(VALUES(items_text), ''), items_text),
+                        amount = COALESCE(VALUES(amount), amount),
+                        due_at = COALESCE(VALUES(due_at), due_at),
+                        active = IF(status IN ('paid', 'canceled', 'cancelled'), active, 1),
+                        status = IF(status IN ('paid', 'canceled', 'cancelled'), status, 'unpaid'),
+                        next_reminder_at = CASE
+                            WHEN next_reminder_at IS NOT NULL THEN next_reminder_at
+                            WHEN VALUES(due_at) IS NULL THEN next_reminder_at
+                            ELSE DATE_ADD(VALUES(due_at), INTERVAL {$FIRST_DELAY_DAYS} DAY)
+                        END
+                ");
+                $st->execute([
+                    $billIdInt,
+                    !empty($customerId) ? (int) $customerId : null,
+                    $nome,
+                    $telefone_cliente,
+                    $link_fatura,
+                    $itens_texto,
+                    $amount,
+                    $dueAtSql,
+                    $dueAtSql,
+                    $dueAtSql,
+                ]);
+            } catch (Throwable $e) {
+                logLine($LOG_FILE, "ERRO ao preparar bill_reminders: " . $e->getMessage());
+            }
+        }
+
         $variaveis = [
             ["type" => "text", "text" => waClean($nome)],
             ["type" => "text", "text" => waClean($link_fatura)],
@@ -419,16 +538,15 @@ try {
             // --- MARCA QUE bill_created FOI ENVIADO (created_sent_at) ---
             try {
                 $st = $pdo->prepare("
-        INSERT INTO bill_reminders (bill_id, customer_id, active, created_sent_at)
-        VALUES (?, ?, 1, NOW())
-        ON DUPLICATE KEY UPDATE
-            customer_id = VALUES(customer_id),
-            active = 1,
-            created_sent_at = COALESCE(created_sent_at, NOW())
-    ");
+                    UPDATE bill_reminders
+                    SET customer_id = COALESCE(?, customer_id),
+                        active = IF(status IN ('paid', 'canceled', 'cancelled'), active, 1),
+                        created_sent_at = COALESCE(created_sent_at, NOW())
+                    WHERE bill_id = ?
+                ");
                 $st->execute([
-                    (int) $billIdInt,
-                    !empty($customerId) ? (int) $customerId : null
+                    !empty($customerId) ? (int) $customerId : null,
+                    (int) $billIdInt
                 ]);
             } catch (Throwable $e) {
                 logLine($LOG_FILE, "ERRO ao gravar bill_reminders (created_sent_at): " . $e->getMessage());

@@ -52,6 +52,7 @@ $DRY_RUN = (isset($_GET['dry_run']) && $_GET['dry_run'] === '1');
 $LIMIT   = isset($_GET['limit']) ? max(1, (int)$_GET['limit']) : 50;
 
 $INTERVAL_DAYS = (int) cfg($cfg, 'RECOBRANCA_INTERVAL_DAYS', 7);
+$FIRST_DELAY_DAYS = max(1, (int) cfg($cfg, 'RECOBRANCA_FIRST_DELAY_DAYS', '7'));
 $MAX_OVERDUE   = (int) cfg($cfg, 'RECOBRANCA_MAX_OVERDUE', 12);
 
 if ($META_PHONE_NUMBER_ID === '' || $META_ACCESS_TOKEN === '' || $VINDI_API_KEY === '') {
@@ -222,9 +223,8 @@ SELECT
 FROM bill_reminders
 WHERE active = 1
   AND blocked = 0
-  AND status = 'unpaid'
-  AND due_at IS NOT NULL
-  AND due_at < NOW()
+  AND COALESCE(NULLIF(status, ''), 'unpaid') = 'unpaid'
+  AND (due_at IS NULL OR due_at <= DATE_SUB(NOW(), INTERVAL {$FIRST_DELAY_DAYS} DAY))
   AND (next_reminder_at IS NULL OR next_reminder_at <= NOW())
   AND (overdue_sent_count IS NULL OR overdue_sent_count < :max_overdue)
 ORDER BY COALESCE(next_reminder_at, due_at) ASC
@@ -249,7 +249,8 @@ foreach ($rows as $r) {
     WHERE bill_id = ?
       AND active = 1
       AND blocked = 0
-      AND status = 'unpaid'
+      AND COALESCE(NULLIF(status, ''), 'unpaid') = 'unpaid'
+      AND (due_at IS NULL OR due_at <= DATE_SUB(NOW(), INTERVAL {$FIRST_DELAY_DAYS} DAY))
       AND (next_reminder_at IS NULL OR next_reminder_at <= NOW())
   ");
   $claim->execute([$billId]);
@@ -299,20 +300,26 @@ foreach ($rows as $r) {
   }
 
   // Garante que está vencida
-  if (!$dueTs || $dueTs > time()) {
+  $minDueTs = strtotime("-{$FIRST_DELAY_DAYS} days");
+
+  if (!$dueTs || $dueTs > $minDueTs) {
+    $nextAt = $dueTs
+      ? date('Y-m-d H:i:s', max($dueTs + ($FIRST_DELAY_DAYS * 86400), time() + 86400))
+      : date('Y-m-d H:i:s', time() + 86400);
     $pdo->prepare("
       UPDATE bill_reminders
       SET due_at = COALESCE(?, due_at),
           last_status = ?,
           last_status_check_at = NOW(),
-          next_reminder_at = DATE_ADD(NOW(), INTERVAL 1 DAY)
+          next_reminder_at = ?
       WHERE bill_id = ?
     ")->execute([
       $dueTs ? date('Y-m-d H:i:s', $dueTs) : null,
       $vindiStatus ?: 'unpaid',
+      $nextAt,
       $billId
     ]);
-    logLine("bill_id={$billId} nao_vencida_na_vindi");
+    logLine("bill_id={$billId} ainda_nao_completou_{$FIRST_DELAY_DAYS}_dias");
     $skipped++;
     continue;
   }
@@ -350,8 +357,9 @@ foreach ($rows as $r) {
         phone = COALESCE(phone, ?),
         bill_url = COALESCE(bill_url, ?),
         items_text = COALESCE(items_text, ?),
-        due_at = COALESCE(due_at, ?),
+        due_at = ?,
         last_status = ?,
+        status = 'unpaid',
         last_status_check_at = NOW()
     WHERE bill_id = ?
   ")->execute([

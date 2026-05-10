@@ -39,6 +39,7 @@ $TEMPLATE_LANG = cfg($cfg, 'META_TEMPLATE_LANG', 'pt_BR');
 
 $MAX_PER_RUN   = (int) cfg($cfg, 'REMINDERS_MAX_PER_RUN', '10');
 $INTERVAL_DAYS = (int) cfg($cfg, 'REMINDERS_INTERVAL_DAYS', '7');
+$FIRST_DELAY_DAYS = max(1, (int) cfg($cfg, 'RECOBRANCA_FIRST_DELAY_DAYS', '7'));
 
 if ($META_PHONE_NUMBER_ID === '' || $META_ACCESS_TOKEN === '') {
   echo "META ENV FAIL\n";
@@ -116,9 +117,10 @@ try {
     FROM bill_reminders
     WHERE active=1
       AND blocked=0
-      AND status='unpaid'
-      AND next_reminder_at IS NOT NULL
-      AND next_reminder_at <= NOW()
+      AND COALESCE(NULLIF(status, ''), 'unpaid') = 'unpaid'
+      AND due_at IS NOT NULL
+      AND due_at <= DATE_SUB(NOW(), INTERVAL {$FIRST_DELAY_DAYS} DAY)
+      AND (next_reminder_at IS NULL OR next_reminder_at <= NOW())
     ORDER BY next_reminder_at ASC
     LIMIT {$MAX_PER_RUN}
   ");
@@ -180,6 +182,8 @@ try {
         UPDATE bill_reminders
         SET reminder_count = reminder_count + 1,
             last_reminder_at = NOW(),
+            last_overdue_sent_at = NOW(),
+            overdue_sent_count = COALESCE(overdue_sent_count,0) + 1,
             next_reminder_at = DATE_ADD(NOW(), INTERVAL {$INTERVAL_DAYS} DAY)
         WHERE bill_id=?
       ")->execute([$billId]);

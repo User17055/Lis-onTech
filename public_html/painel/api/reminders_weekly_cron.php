@@ -253,6 +253,7 @@ $VINDI_API_BASE = cfg($cfg, 'VINDI_API_BASE', 'https://app.vindi.com.br/api/v1')
 
 $TEMPLATE_WEEKLY_NAME = cfg($cfg, 'META_TEMPLATE_WEEKLY_NAME', '');
 $TEMPLATE_WEEKLY_LANG = cfg($cfg, 'META_TEMPLATE_WEEKLY_LANG', 'pt_BR');
+$FIRST_DELAY_DAYS = max(1, (int) cfg($cfg, 'RECOBRANCA_FIRST_DELAY_DAYS', '7'));
 
 if ($META_PHONE_NUMBER_ID === '' || $META_ACCESS_TOKEN === '' || $VINDI_API_KEY === '' || $TEMPLATE_WEEKLY_NAME === '') {
     logLine("ERRO: config incompleto. META/VINDI/TEMPLATE_WEEKLY.");
@@ -268,15 +269,15 @@ logLine("CRON weekly start | DRY_RUN=" . ($DRY_RUN ? '1' : '0'));
    - não enviou semanalmente nos últimos 7 dias
 ======================= */
 $st = $pdo->prepare("
-    SELECT bill_id, customer_id, created_sent_at, weekly_last_sent_at
+    SELECT bill_id, customer_id, due_at, created_sent_at, weekly_last_sent_at
     FROM bill_reminders
     WHERE active=1
       AND bill_id IS NOT NULL
       AND customer_id IS NOT NULL
-      AND created_sent_at IS NOT NULL
-      AND created_sent_at <= DATE_SUB(NOW(), INTERVAL 7 DAY)
+      AND due_at IS NOT NULL
+      AND due_at <= DATE_SUB(NOW(), INTERVAL {$FIRST_DELAY_DAYS} DAY)
       AND (weekly_last_sent_at IS NULL OR weekly_last_sent_at <= DATE_SUB(NOW(), INTERVAL 7 DAY))
-    ORDER BY created_sent_at ASC
+    ORDER BY due_at ASC
     LIMIT {$LIMIT}
 ");
 $st->execute();
@@ -295,7 +296,8 @@ foreach ($rows as $r) {
     }
 
     $createdSentAt = $r['created_sent_at'] ?? null;
-    $daysOpen = $createdSentAt ? (int)floor((time() - strtotime($createdSentAt)) / 86400) : 7;
+    $dueAt = $r['due_at'] ?? null;
+    $daysOpen = $dueAt ? (int)floor((time() - strtotime((string)$dueAt)) / 86400) : $FIRST_DELAY_DAYS;
 
     // busca bill na Vindi para pegar status/url atual
     $bill = getBillFromVindi($billId, $VINDI_API_BASE, $VINDI_API_KEY);
@@ -339,6 +341,7 @@ foreach ($rows as $r) {
             'bill_url' => $billUrl,
             'vindi_input' => [
                 'created_sent_at' => $createdSentAt,
+                'due_at' => $dueAt,
                 'days_open' => $daysOpen,
                 'bill_status' => $status
             ]
