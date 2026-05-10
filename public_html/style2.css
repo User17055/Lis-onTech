@@ -1,0 +1,11 @@
+
+.outro {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.outro h1 {
+    width: 50%;
+    text-align: center;
+}

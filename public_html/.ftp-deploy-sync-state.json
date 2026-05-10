@@ -1,0 +1,99 @@
+{
+    "description": "DO NOT DELETE THIS FILE. This file is used to keep track of which files have been synced in the most recent deployment. If you delete this file a resync will need to be done (which can take a while) - read more: https://github.com/SamKirkland/FTP-Deploy-Action",
+    "version": "1.0.0",
+    "generatedTime": 1752770307233,
+    "data": [
+        {
+            "type": "file",
+            "name": "README.md",
+            "size": 8,
+            "hash": "d5efeb6a6c69d98de9c22f250da2648396f0a81f31b7bd706d11f2798199c751"
+        },
+        {
+            "type": "folder",
+            "name": "api"
+        },
+        {
+            "type": "folder",
+            "name": "assets"
+        },
+        {
+            "type": "file",
+            "name": "contador.php",
+            "size": 235,
+            "hash": "463ac25eae7e5e946ab7b8481a6cc10cd27eb5b81f2c8bac1fa2a583ea86ff9a"
+        },
+        {
+            "type": "file",
+            "name": "contador.txt",
+            "size": 0,
+            "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+            "type": "file",
+            "name": "index.html",
+            "size": 2456,
+            "hash": "dc9f3baab1964df790a4574baefb16a62b8f6294529437f39773c07976bdcbdd"
+        },
+        {
+            "type": "file",
+            "name": "script.js",
+            "size": 2864,
+            "hash": "1289d8f723b8e49331fb68ca83e4d88fd3aebea3936d57b6a1b7a304c18afdc3"
+        },
+        {
+            "type": "file",
+            "name": "section2.js",
+            "size": 2411,
+            "hash": "52e88722e49cb8e45809d61f262b05f75678bc089d8f9552faf1465cf244a9bd"
+        },
+        {
+            "type": "file",
+            "name": "spotify.css",
+            "size": 311,
+            "hash": "926ef3ee8b2bda725e81c125cd9a92f41d5477877922b1a1c13dfc108e5f9295"
+        },
+        {
+            "type": "file",
+            "name": "spotify.js",
+            "size": 913,
+            "hash": "0642a814cd2a8aba041df7e82c10c655ffc451bdffb331d2d5cba48cab42af84"
+        },
+        {
+            "type": "file",
+            "name": "style.css",
+            "size": 4487,
+            "hash": "74576a48f9d412d2970e103cfac730f1d1e23f189bfd3731b3341e8cc187c33c"
+        },
+        {
+            "type": "file",
+            "name": "style2.css",
+            "size": 151,
+            "hash": "c8fc0e8fd0c8d19e27f2289b545b414df3461ac40c6aae4df6bd9031da0f22c0"
+        },
+        {
+            "type": "file",
+            "name": "api/spotify-now-playing.php",
+            "size": 2328,
+            "hash": "6a81761fd333982e12c2ce5547c44ea30bc3286c8ff3148b2787a39b46946719"
+        },
+        {
+            "type": "file",
+            "name": "assets/Andreszy.png",
+            "size": 3286532,
+            "hash": "c41d6807b367406a735ba7dbdbbd7eb55a64d96c6f5bcdee235941d6ca4629c3"
+        },
+        {
+            "type": "file",
+            "name": "assets/asta.png",
+            "size": 2590121,
+            "hash": "4377168d18f81ee83b5a78708939603d0c75a1e714aea5b4aa7c42abf727231b"
+        },
+        {
+            "type": "file",
+            "name": "assets/carol.png",
+            "size": 2979859,
+            "hash": "e7f6026d483baa03f423d8a58e491c7f18de05ebba2e990e04fbaf4c4d8798ca"
+        }
+    ]
+}
