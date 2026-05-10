@@ -1,13 +1,13 @@
 # Lis-onTech
 
-Core privado do Lis'on ERP. Stack principal: PHP, MySQL e JavaScript.
+Core privado do Lis'on ERP para automacao de cobrancas e mensagens via WhatsApp. Stack principal: PHP, MySQL e JavaScript.
 
 ## Estrutura
 
-- `public_html/`: arquivos publicos servidos pelo hosting.
+- `public_html/`: endpoints publicos, webhook e redirecionamento para o painel.
 - `public_html/includes/`: configuracao, conexao com banco e helpers internos.
 - `public_html/painel/`: roteador, paginas e APIs do painel administrativo.
-- `public_html/assets/`: CSS, JS, imagens e logos usados pelo frontend.
+- `public_html/assets/`: logos e imagens usados pelo painel.
 - `public_html/storage/logs/`: logs gerados em runtime, ignorados pelo Git.
 - `secure/`: configuracao local sensivel fora do versionamento.
 
