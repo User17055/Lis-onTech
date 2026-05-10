@@ -22,12 +22,16 @@ if ($status !== '') {
 
 if ($q !== '') {
   $where .= " AND (
-    run_id LIKE :q OR
-    customer_name LIKE :q OR
-    CAST(bill_id AS CHAR) LIKE :q OR
-    event_type LIKE :q
+    run_id LIKE :q_run_id OR
+    customer_name LIKE :q_customer_name OR
+    CAST(bill_id AS CHAR) LIKE :q_bill_id OR
+    event_type LIKE :q_event_type
   ) ";
-  $params[':q'] = '%' . $q . '%';
+  $qLike = '%' . $q . '%';
+  $params[':q_run_id'] = $qLike;
+  $params[':q_customer_name'] = $qLike;
+  $params[':q_bill_id'] = $qLike;
+  $params[':q_event_type'] = $qLike;
 }
 
 /* 1) total */

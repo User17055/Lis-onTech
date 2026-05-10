@@ -43,8 +43,12 @@ try {
   }
 
   if ($q !== '') {
-    $where[] = "(customer_name LIKE :q OR phone LIKE :q OR CAST(bill_id AS CHAR) LIKE :q OR CAST(customer_id AS CHAR) LIKE :q)";
-    $params[':q'] = "%" . $q . "%";
+    $where[] = "(customer_name LIKE :q_customer_name OR phone LIKE :q_phone OR CAST(bill_id AS CHAR) LIKE :q_bill_id OR CAST(customer_id AS CHAR) LIKE :q_customer_id)";
+    $qLike = "%" . $q . "%";
+    $params[':q_customer_name'] = $qLike;
+    $params[':q_phone'] = $qLike;
+    $params[':q_bill_id'] = $qLike;
+    $params[':q_customer_id'] = $qLike;
   }
 
   $whereSql = implode(" AND ", $where);

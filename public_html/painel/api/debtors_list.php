@@ -29,8 +29,9 @@ $where  = " WHERE br.active = 1 AND br.due_at IS NOT NULL ";
 
 if ($q !== '') {
     if (ctype_digit($q)) {
-        $where .= " AND (br.customer_id = :qid OR br.bill_id = :qid OR ar.customer_name LIKE :q) ";
-        $params[':qid'] = (int)$q;
+        $where .= " AND (br.customer_id = :qid_customer OR br.bill_id = :qid_bill OR ar.customer_name LIKE :q) ";
+        $params[':qid_customer'] = (int)$q;
+        $params[':qid_bill'] = (int)$q;
         $params[':q']   = '%' . $q . '%';
     } else {
         $where .= " AND (ar.customer_name LIKE :q) ";
