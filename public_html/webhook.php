@@ -82,6 +82,23 @@ if (is_array($data)) {
                     if (!is_array($message)) continue;
 
                     $customerNumber = (string) ($message['from'] ?? '');
+                    $shouldAutoReply = false;
+
+                    if ($customerNumber !== '' && $chatPdo) {
+                        try {
+                            $normalizedPhone = chatNormalizePhone($customerNumber);
+                            if ($normalizedPhone !== '') {
+                                $stmt = $chatPdo->prepare("SELECT last_inbound_at FROM chat_threads WHERE phone = ? LIMIT 1");
+                                $stmt->execute([$normalizedPhone]);
+                                $lastInboundAt = $stmt->fetchColumn();
+                                $windowBeforeMessage = chatTextWindowInfo(is_string($lastInboundAt) ? $lastInboundAt : null);
+                                $shouldAutoReply = !$windowBeforeMessage['can_send_text'];
+                            }
+                        } catch (Throwable $e) {
+                            webhookLog('auto_reply_window_check_fail: ' . $e->getMessage());
+                        }
+                    }
+
                     if ($chatPdo) {
                         try {
                             chatSaveIncomingMessage($chatPdo, $value, $message);
@@ -90,7 +107,7 @@ if (is_array($data)) {
                         }
                     }
 
-                    if ($customerNumber === '' || $accessToken === '' || $phoneId === '' || trim($autoReplyText) === '') {
+                    if (!$shouldAutoReply || $customerNumber === '' || $accessToken === '' || $phoneId === '' || trim($autoReplyText) === '') {
                         continue;
                     }
 
