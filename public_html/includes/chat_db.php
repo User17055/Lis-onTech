@@ -59,7 +59,60 @@ if (!function_exists('chatEnsureTables')) {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         ");
 
+        chatEnsureColumn($pdo, 'chat_threads', 'display_name', "VARCHAR(180) NULL");
+        chatEnsureColumn($pdo, 'chat_threads', 'last_message_preview', "VARCHAR(255) NULL");
+        chatEnsureColumn($pdo, 'chat_threads', 'last_message_at', "DATETIME NULL");
+        chatEnsureColumn($pdo, 'chat_threads', 'last_inbound_at', "DATETIME NULL");
+        chatEnsureColumn($pdo, 'chat_threads', 'last_outbound_at', "DATETIME NULL");
+        chatEnsureColumn($pdo, 'chat_threads', 'unread_count', "INT UNSIGNED NOT NULL DEFAULT 0");
+        chatEnsureColumn($pdo, 'chat_threads', 'created_at', "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP");
+        chatEnsureColumn($pdo, 'chat_threads', 'updated_at', "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+
+        chatEnsureColumn($pdo, 'chat_messages', 'thread_id', "BIGINT UNSIGNED NOT NULL DEFAULT 0");
+        chatEnsureColumn($pdo, 'chat_messages', 'phone', "VARCHAR(32) NOT NULL DEFAULT ''");
+        chatEnsureColumn($pdo, 'chat_messages', 'direction', "VARCHAR(12) NOT NULL DEFAULT 'out'");
+        chatEnsureColumn($pdo, 'chat_messages', 'message_type', "VARCHAR(40) NOT NULL DEFAULT 'text'");
+        chatEnsureColumn($pdo, 'chat_messages', 'body', "TEXT NULL");
+        chatEnsureColumn($pdo, 'chat_messages', 'meta_message_id', "VARCHAR(191) NULL");
+        chatEnsureColumn($pdo, 'chat_messages', 'status', "VARCHAR(30) NOT NULL DEFAULT 'accepted'");
+        chatEnsureColumn($pdo, 'chat_messages', 'status_at', "DATETIME NULL");
+        chatEnsureColumn($pdo, 'chat_messages', 'sent_at', "DATETIME NULL");
+        chatEnsureColumn($pdo, 'chat_messages', 'delivered_at', "DATETIME NULL");
+        chatEnsureColumn($pdo, 'chat_messages', 'read_at', "DATETIME NULL");
+        chatEnsureColumn($pdo, 'chat_messages', 'failed_at', "DATETIME NULL");
+        chatEnsureColumn($pdo, 'chat_messages', 'error_text', "TEXT NULL");
+        chatEnsureColumn($pdo, 'chat_messages', 'http_code', "INT NULL");
+        chatEnsureColumn($pdo, 'chat_messages', 'source', "VARCHAR(60) NULL");
+        chatEnsureColumn($pdo, 'chat_messages', 'source_ref', "VARCHAR(191) NULL");
+        chatEnsureColumn($pdo, 'chat_messages', 'request_json', "MEDIUMTEXT NULL");
+        chatEnsureColumn($pdo, 'chat_messages', 'response_json', "MEDIUMTEXT NULL");
+        chatEnsureColumn($pdo, 'chat_messages', 'payload_json', "MEDIUMTEXT NULL");
+        chatEnsureColumn($pdo, 'chat_messages', 'created_at', "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP");
+        chatEnsureColumn($pdo, 'chat_messages', 'updated_at', "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+
         $done = true;
+    }
+}
+
+if (!function_exists('chatEnsureColumn')) {
+    function chatEnsureColumn(PDO $pdo, string $table, string $column, string $definition): void
+    {
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $table) || !preg_match('/^[a-zA-Z0-9_]+$/', $column)) {
+            throw new InvalidArgumentException('Nome de coluna invalido');
+        }
+
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = ?
+              AND COLUMN_NAME = ?
+        ");
+        $stmt->execute([$table, $column]);
+
+        if ((int)$stmt->fetchColumn() === 0) {
+            $pdo->exec("ALTER TABLE {$table} ADD COLUMN {$column} {$definition}");
+        }
     }
 }
 
