@@ -5,6 +5,40 @@ declare(strict_types=1);
 ini_set('display_errors', '1');
 error_reporting(E_ALL);
 
+require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../includes/auth.php';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['logout'])) {
+  if (authCsrfValid((string)($_POST['csrf'] ?? ''))) {
+    authLogout();
+  }
+  header('Location: /painel/', true, 302);
+  exit;
+}
+
+$loginError = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
+  if (!authCsrfValid((string)($_POST['csrf'] ?? ''))) {
+    $loginError = 'Sessao expirada. Tente novamente.';
+  } elseif (!authConfigured($cfg)) {
+    $loginError = 'Login nao configurado no servidor.';
+  } else {
+    $user = trim((string)($_POST['user'] ?? ''));
+    $pass = (string)($_POST['pass'] ?? '');
+    if (authCheckCredentials($cfg, $user, $pass)) {
+      authLogin($user);
+      header('Location: /painel/', true, 302);
+      exit;
+    }
+    $loginError = 'Usuario ou senha invalidos.';
+  }
+}
+
+if (!authIsLoggedIn()) {
+  require __DIR__ . '/login.php';
+  exit;
+}
+
 /**
  * ✅ ROTEADOR DO PAINEL (Lis'on)
  * - partials/ = componentes (sidebar, header etc)

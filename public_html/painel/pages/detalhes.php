@@ -5,6 +5,10 @@
 // Busca em: /painel/api/run_detail.php?run_id=101
 // ============================================================
 
+require_once __DIR__ . '/../../config.php';
+require_once __DIR__ . '/../../includes/auth.php';
+if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
+
 if (!isset($_GET['id']) || trim((string) $_GET['id']) === '') {
     echo "<h3 style='font-family:Poppins'>
           Erro: Run ID obrigatório!

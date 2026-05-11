@@ -4,6 +4,8 @@ declare(strict_types=1);
 date_default_timezone_set('America/Sao_Paulo');
 header('Content-Type: application/json; charset=utf-8');
 
+require_once __DIR__ . '/_auth.php';
+
 function chatMessagesOut(array $payload, int $status = 200): void
 {
     http_response_code($status);

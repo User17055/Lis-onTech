@@ -61,6 +61,14 @@ if (isset($_GET['ping']) && $_GET['ping'] === '1') {
 
 $ROOT = findRootWithFiles(['config.php', 'db.php']);
 require_once $ROOT . '/config.php';
+require_once $ROOT . '/includes/auth.php';
+
+$CRON_TOKEN = cfg($cfg, 'CRON_TOKEN', '');
+$REQ_TOKEN = (string)($_GET['token'] ?? '');
+if (!($CRON_TOKEN !== '' && hash_equals($CRON_TOKEN, $REQ_TOKEN))) {
+  authRequireApi();
+}
+
 require_once $ROOT . '/db.php'; // precisa criar $pdo (PDO)
 require_once $ROOT . '/includes/chat_db.php';
 

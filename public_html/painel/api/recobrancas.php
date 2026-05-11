@@ -1,6 +1,8 @@
 <?php
 date_default_timezone_set('America/Sao_Paulo');
 
+require_once __DIR__ . '/_auth.php';
+
 function findRootWithFiles(array $files): string {
   $dir = __DIR__;
   for ($i = 0; $i < 10; $i++) {

@@ -1,11 +1,11 @@
 <?php
 date_default_timezone_set('America/Sao_Paulo');
-session_start();
 
 require_once __DIR__ . '/../../config.php';
+require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../db.php';
 
-if (!isset($_SESSION['auth'])) { http_response_code(403); exit("Sem login"); }
+if (!authIsLoggedIn()) { http_response_code(403); exit("Sem login"); }
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 
@@ -516,6 +516,7 @@ $backHref = "/painel/index.php?view=customers";
     <hr class="hr">
 
     <form method="post" action="/painel/index.php">
+      <input type="hidden" name="csrf" value="<?=h(authCsrfToken())?>">
       <button class="logout-btn" name="logout" value="1">
         <i class="fa-solid fa-right-from-bracket"></i> Sair
       </button>

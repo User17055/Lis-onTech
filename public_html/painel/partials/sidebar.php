@@ -204,6 +204,12 @@ if (!function_exists('isActive')) {
 
     <div style="display:flex; align-items:center; gap:15px;">
         <i class='bx bx-bell' style="font-size:1.6rem; color:#999; cursor:pointer;"></i>
+        <form method="post" action="/painel/" style="margin:0;">
+            <input type="hidden" name="csrf" value="<?= htmlspecialchars(authCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+            <button name="logout" value="1" title="Sair" style="height:38px; padding:0 14px; border:1px solid #e6edf5; border-radius:8px; background:#fff; color:#5a6a85; cursor:pointer; font-weight:700; display:flex; align-items:center; gap:8px;">
+                <i class='bx bx-log-out'></i> Sair
+            </button>
+        </form>
         <div style="width:38px; height:38px; background:#e0e0e0; border-radius:50%; overflow:hidden;">
             <img src="https://via.placeholder.com/38" alt="User" style="width:100%; height:100%; object-fit:cover;">
         </div>

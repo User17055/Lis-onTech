@@ -1,3 +1,8 @@
+<?php
+require_once __DIR__ . '/../../config.php';
+require_once __DIR__ . '/../../includes/auth.php';
+if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
+?>
 <div class="chat-wrap">
   <style>
     .chat-wrap{
