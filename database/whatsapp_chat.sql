@@ -50,6 +50,58 @@ CREATE TABLE IF NOT EXISTS chat_messages (
   KEY idx_chat_messages_source_ref (source_ref)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+DROP PROCEDURE IF EXISTS lison_drop_fk_if_exists;
+DELIMITER $$
+CREATE PROCEDURE lison_drop_fk_if_exists(
+  IN p_table_name VARCHAR(64),
+  IN p_constraint_name VARCHAR(64)
+)
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = p_table_name
+      AND CONSTRAINT_NAME = p_constraint_name
+      AND CONSTRAINT_TYPE = 'FOREIGN KEY'
+  ) THEN
+    SET @sql = CONCAT('ALTER TABLE `', p_table_name, '` DROP FOREIGN KEY `', p_constraint_name, '`');
+    PREPARE stmt FROM @sql;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+  END IF;
+END$$
+DELIMITER ;
+
+CALL lison_drop_fk_if_exists('chat_messages', 'fk_msg_conv');
+DROP PROCEDURE IF EXISTS lison_drop_fk_if_exists;
+
+DROP PROCEDURE IF EXISTS lison_modify_column_if_exists;
+DELIMITER $$
+CREATE PROCEDURE lison_modify_column_if_exists(
+  IN p_table_name VARCHAR(64),
+  IN p_column_name VARCHAR(64),
+  IN p_column_definition TEXT
+)
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = p_table_name
+      AND COLUMN_NAME = p_column_name
+  ) THEN
+    SET @sql = CONCAT('ALTER TABLE `', p_table_name, '` MODIFY COLUMN `', p_column_name, '` ', p_column_definition);
+    PREPARE stmt FROM @sql;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+  END IF;
+END$$
+DELIMITER ;
+
+CALL lison_modify_column_if_exists('chat_messages', 'conversation_id', 'BIGINT UNSIGNED NULL');
+DROP PROCEDURE IF EXISTS lison_modify_column_if_exists;
+
 DROP PROCEDURE IF EXISTS lison_add_column_if_missing;
 DELIMITER $$
 CREATE PROCEDURE lison_add_column_if_missing(

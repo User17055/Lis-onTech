@@ -59,6 +59,9 @@ if (!function_exists('chatEnsureTables')) {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         ");
 
+        chatDropForeignKeyIfExists($pdo, 'chat_messages', 'fk_msg_conv');
+        chatMakeColumnNullableIfExists($pdo, 'chat_messages', 'conversation_id', 'BIGINT UNSIGNED NULL');
+
         chatEnsureColumn($pdo, 'chat_threads', 'display_name', "VARCHAR(180) NULL");
         chatEnsureColumn($pdo, 'chat_threads', 'last_message_preview', "VARCHAR(255) NULL");
         chatEnsureColumn($pdo, 'chat_threads', 'last_message_at', "DATETIME NULL");
@@ -91,6 +94,51 @@ if (!function_exists('chatEnsureTables')) {
         chatEnsureColumn($pdo, 'chat_messages', 'updated_at', "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
 
         $done = true;
+    }
+}
+
+if (!function_exists('chatDropForeignKeyIfExists')) {
+    function chatDropForeignKeyIfExists(PDO $pdo, string $table, string $constraint): void
+    {
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $table) || !preg_match('/^[a-zA-Z0-9_]+$/', $constraint)) {
+            throw new InvalidArgumentException('Nome de constraint invalido');
+        }
+
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = ?
+              AND CONSTRAINT_NAME = ?
+              AND CONSTRAINT_TYPE = 'FOREIGN KEY'
+        ");
+        $stmt->execute([$table, $constraint]);
+
+        if ((int)$stmt->fetchColumn() > 0) {
+            $pdo->exec("ALTER TABLE {$table} DROP FOREIGN KEY {$constraint}");
+        }
+    }
+}
+
+if (!function_exists('chatMakeColumnNullableIfExists')) {
+    function chatMakeColumnNullableIfExists(PDO $pdo, string $table, string $column, string $definition): void
+    {
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $table) || !preg_match('/^[a-zA-Z0-9_]+$/', $column)) {
+            throw new InvalidArgumentException('Nome de coluna invalido');
+        }
+
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = ?
+              AND COLUMN_NAME = ?
+        ");
+        $stmt->execute([$table, $column]);
+
+        if ((int)$stmt->fetchColumn() > 0) {
+            $pdo->exec("ALTER TABLE {$table} MODIFY COLUMN {$column} {$definition}");
+        }
     }
 }
 

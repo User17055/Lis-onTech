@@ -317,7 +317,12 @@
             <span id="activePhone">Nenhum telefone aberto</span>
           </div>
         </div>
-        <span class="status-pill" id="activeStatus"><i class="fa-regular fa-circle"></i> aguardando</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button class="icon-btn" id="btnSendTemplate" type="button" title="Enviar modelo inicial" disabled>
+            <i class="fa-solid fa-file-lines"></i>
+          </button>
+          <span class="status-pill" id="activeStatus"><i class="fa-regular fa-circle"></i> aguardando</span>
+        </div>
       </div>
 
       <div class="messages" id="messages">
@@ -502,6 +507,7 @@
       el('activeStatus').outerHTML = statusPill(thread?.last_status || 'received').replace('<span class="status-pill', '<span id="activeStatus" class="status-pill');
       el('messageText').disabled = !phone;
       el('btnSend').disabled = !phone;
+      el('btnSendTemplate').disabled = !phone;
     }
 
     async function loadMessages(markRead=false){
@@ -578,6 +584,32 @@
       }
     }
 
+    async function sendTemplate(){
+      const phone = state.selectedPhone;
+      if (!phone) return;
+      const btn = el('btnSendTemplate');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+      try {
+        await fetchJson('/painel/api/chat_send_template.php', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({phone})
+        });
+        await loadMessages(false);
+        await loadThreads(false);
+        toast('Modelo enviado');
+      } catch (e) {
+        await loadMessages(false);
+        await loadThreads(false);
+        toast(e.message || 'Falha ao enviar modelo', 'error');
+      } finally {
+        btn.disabled = !state.selectedPhone;
+        btn.innerHTML = '<i class="fa-solid fa-file-lines"></i>';
+      }
+    }
+
     el('threadList').addEventListener('click', (event) => {
       const btn = event.target.closest('button[data-phone]');
       if (!btn) return;
@@ -612,6 +644,7 @@
     el('onlyUnread').onchange = () => loadThreads(true);
     el('btnReloadThreads').onclick = () => loadThreads(true);
     el('btnSend').onclick = sendMessage;
+    el('btnSendTemplate').onclick = sendTemplate;
     el('messageText').addEventListener('keydown', (event) => {
       if (event.key === 'Enter' && !event.shiftKey) {
         event.preventDefault();
