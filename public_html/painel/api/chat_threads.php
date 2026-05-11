@@ -75,9 +75,15 @@ try {
     $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
     $stmt->execute();
 
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($rows as &$row) {
+        $row = chatThreadWithWindowInfo($row);
+    }
+    unset($row);
+
     chatApiOut([
         'ok' => true,
-        'rows' => $stmt->fetchAll(PDO::FETCH_ASSOC),
+        'rows' => $rows,
         'total' => $total,
         'limit' => $limit,
     ]);

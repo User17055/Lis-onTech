@@ -17,14 +17,14 @@
       --shadow:0 10px 30px rgba(23,32,51,.07);
       font-family:'Nunito',sans-serif;
       color:var(--text);
-      min-height:calc(100vh - 150px);
+      min-height:calc(100vh - 120px);
     }
 
     .chat-shell{
-      height:calc(100vh - 150px);
-      min-height:620px;
+      height:calc(100vh - 120px);
+      min-height:720px;
       display:grid;
-      grid-template-columns:minmax(300px,360px) minmax(0,1fr);
+      grid-template-columns:minmax(360px,430px) minmax(0,1fr);
       background:var(--panel);
       border:1px solid var(--line);
       border-radius:8px;
@@ -48,8 +48,8 @@
     }
 
     .chat-pane-head{
-      min-height:72px;
-      padding:14px 16px;
+      min-height:86px;
+      padding:18px 20px;
       border-bottom:1px solid var(--line);
       display:flex;
       align-items:center;
@@ -60,13 +60,13 @@
     }
 
     .chat-title{display:flex;align-items:center;gap:10px;min-width:0;}
-    .chat-title i{color:var(--brand);font-size:22px;}
-    .chat-title strong{display:block;font-size:18px;font-weight:900;line-height:1.1;}
-    .chat-title span{display:block;color:var(--muted);font-size:12px;font-weight:800;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .chat-title i{color:var(--brand);font-size:26px;}
+    .chat-title strong{display:block;font-size:21px;font-weight:900;line-height:1.1;}
+    .chat-title span{display:block;color:var(--muted);font-size:13px;font-weight:800;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
     .icon-btn{
-      width:42px;
-      height:42px;
+      width:48px;
+      height:48px;
       border:1px solid var(--line);
       border-radius:8px;
       background:#fff;
@@ -76,7 +76,8 @@
       justify-content:center;
       cursor:pointer;
       transition:.18s;
-      flex:0 0 42px;
+      flex:0 0 48px;
+      font-size:16px;
     }
     .icon-btn:hover{border-color:#bfe8ff;color:var(--brand-dark);background:#f5fbff;}
     .icon-btn.primary{background:var(--brand);border-color:var(--brand);color:#fff;}
@@ -84,7 +85,7 @@
     .icon-btn:disabled{opacity:.45;cursor:not-allowed;}
 
     .chat-search{
-      padding:12px 14px;
+      padding:14px 16px;
       border-bottom:1px solid var(--line);
       background:#fff;
       display:grid;
@@ -105,13 +106,13 @@
       box-sizing:border-box;
       transition:.18s;
     }
-    .chat-input{height:42px;padding:0 12px 0 36px;}
+    .chat-input{height:48px;padding:0 13px 0 38px;font-size:14px;}
     .chat-input.plain{padding-left:12px;}
     .chat-input:focus,.chat-textarea:focus{border-color:#9bdcff;background:#fff;box-shadow:0 0 0 3px rgba(56,182,255,.14);}
 
     .new-chat-box{
       display:none;
-      grid-template-columns:1fr 42px;
+      grid-template-columns:1fr 48px;
       gap:8px;
     }
     .new-chat-box.show{display:grid;}
@@ -131,29 +132,29 @@
     .thread-list{
       overflow:auto;
       flex:1;
-      padding:8px;
+      padding:10px;
     }
     .thread-item{
       width:100%;
       border:1px solid transparent;
       background:transparent;
       border-radius:8px;
-      padding:10px;
+      padding:13px;
       display:grid;
-      grid-template-columns:42px minmax(0,1fr) auto;
-      gap:10px;
+      grid-template-columns:50px minmax(0,1fr) auto;
+      gap:12px;
       text-align:left;
       cursor:pointer;
       color:var(--text);
       font-family:'Nunito',sans-serif;
       transition:.16s;
-      min-height:72px;
+      min-height:94px;
     }
     .thread-item:hover{background:#fff;border-color:var(--line);}
     .thread-item.active{background:#eef8ff;border-color:#bfe8ff;}
     .avatar{
-      width:42px;
-      height:42px;
+      width:50px;
+      height:50px;
       border-radius:8px;
       background:#172033;
       color:#fff;
@@ -161,11 +162,15 @@
       align-items:center;
       justify-content:center;
       font-weight:900;
-      flex:0 0 42px;
+      flex:0 0 50px;
+      font-size:15px;
     }
-    .thread-name{font-size:14px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    .thread-phone{font-size:12px;color:var(--muted);font-weight:800;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    .thread-preview{font-size:12px;color:#435169;font-weight:800;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .thread-name{font-size:15px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .thread-phone{font-size:12px;color:var(--muted);font-weight:800;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .thread-preview{font-size:13px;color:#435169;font-weight:800;margin-top:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .thread-window{display:inline-flex;align-items:center;gap:6px;margin-top:8px;border-radius:8px;padding:4px 7px;font-size:11px;font-weight:900;}
+    .thread-window.open{background:var(--soft-ok);color:#08734d;}
+    .thread-window.closed{background:var(--soft-warn);color:var(--warn);}
     .thread-meta{display:flex;flex-direction:column;align-items:flex-end;gap:8px;min-width:58px;}
     .thread-time{font-size:11px;color:#8a99ac;font-weight:900;white-space:nowrap;}
     .unread-pill{min-width:22px;height:22px;border-radius:999px;background:var(--brand);color:#fff;font-size:11px;font-weight:900;display:inline-flex;align-items:center;justify-content:center;padding:0 7px;box-sizing:border-box;}
@@ -174,7 +179,7 @@
       display:inline-flex;
       align-items:center;
       gap:6px;
-      padding:5px 8px;
+      padding:6px 9px;
       border-radius:8px;
       font-size:11px;
       font-weight:900;
@@ -187,13 +192,32 @@
     .status-pill.failed{background:var(--soft-danger);color:var(--danger);}
     .status-pill.received{background:#f0f4f8;color:#405064;}
 
+    .window-panel{
+      border-bottom:1px solid var(--line);
+      background:#fff;
+      padding:12px 20px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:14px;
+    }
+    .window-copy{display:flex;align-items:center;gap:10px;min-width:0;}
+    .window-copy i{font-size:18px;}
+    .window-copy strong{display:block;font-size:14px;font-weight:900;}
+    .window-copy span{display:block;font-size:12px;font-weight:800;color:var(--muted);margin-top:1px;}
+    .window-panel.open{background:#f4fff9;}
+    .window-panel.open .window-copy i{color:var(--ok);}
+    .window-panel.closed{background:#fffaf0;}
+    .window-panel.closed .window-copy i{color:var(--warn);}
+    .window-timer{font-size:16px;font-weight:900;white-space:nowrap;color:var(--text);}
+
     .messages{
       flex:1;
       overflow:auto;
-      padding:22px;
+      padding:28px;
       display:flex;
       flex-direction:column;
-      gap:10px;
+      gap:12px;
       background:
         radial-gradient(circle at top left, rgba(56,182,255,.08), transparent 280px),
         #f8fafc;
@@ -212,34 +236,36 @@
     .msg-row{display:flex;}
     .msg-row.out{justify-content:flex-end;}
     .bubble{
-      max-width:min(680px,78%);
+      max-width:min(760px,80%);
       border:1px solid var(--line);
       border-radius:8px;
-      padding:10px 12px 8px;
+      padding:14px 16px 10px;
       background:#fff;
       box-shadow:0 4px 14px rgba(23,32,51,.05);
       word-break:break-word;
     }
     .msg-row.out .bubble{background:#eaf8ff;border-color:#bfe8ff;}
-    .msg-body{font-size:14px;font-weight:800;line-height:1.42;white-space:pre-wrap;}
+    .msg-body{font-size:15px;font-weight:800;line-height:1.5;white-space:pre-wrap;}
     .msg-foot{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:8px;color:#718096;font-size:11px;font-weight:900;}
     .msg-error{margin-top:8px;color:var(--danger);font-size:12px;font-weight:900;}
 
     .composer{
       border-top:1px solid var(--line);
       background:#fff;
-      padding:12px 14px;
+      padding:14px 16px;
       display:grid;
-      grid-template-columns:1fr 46px;
-      gap:10px;
+      grid-template-columns:1fr 52px;
+      gap:12px;
       align-items:end;
     }
+    .composer.blocked .chat-textarea{background:#f1f5f9;color:#8a99ac;}
     .chat-textarea{
       resize:none;
-      min-height:46px;
-      max-height:130px;
-      padding:12px 14px;
+      min-height:54px;
+      max-height:150px;
+      padding:15px 16px;
       line-height:1.35;
+      font-size:15px;
     }
 
     .toast{
@@ -325,6 +351,17 @@
         </div>
       </div>
 
+      <div class="window-panel closed" id="windowPanel">
+        <div class="window-copy">
+          <i class="fa-solid fa-lock"></i>
+          <div>
+            <strong id="windowTitle">Selecione uma conversa</strong>
+            <span id="windowSubtitle">O envio de texto livre depende da janela de 24h.</span>
+          </div>
+        </div>
+        <div class="window-timer" id="windowTimer">--:--:--</div>
+      </div>
+
       <div class="messages" id="messages">
         <div class="empty-state">
           <i class="fa-regular fa-message"></i>
@@ -332,7 +369,7 @@
         </div>
       </div>
 
-      <div class="composer">
+      <div class="composer blocked" id="composer">
         <textarea class="chat-textarea" id="messageText" placeholder="Responder..." disabled></textarea>
         <button class="icon-btn primary" id="btnSend" type="button" title="Enviar" disabled>
           <i class="fa-solid fa-paper-plane"></i>
@@ -347,6 +384,7 @@
     const state = {
       threads: [],
       selectedPhone: new URLSearchParams(location.search).get('phone') || '',
+      activeThread: null,
       loadingMessages: false,
       lastMessageHash: '',
       backfillDone: false,
@@ -380,6 +418,31 @@
         : dt.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'}) + ' ' + dt.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
     }
 
+    function parseServerDate(value){
+      const s = String(value ?? '').trim();
+      if (!s) return null;
+      const dt = new Date(s.replace(' ', 'T'));
+      return isNaN(dt.getTime()) ? null : dt;
+    }
+
+    function durationText(ms){
+      const total = Math.max(0, Math.floor(ms / 1000));
+      const h = Math.floor(total / 3600);
+      const m = Math.floor((total % 3600) / 60);
+      const s = total % 60;
+      return [h, m, s].map(v => String(v).padStart(2, '0')).join(':');
+    }
+
+    function threadWindow(thread){
+      const expires = parseServerDate(thread?.window_expires_at);
+      const left = expires ? expires.getTime() - Date.now() : 0;
+      return {
+        open: Boolean(thread?.can_send_text) && left > 0,
+        expires,
+        left
+      };
+    }
+
     function initials(name, phone){
       const base = String(name || phone || '?').trim();
       const words = base.split(/\s+/).filter(Boolean);
@@ -403,6 +466,14 @@
     function statusPill(status){
       const [icon, label] = statusLabel(status);
       return `<span class="status-pill ${esc(status)}"><i class="${icon}"></i> ${esc(label)}</span>`;
+    }
+
+    function windowMini(row){
+      const info = threadWindow(row);
+      if (info.open) {
+        return `<div class="thread-window open"><i class="fa-regular fa-clock"></i> ${esc(durationText(info.left))}</div>`;
+      }
+      return `<div class="thread-window closed"><i class="fa-solid fa-file-lines"></i> modelo</div>`;
     }
 
     function toast(message, type='ok'){
@@ -448,6 +519,7 @@
               <div class="thread-name">${esc(name)}</div>
               <div class="thread-phone">${esc(phone)}</div>
               <div class="thread-preview">${esc(row.last_message_preview || 'Sem mensagens')}</div>
+              ${windowMini(row)}
             </div>
             <div class="thread-meta">
               <span class="thread-time">${esc(fmtTime(row.last_message_at))}</span>
@@ -471,6 +543,11 @@
         state.threads = Array.isArray(data.rows) ? data.rows : [];
         el('threadCount').textContent = `${data.total ?? state.threads.length} conversas`;
         el('listStatus').textContent = 'online';
+        const selected = state.threads.find(t => t.phone === state.selectedPhone);
+        if (selected) {
+          state.activeThread = {...(state.activeThread || {}), ...selected};
+          updateWindowPanel();
+        }
         renderThreads();
         if (!state.selectedPhone && state.threads[0]?.phone) {
           openConversation(state.threads[0].phone, false);
@@ -501,13 +578,55 @@
 
     function setActiveHeader(thread){
       const phone = state.selectedPhone;
+      state.activeThread = thread || (phone ? {phone, can_send_text:false, window_expires_at:null} : null);
       const name = thread?.display_name || phone || 'Conversa';
       el('activeName').textContent = name;
       el('activePhone').textContent = phone || 'Nenhum telefone aberto';
       el('activeStatus').outerHTML = statusPill(thread?.last_status || 'received').replace('<span class="status-pill', '<span id="activeStatus" class="status-pill');
-      el('messageText').disabled = !phone;
-      el('btnSend').disabled = !phone;
       el('btnSendTemplate').disabled = !phone;
+      updateWindowPanel();
+    }
+
+    function updateWindowPanel(){
+      const panel = el('windowPanel');
+      const composer = el('composer');
+      const text = el('messageText');
+      const send = el('btnSend');
+      const phone = state.selectedPhone;
+
+      if (!phone) {
+        panel.className = 'window-panel closed';
+        el('windowTitle').textContent = 'Selecione uma conversa';
+        el('windowSubtitle').textContent = 'O envio de texto livre depende da janela de 24h.';
+        el('windowTimer').textContent = '--:--:--';
+        composer.classList.add('blocked');
+        text.disabled = true;
+        send.disabled = true;
+        text.placeholder = 'Responder...';
+        return;
+      }
+
+      const info = threadWindow(state.activeThread);
+      if (info.open) {
+        panel.className = 'window-panel open';
+        el('windowTitle').textContent = 'Texto livre liberado';
+        el('windowSubtitle').textContent = 'Janela aberta pela ultima mensagem recebida do cliente.';
+        el('windowTimer').textContent = durationText(info.left);
+        composer.classList.remove('blocked');
+        text.disabled = false;
+        send.disabled = false;
+        text.placeholder = 'Responder...';
+        return;
+      }
+
+      panel.className = 'window-panel closed';
+      el('windowTitle').textContent = 'Janela de texto fechada';
+      el('windowSubtitle').textContent = 'Envie um modelo aprovado; texto livre volta quando o cliente responder.';
+      el('windowTimer').textContent = 'modelo';
+      composer.classList.add('blocked');
+      text.disabled = true;
+      send.disabled = true;
+      text.placeholder = 'Use o botao de modelo para iniciar atendimento';
     }
 
     async function loadMessages(markRead=false){
@@ -556,6 +675,11 @@
       const phone = state.selectedPhone;
       const message = el('messageText').value.trim();
       if (!phone || !message) return;
+      if (!threadWindow(state.activeThread).open) {
+        toast('Janela fechada. Envie um modelo aprovado primeiro.', 'error');
+        updateWindowPanel();
+        return;
+      }
 
       const btn = el('btnSend');
       const text = el('messageText');
@@ -577,9 +701,8 @@
         await loadThreads(false);
         toast(e.message || 'Falha ao enviar', 'error');
       } finally {
-        btn.disabled = false;
-        text.disabled = false;
         btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
+        updateWindowPanel();
         text.focus();
       }
     }
@@ -607,6 +730,7 @@
       } finally {
         btn.disabled = !state.selectedPhone;
         btn.innerHTML = '<i class="fa-solid fa-file-lines"></i>';
+        updateWindowPanel();
       }
     }
 
@@ -659,5 +783,6 @@
 
     state.threadTimer = setInterval(() => loadThreads(false), 6000);
     state.messageTimer = setInterval(() => loadMessages(false), 3500);
+    setInterval(updateWindowPanel, 1000);
   </script>
 </div>

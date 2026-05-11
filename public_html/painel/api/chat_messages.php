@@ -41,6 +41,8 @@ try {
         $thread['unread_count'] = 0;
     }
 
+    $thread = chatThreadWithWindowInfo($thread);
+
     $stmt = $pdo->prepare("
         SELECT *
         FROM (

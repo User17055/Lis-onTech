@@ -43,6 +43,20 @@ try {
         chatSendOut(['ok' => false, 'error' => 'Mensagem muito longa'], 400);
     }
 
+    $threadStmt = $pdo->prepare("SELECT last_inbound_at FROM chat_threads WHERE phone = ? LIMIT 1");
+    $threadStmt->execute([$phone]);
+    $thread = $threadStmt->fetch(PDO::FETCH_ASSOC);
+    $window = chatTextWindowInfo($thread['last_inbound_at'] ?? null);
+    if (!$window['can_send_text']) {
+        chatSendOut([
+            'ok' => false,
+            'error' => 'Janela de 24h fechada. Envie um modelo aprovado e aguarde o cliente responder.',
+            'can_send_text' => false,
+            'window_expires_at' => $window['window_expires_at'],
+            'window_seconds_left' => 0,
+        ], 403);
+    }
+
     $phoneNumberId = cfg($cfg, 'META_PHONE_NUMBER_ID');
     $accessToken = cfg($cfg, 'META_ACCESS_TOKEN');
 

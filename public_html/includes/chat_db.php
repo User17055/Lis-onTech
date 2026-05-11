@@ -743,3 +743,42 @@ if (!function_exists('chatMarkThreadRead')) {
         $stmt->execute([$phone]);
     }
 }
+
+if (!function_exists('chatTextWindowInfo')) {
+    function chatTextWindowInfo(?string $lastInboundAt): array
+    {
+        $lastInboundAt = trim((string)$lastInboundAt);
+        if ($lastInboundAt === '') {
+            return [
+                'can_send_text' => false,
+                'window_expires_at' => null,
+                'window_seconds_left' => 0,
+            ];
+        }
+
+        $lastTs = strtotime($lastInboundAt);
+        if (!$lastTs) {
+            return [
+                'can_send_text' => false,
+                'window_expires_at' => null,
+                'window_seconds_left' => 0,
+            ];
+        }
+
+        $expiresTs = $lastTs + (24 * 60 * 60);
+        $left = max(0, $expiresTs - time());
+
+        return [
+            'can_send_text' => $left > 0,
+            'window_expires_at' => date('Y-m-d H:i:s', $expiresTs),
+            'window_seconds_left' => $left,
+        ];
+    }
+}
+
+if (!function_exists('chatThreadWithWindowInfo')) {
+    function chatThreadWithWindowInfo(array $thread): array
+    {
+        return array_merge($thread, chatTextWindowInfo($thread['last_inbound_at'] ?? null));
+    }
+}
