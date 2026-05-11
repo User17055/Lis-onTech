@@ -77,7 +77,10 @@ if (file_exists($pathPages)) {
       }
 
       body.page-chat .main-content {
-        padding: 24px 46px;
+        height: calc(100vh - var(--header-height, 70px));
+        padding: 0;
+        overflow: hidden;
+        box-sizing: border-box;
       }
 
       @media (max-width: 920px) {
@@ -86,7 +89,10 @@ if (file_exists($pathPages)) {
         }
 
         body.page-chat .main-content {
-          padding: 18px;
+          height: auto;
+          min-height: calc(100vh - var(--header-height, 70px));
+          padding: 0;
+          overflow: visible;
         }
       }
     </style>

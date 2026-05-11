@@ -17,8 +17,9 @@
       --shadow:0 10px 30px rgba(23,32,51,.07);
       font-family:'Nunito',sans-serif;
       color:var(--text);
-      height:calc(100vh - var(--header-height, 70px) - 80px);
-      min-height:560px;
+      width:100%;
+      height:100%;
+      min-height:0;
       overflow:hidden;
     }
 
@@ -28,10 +29,10 @@
       display:grid;
       grid-template-columns:minmax(360px,430px) minmax(0,1fr);
       background:var(--panel);
-      border:1px solid var(--line);
-      border-radius:8px;
+      border:0;
+      border-radius:0;
       overflow:hidden;
-      box-shadow:var(--shadow);
+      box-shadow:none;
     }
 
     .chat-list-pane{
@@ -261,7 +262,7 @@
       background:#fff;
       padding:14px 16px;
       display:grid;
-      grid-template-columns:1fr 52px;
+      grid-template-columns:52px 1fr 52px;
       gap:12px;
       align-items:end;
     }
@@ -293,8 +294,8 @@
     .toast.error{background:#8f2525;}
 
     @media(max-width:920px){
-      .chat-wrap{height:auto;min-height:calc(100vh - var(--header-height, 70px) - 50px);overflow:visible;}
-      .chat-shell{height:auto;min-height:calc(100vh - 130px);grid-template-columns:1fr;}
+      .chat-wrap{height:auto;min-height:calc(100vh - var(--header-height, 70px));overflow:visible;}
+      .chat-shell{height:auto;min-height:calc(100vh - var(--header-height, 70px));grid-template-columns:1fr;}
       .chat-list-pane{height:360px;border-right:none;border-bottom:1px solid var(--line);}
       .chat-main-pane{min-height:560px;}
       .messages{padding:16px;}
@@ -378,6 +379,9 @@
       </div>
 
       <div class="composer blocked" id="composer">
+        <button class="icon-btn" id="btnSendTemplateBottom" type="button" title="Enviar modelo inicial" disabled>
+          <i class="fa-solid fa-file-lines"></i>
+        </button>
         <textarea class="chat-textarea" id="messageText" placeholder="Responder..." disabled></textarea>
         <button class="icon-btn primary" id="btnSend" type="button" title="Enviar" disabled>
           <i class="fa-solid fa-paper-plane"></i>
@@ -592,6 +596,7 @@
       el('activePhone').textContent = phone || 'Nenhum telefone aberto';
       el('activeStatus').outerHTML = statusPill(thread?.last_status || 'received').replace('<span class="status-pill', '<span id="activeStatus" class="status-pill');
       el('btnSendTemplate').disabled = !phone;
+      el('btnSendTemplateBottom').disabled = !phone;
       updateWindowPanel();
     }
 
@@ -610,6 +615,7 @@
         composer.classList.add('blocked');
         text.disabled = true;
         send.disabled = true;
+        el('btnSendTemplateBottom').disabled = true;
         text.placeholder = 'Responder...';
         return;
       }
@@ -623,6 +629,7 @@
         composer.classList.remove('blocked');
         text.disabled = false;
         send.disabled = false;
+        el('btnSendTemplateBottom').disabled = false;
         text.placeholder = 'Responder...';
         return;
       }
@@ -634,6 +641,7 @@
       composer.classList.add('blocked');
       text.disabled = true;
       send.disabled = true;
+      el('btnSendTemplateBottom').disabled = false;
       text.placeholder = 'Use o botao de modelo para iniciar atendimento';
     }
 
@@ -719,8 +727,11 @@
       const phone = state.selectedPhone;
       if (!phone) return;
       const btn = el('btnSendTemplate');
+      const bottomBtn = el('btnSendTemplateBottom');
       btn.disabled = true;
+      bottomBtn.disabled = true;
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+      bottomBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
 
       try {
         await fetchJson('/painel/api/chat_send_template.php', {
@@ -737,7 +748,9 @@
         toast(e.message || 'Falha ao enviar modelo', 'error');
       } finally {
         btn.disabled = !state.selectedPhone;
+        bottomBtn.disabled = !state.selectedPhone;
         btn.innerHTML = '<i class="fa-solid fa-file-lines"></i>';
+        bottomBtn.innerHTML = '<i class="fa-solid fa-file-lines"></i>';
         updateWindowPanel();
       }
     }
@@ -777,6 +790,7 @@
     el('btnReloadThreads').onclick = () => loadThreads(true);
     el('btnSend').onclick = sendMessage;
     el('btnSendTemplate').onclick = sendTemplate;
+    el('btnSendTemplateBottom').onclick = sendTemplate;
     el('messageText').addEventListener('keydown', (event) => {
       if (event.key === 'Enter' && !event.shiftKey) {
         event.preventDefault();
