@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/chat_db.php';
+
 function runCreate(PDO $pdo, array $data): string {
     $runId = bin2hex(random_bytes(16));
 
@@ -57,6 +59,24 @@ function runMarkProcessed(PDO $pdo, string $runId, string $phone, array $req, ar
       json_encode($resp, JSON_UNESCAPED_UNICODE),
       $runId
     ]);
+
+    if (empty($req['dry_run'])) {
+        try {
+            chatSaveOutgoingMessage(
+                $pdo,
+                $phone,
+                chatDescribeWhatsAppPayload($req),
+                $req,
+                $resp,
+                $http,
+                null,
+                'automation',
+                $runId
+            );
+        } catch (Throwable $e) {
+            try { runLog($pdo, $runId, 'error', 'Chat log falhou: ' . $e->getMessage()); } catch (Throwable $ignored) {}
+        }
+    }
 }
 
 function runMarkErrorFull(PDO $pdo, string $runId, string $msg, array $details): void {
@@ -73,12 +93,35 @@ function runMarkErrorFull(PDO $pdo, string $runId, string $msg, array $details):
     ");
 
     $stmt->execute([
-      $msg,
-      $details['meta_http'] ?? null,
+        $msg,
+        $details['meta_http'] ?? null,
       $details['curl_error'] ?? null,
       json_encode($details['whatsapp_request'] ?? [], JSON_UNESCAPED_UNICODE),
       json_encode($details['whatsapp_response'] ?? [], JSON_UNESCAPED_UNICODE),
       json_encode($details, JSON_UNESCAPED_UNICODE),
-      $runId
+        $runId
     ]);
+
+    $req = $details['whatsapp_request'] ?? [];
+    $resp = $details['whatsapp_response'] ?? [];
+    if (is_array($req) && !empty($req) && is_array($resp)) {
+        $phone = (string)($details['phone'] ?? $req['to'] ?? '');
+        if ($phone !== '' && empty($req['dry_run'])) {
+            try {
+                chatSaveOutgoingMessage(
+                    $pdo,
+                    $phone,
+                    chatDescribeWhatsAppPayload($req),
+                    $req,
+                    $resp,
+                    (int)($details['meta_http'] ?? 0),
+                    isset($details['curl_error']) ? (string)$details['curl_error'] : null,
+                    'automation',
+                    $runId
+                );
+            } catch (Throwable $e) {
+                try { runLog($pdo, $runId, 'error', 'Chat log falhou: ' . $e->getMessage()); } catch (Throwable $ignored) {}
+            }
+        }
+    }
 }

@@ -3,6 +3,7 @@ date_default_timezone_set('America/Sao_Paulo');
 
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/includes/chat_db.php';
 
 $LOG_DIR = __DIR__ . '/storage/logs';
 if (!is_dir($LOG_DIR)) {
@@ -109,6 +110,7 @@ function enviarTemplateWhatsApp(
   return [
     'http'=>(int)$http,
     'curl_error'=>$err ?: null,
+    'request'=>$payload,
     'response_raw'=>$res ?: ''
   ];
 }
@@ -173,6 +175,24 @@ try {
     );
 
     $ok = ($res['http'] >= 200 && $res['http'] < 300 && empty($res['curl_error']));
+    $respArr = json_decode($res['response_raw'] ?? '', true);
+    if (!is_array($respArr)) $respArr = ['raw' => (string)($res['response_raw'] ?? '')];
+
+    try {
+      chatSaveOutgoingMessage(
+        $pdo,
+        $phone,
+        chatDescribeWhatsAppPayload($res['request'] ?? []),
+        $res['request'] ?? [],
+        $respArr,
+        (int)($res['http'] ?? 0),
+        $res['curl_error'] ?? null,
+        'reminders_runner',
+        (string)$billId
+      );
+    } catch (Throwable $e) {
+      logCron("bill_id={$billId} chat_log_fail=" . $e->getMessage());
+    }
 
     // log
     $pdo->prepare("

@@ -12,6 +12,18 @@ $autoReplyText = cfg(
     "Este canal e apenas para notificacoes.\n\nPara atendimento, use o WhatsApp oficial."
 );
 
+$LOG_DIR = __DIR__ . '/storage/logs';
+if (!is_dir($LOG_DIR)) {
+    @mkdir($LOG_DIR, 0755, true);
+}
+$LOG_FILE = $LOG_DIR . '/webhook_chat.log';
+
+function webhookLog(string $message): void
+{
+    global $LOG_FILE;
+    @file_put_contents($LOG_FILE, '[' . date('d/m/Y H:i:s') . '] ' . $message . PHP_EOL, FILE_APPEND);
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $hubMode = $_GET['hub_mode'] ?? '';
     $hubChallenge = $_GET['hub_challenge'] ?? '';
@@ -30,37 +42,106 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 $input = file_get_contents('php://input');
 $data = json_decode((string) $input, true);
 
-if (
-    is_array($data)
-    && isset($data['entry'][0]['changes'][0]['value']['messages'][0])
-    && $accessToken !== ''
-    && $phoneId !== ''
-) {
-    $message = $data['entry'][0]['changes'][0]['value']['messages'][0];
-    $customerNumber = (string) ($message['from'] ?? '');
+if (is_array($data)) {
+    $chatPdo = null;
+    try {
+        require_once __DIR__ . '/db.php';
+        require_once __DIR__ . '/includes/chat_db.php';
+        $chatPdo = $pdo;
+        chatEnsureTables($chatPdo);
+    } catch (Throwable $e) {
+        webhookLog('DB/chat indisponivel: ' . $e->getMessage());
+    }
 
-    if ($customerNumber !== '') {
-        $reply = [
-            'messaging_product' => 'whatsapp',
-            'to' => $customerNumber,
-            'type' => 'text',
-            'text' => [
-                'body' => $autoReplyText,
-            ],
-        ];
+    $entries = $data['entry'] ?? [];
+    if (is_array($entries)) {
+        foreach ($entries as $entry) {
+            $changes = is_array($entry) ? ($entry['changes'] ?? []) : [];
+            if (!is_array($changes)) continue;
 
-        $ch = curl_init("https://graph.facebook.com/v22.0/{$phoneId}/messages");
-        curl_setopt_array($ch, [
-            CURLOPT_HTTPHEADER => [
-                'Authorization: Bearer ' . $accessToken,
-                'Content-Type: application/json',
-            ],
-            CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => json_encode($reply, JSON_UNESCAPED_UNICODE),
-            CURLOPT_RETURNTRANSFER => true,
-        ]);
-        curl_exec($ch);
-        curl_close($ch);
+            foreach ($changes as $change) {
+                $value = is_array($change) ? ($change['value'] ?? []) : [];
+                if (!is_array($value)) continue;
+
+                $statuses = $value['statuses'] ?? [];
+                if ($chatPdo && is_array($statuses)) {
+                    foreach ($statuses as $status) {
+                        if (!is_array($status)) continue;
+                        try {
+                            chatApplyStatus($chatPdo, $status);
+                        } catch (Throwable $e) {
+                            webhookLog('status_fail: ' . $e->getMessage());
+                        }
+                    }
+                }
+
+                $messages = $value['messages'] ?? [];
+                if (!is_array($messages)) continue;
+
+                foreach ($messages as $message) {
+                    if (!is_array($message)) continue;
+
+                    $customerNumber = (string) ($message['from'] ?? '');
+                    if ($chatPdo) {
+                        try {
+                            chatSaveIncomingMessage($chatPdo, $value, $message);
+                        } catch (Throwable $e) {
+                            webhookLog('incoming_fail: ' . $e->getMessage());
+                        }
+                    }
+
+                    if ($customerNumber === '' || $accessToken === '' || $phoneId === '' || trim($autoReplyText) === '') {
+                        continue;
+                    }
+
+                    $reply = [
+                        'messaging_product' => 'whatsapp',
+                        'to' => $customerNumber,
+                        'type' => 'text',
+                        'text' => [
+                            'body' => $autoReplyText,
+                        ],
+                    ];
+
+                    $ch = curl_init("https://graph.facebook.com/v22.0/{$phoneId}/messages");
+                    curl_setopt_array($ch, [
+                        CURLOPT_HTTPHEADER => [
+                            'Authorization: Bearer ' . $accessToken,
+                            'Content-Type: application/json',
+                        ],
+                        CURLOPT_POST => true,
+                        CURLOPT_POSTFIELDS => json_encode($reply, JSON_UNESCAPED_UNICODE),
+                        CURLOPT_RETURNTRANSFER => true,
+                    ]);
+                    $res = curl_exec($ch);
+                    $http = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                    $err = curl_error($ch);
+                    curl_close($ch);
+
+                    if ($chatPdo) {
+                        $resp = json_decode((string) $res, true);
+                        if (!is_array($resp)) {
+                            $resp = ['raw' => (string) $res];
+                        }
+
+                        try {
+                            chatSaveOutgoingMessage(
+                                $chatPdo,
+                                $customerNumber,
+                                $autoReplyText,
+                                $reply,
+                                $resp,
+                                $http,
+                                $err ?: null,
+                                'auto_reply'
+                            );
+                        } catch (Throwable $e) {
+                            webhookLog('auto_reply_log_fail: ' . $e->getMessage());
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

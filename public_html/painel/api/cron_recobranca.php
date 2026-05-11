@@ -62,6 +62,7 @@ if (isset($_GET['ping']) && $_GET['ping'] === '1') {
 $ROOT = findRootWithFiles(['config.php', 'db.php']);
 require_once $ROOT . '/config.php';
 require_once $ROOT . '/db.php'; // precisa criar $pdo (PDO)
+require_once $ROOT . '/includes/chat_db.php';
 
 $META_PHONE_NUMBER_ID = cfg($cfg, 'META_PHONE_NUMBER_ID');
 $META_ACCESS_TOKEN    = cfg($cfg, 'META_ACCESS_TOKEN');
@@ -314,6 +315,7 @@ function enviarTemplateWhatsApp(
   return [
     'http' => (int)$http,
     'curl_error' => $err ?: null,
+    'request' => $payload,
     'response_raw' => $res ?: ''
   ];
 }
@@ -589,9 +591,26 @@ foreach ($rows as $r) {
   );
 
   $respArr = json_decode($resp['response_raw'] ?? '', true);
+  if (!is_array($respArr)) $respArr = ['raw' => (string)($resp['response_raw'] ?? '')];
   $ok = ($resp['http'] >= 200 && $resp['http'] < 300)
     && empty($resp['curl_error'])
     && empty($respArr['error']);
+
+  try {
+    chatSaveOutgoingMessage(
+      $pdo,
+      $phone,
+      chatDescribeWhatsAppPayload($resp['request'] ?? []),
+      $resp['request'] ?? [],
+      $respArr,
+      (int)($resp['http'] ?? 0),
+      $resp['curl_error'] ?? null,
+      'recobranca_cron',
+      (string)$billId
+    );
+  } catch (Throwable $e) {
+    logLine("bill_id={$billId} chat_log_fail=" . $e->getMessage());
+  }
 
   if ($ok) {
     logReminderAttempt(

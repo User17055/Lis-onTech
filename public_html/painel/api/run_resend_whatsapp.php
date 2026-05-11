@@ -288,6 +288,22 @@ try {
   $http = (int)($resultado['http'] ?? 0);
   $metaOk = ($http >= 200 && $http < 300) && empty($resultado['curl_error']) && empty($respArr['error']);
 
+  try {
+    chatSaveOutgoingMessage(
+      $pdo,
+      $phone,
+      chatDescribeWhatsAppPayload($resultado['request'] ?? []),
+      $resultado['request'] ?? [],
+      $respArr,
+      $http,
+      $resultado['curl_error'] ?? null,
+      $tag,
+      $runId
+    );
+  } catch (Throwable $e) {
+    try { runLog($pdo, $runId, 'error', "[{$tag}] Chat log falhou: " . $e->getMessage()); } catch (Throwable $ignored) {}
+  }
+
   rlog("META http={$http} curl_error=" . ($resultado['curl_error'] ?? 'null') .
        " resp_preview=" . substr((string)($resultado['response_raw'] ?? ''), 0, 220));
 

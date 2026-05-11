@@ -231,6 +231,12 @@ if (!function_exists('isActive')) {
         </li>
 
         <li>
+            <a href="?pagina=chat" class="<?= isActive('chat', $pagina) ?>">
+                <i class='bx bx-conversation'></i> <span>Chat</span>
+            </a>
+        </li>
+
+        <li>
             <a href="?pagina=reports" class="<?= isActive('reports', $pagina) ?>">
                 <i class='bx bx-bar-chart-square'></i> <span>Relatórios</span>
             </a>

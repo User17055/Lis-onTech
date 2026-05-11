@@ -19,6 +19,7 @@ $paginasPermitidas = [
   'index',
   'dashboard',
   'recobrancas',
+  'chat',
   'recobranca_detalhes',
   'reports',
   'finance',
