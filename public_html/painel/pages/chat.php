@@ -17,12 +17,14 @@
       --shadow:0 10px 30px rgba(23,32,51,.07);
       font-family:'Nunito',sans-serif;
       color:var(--text);
-      min-height:calc(100vh - 120px);
+      height:calc(100vh - var(--header-height, 70px) - 80px);
+      min-height:560px;
+      overflow:hidden;
     }
 
     .chat-shell{
-      height:calc(100vh - 120px);
-      min-height:720px;
+      height:100%;
+      min-height:0;
       display:grid;
       grid-template-columns:minmax(360px,430px) minmax(0,1fr);
       background:var(--panel);
@@ -37,6 +39,7 @@
       display:flex;
       flex-direction:column;
       min-width:0;
+      min-height:0;
       background:#fbfcfe;
     }
 
@@ -44,6 +47,7 @@
       display:flex;
       flex-direction:column;
       min-width:0;
+      min-height:0;
       background:linear-gradient(180deg,#ffffff 0%,#f8fafc 100%);
     }
 
@@ -132,6 +136,7 @@
     .thread-list{
       overflow:auto;
       flex:1;
+      min-height:0;
       padding:10px;
     }
     .thread-item{
@@ -213,6 +218,7 @@
 
     .messages{
       flex:1;
+      min-height:0;
       overflow:auto;
       padding:28px;
       display:flex;
@@ -250,6 +256,7 @@
     .msg-error{margin-top:8px;color:var(--danger);font-size:12px;font-weight:900;}
 
     .composer{
+      flex:0 0 auto;
       border-top:1px solid var(--line);
       background:#fff;
       padding:14px 16px;
@@ -286,6 +293,7 @@
     .toast.error{background:#8f2525;}
 
     @media(max-width:920px){
+      .chat-wrap{height:auto;min-height:calc(100vh - var(--header-height, 70px) - 50px);overflow:visible;}
       .chat-shell{height:auto;min-height:calc(100vh - 130px);grid-template-columns:1fr;}
       .chat-list-pane{height:360px;border-right:none;border-bottom:1px solid var(--line);}
       .chat-main-pane{min-height:560px;}

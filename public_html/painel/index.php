@@ -68,7 +68,29 @@ if (file_exists($pathPages)) {
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 
-<body>
+<body class="page-<?= htmlspecialchars($pagina, ENT_QUOTES, 'UTF-8') ?>">
+
+  <?php if ($pagina === 'chat'): ?>
+    <style>
+      body.page-chat {
+        overflow: hidden;
+      }
+
+      body.page-chat .main-content {
+        padding: 24px 46px;
+      }
+
+      @media (max-width: 920px) {
+        body.page-chat {
+          overflow: auto;
+        }
+
+        body.page-chat .main-content {
+          padding: 18px;
+        }
+      }
+    </style>
+  <?php endif; ?>
 
   <!-- ✅ Sidebar + Header (Lis'on) -->
   <?php require __DIR__ . "/partials/sidebar.php"; ?>
