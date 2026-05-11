@@ -513,8 +513,27 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     const statusBar = document.getElementById("statusBar");
 
     try {
-      const r = await fetch(url.toString(), { cache: "no-store" });
-      const j = await r.json();
+      const r = await fetch(url.toString(), { cache: "no-store", credentials: "same-origin" });
+      const text = await r.text();
+      let j = null;
+      try { j = JSON.parse(text); } catch (e) {}
+
+      if (r.status === 401) {
+        location.href = "/painel/";
+        return;
+      }
+
+      if (!r.ok) {
+        throw new Error(j?.error || text.slice(0, 220) || `HTTP ${r.status}`);
+      }
+
+      if (!j) {
+        throw new Error(text.slice(0, 220) || "Resposta invalida do servidor");
+      }
+
+      if (j.ok === false) {
+        throw new Error(j.error || "Falha na requisicao");
+      }
 
       const currentDataHash = JSON.stringify({
         rows: j.rows ?? [],
@@ -585,7 +604,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       document.getElementById("tbody").innerHTML = `
         <tr>
           <td colspan="4" style="text-align:center; padding:30px; color:var(--red-text); font-weight:700;">
-            Erro ao conectar com o servidor.
+            ${esc(e.message || 'Erro ao conectar com o servidor.')}
           </td>
         </tr>
       `;

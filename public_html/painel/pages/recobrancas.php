@@ -352,7 +352,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       const fd = new FormData();
       fd.set('action', action);
       fd.set('bill_id', String(billId));
-      const r = await fetch('/painel/api/recobranca_action.php', { method:'POST', body: fd });
+      const r = await fetch('/painel/api/recobranca_action.php', { method:'POST', body: fd, credentials:'same-origin' });
       const text = await r.text();
       let j = null;
       try { j = JSON.parse(text); } catch(e) {}
@@ -370,7 +370,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         const url = new URL('/painel/api/cron_recobranca.php', location.origin);
         url.searchParams.set('limit', String(limit));
         if (billId) url.searchParams.set('bill_id', String(billId));
-        const r = await fetch(url.toString(), { cache:'no-store' });
+        const r = await fetch(url.toString(), { cache:'no-store', credentials:'same-origin' });
         const text = await r.text();
         if (!r.ok) throw new Error(`HTTP ${r.status}: ${text.slice(0, 180)}`);
         if (/^\s*ERRO/i.test(text)) throw new Error(text.trim());
@@ -407,8 +407,17 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       if (isManual || previousHash === null) showLoading();
 
       try{
-        const r = await fetch(url.toString(), { cache:'no-store' });
-        const j = await r.json();
+        const r = await fetch(url.toString(), { cache:'no-store', credentials:'same-origin' });
+        const text = await r.text();
+        let j = null;
+        try { j = JSON.parse(text); } catch(e) {}
+        if (r.status === 401) {
+          location.href = '/painel/';
+          return;
+        }
+        if (!r.ok) throw new Error(j?.error || text.slice(0, 220) || `HTTP ${r.status}`);
+        if (!j) throw new Error(text.slice(0, 220) || 'Resposta invalida do servidor');
+        if (j.ok === false) throw new Error(j.error || 'Falha na requisicao');
         const hash = JSON.stringify({ rows:j.rows ?? [], page:j.page ?? currentPage, total:j.total ?? 0 });
         if (hash === previousHash && !isManual){
           document.getElementById('statusText').textContent = "Verificado em " + new Date().toLocaleString('pt-BR');
@@ -509,11 +518,11 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         }).join('');
       } catch(e){
         console.error(e);
-        setStatus('Erro ao carregar cobrancas', 'error');
+        setStatus(e.message || 'Erro ao carregar cobrancas', 'error');
         document.getElementById('tbody').innerHTML = `
           <tr>
             <td colspan="6" style="text-align:center;padding:30px;color:var(--red-text);font-weight:800;">
-              Erro ao conectar com o servidor.
+              ${esc(e.message || 'Erro ao conectar com o servidor.')}
             </td>
           </tr>
         `;

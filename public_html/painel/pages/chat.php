@@ -501,11 +501,18 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       setTimeout(() => box.classList.remove('show'), 3200);
     }
 
-    async function fetchJson(url, options){
-      const resp = await fetch(url, options);
+    async function fetchJson(url, options = {}){
+      const fetchOptions = {credentials:'same-origin', ...options};
+      const resp = await fetch(url, fetchOptions);
       const text = await resp.text();
       let json = null;
       try { json = JSON.parse(text); } catch(e) {}
+
+      if (resp.status === 401) {
+        location.href = '/painel/';
+        throw new Error('Login obrigatorio');
+      }
+
       if (!resp.ok || !json || json.ok === false) {
         throw new Error(json?.error || text.slice(0, 220) || 'Falha na requisicao');
       }

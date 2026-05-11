@@ -821,6 +821,24 @@ $run_id = (string) $_GET['id'];
             setTimeout(() => t.classList.remove("show"), 1800);
         }
 
+        async function fetchApiJson(url, options = {}) {
+            const resp = await fetch(url, { credentials: "same-origin", ...options });
+            const text = await resp.text();
+            let json = null;
+            try { json = JSON.parse(text); } catch (e) {}
+
+            if (resp.status === 401) {
+                location.href = "/painel/";
+                throw new Error("Login obrigatorio");
+            }
+
+            if (!resp.ok || !json || json.ok === false) {
+                throw new Error(json?.error || text.slice(0, 220) || "Falha na requisicao");
+            }
+
+            return json;
+        }
+
         function pillForStatus(status) {
             const st = String(status || '').toLowerCase();
             if (st === 'processed' || st === 'success' || st === 'ok') {
@@ -1094,7 +1112,7 @@ $run_id = (string) $_GET['id'];
                     btn.disabled = true;
                     btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Enviando...`;
 
-                    const resp = await fetch(`/painel/api/run_resend_whatsapp.php`, {
+                    await fetchApiJson(`/painel/api/run_resend_whatsapp.php`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({
@@ -1104,9 +1122,6 @@ $run_id = (string) $_GET['id'];
                             reason: reason
                         })
                     });
-
-                    const data = await resp.json().catch(() => ({}));
-                    if (!resp.ok || !data.ok) throw new Error(data.error || "Falha ao reenviar");
 
                     toast(resendMode === "same" ? "Reenvio (mesma mensagem) disparado" : "Reenvio disparado");
                     closeResendModal();
@@ -1311,28 +1326,22 @@ $run_id = (string) $_GET['id'];
                     btn.disabled = true;
                     btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Buscando na Vindi...`;
 
-                    const r1 = await fetch(`/painel/api/run_get_vindi_phone.php`, {
+                    const j1 = await fetchApiJson(`/painel/api/run_get_vindi_phone.php`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ run_id: runId })
                     });
-
-                    const j1 = await r1.json().catch(() => ({}));
-                    if (!r1.ok || !j1.ok) throw new Error(j1.error || "Não foi possível buscar o telefone na Vindi");
 
                     const phoneDigits = String(j1.phone || "").replace(/\D+/g, "");
                     if (!phoneDigits) throw new Error("Telefone não encontrado na Vindi");
 
                     btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Reenviando...`;
 
-                    const r2 = await fetch(`/painel/api/run_resend_whatsapp.php`, {
+                    await fetchApiJson(`/painel/api/run_resend_whatsapp.php`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ run_id: runId, phone: phoneDigits, mode: "vindi", reason: "" })
                     });
-
-                    const j2 = await r2.json().catch(() => ({}));
-                    if (!r2.ok || !j2.ok) throw new Error(j2.error || "Falha ao reenviar");
 
                     toast("Reenvio disparado (Vindi)");
                     setTimeout(() => location.reload(), 700);
@@ -1353,10 +1362,7 @@ $run_id = (string) $_GET['id'];
             try {
                 initResendModal();
 
-                const r = await fetch(`/painel/api/run_detail.php?run_id=${encodeURIComponent(runId)}`, { cache: "no-store" });
-                const j = await r.json();
-
-                if (!j.ok) throw new Error(j.error || "Não retornou ok=true");
+                const j = await fetchApiJson(`/painel/api/run_detail.php?run_id=${encodeURIComponent(runId)}`, { cache: "no-store" });
 
                 const run = j.run || {};
                 const logs = j.logs || [];
