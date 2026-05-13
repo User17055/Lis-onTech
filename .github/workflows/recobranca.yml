@@ -1,0 +1,14 @@
+name: Recobranca automatica
+
+on:
+  schedule:
+    - cron: "0 * * * *" # a cada hora, em UTC
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Chamar cron de recobranca
+        run: |
+          curl -fsS "${{ secrets.RECOBRANCA_CRON_URL }}"
