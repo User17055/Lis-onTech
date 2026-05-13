@@ -269,16 +269,13 @@ if ($loginError !== '') {
       color: #8C1D1D;
       display: grid;
       gap: 3px;
-      left: 50%;
       max-width: min(88vw, 390px);
       min-height: 74px;
       overflow: hidden;
       padding: 16px 18px 16px 24px;
-      position: fixed;
-      top: 22px;
-      transform: translateX(-50%);
-      width: max-content;
-      z-index: 20;
+      position: relative;
+      width: 100%;
+      z-index: 2;
     }
 
     .login-toast strong {
@@ -321,12 +318,12 @@ if ($loginError !== '') {
     @keyframes toast-enter {
       from {
         opacity: 0;
-        transform: translate(-50%, -18px) scale(0.98);
+        transform: translateY(-12px) scale(0.98);
       }
 
       to {
         opacity: 1;
-        transform: translate(-50%, 0) scale(1);
+        transform: translateY(0) scale(1);
       }
     }
 
@@ -334,7 +331,7 @@ if ($loginError !== '') {
       to {
         opacity: 0;
         pointer-events: none;
-        transform: translate(-50%, -14px) scale(0.98);
+        transform: translateY(-10px) scale(0.98);
       }
     }
 
@@ -402,14 +399,6 @@ if ($loginError !== '') {
   </style>
 </head>
 <body>
-  <?php if ($loginToastMessage !== ''): ?>
-    <div class="login-toast" role="alert" aria-live="assertive">
-      <div class="toast-timer" aria-hidden="true"></div>
-      <strong>Login nao realizado</strong>
-      <span><?= htmlspecialchars($loginToastMessage, ENT_QUOTES, 'UTF-8') ?></span>
-    </div>
-  <?php endif; ?>
-
   <main class="login-page" aria-label="Pagina de login">
     <section class="login-panel" aria-labelledby="login-title">
       <div class="login-content">
@@ -426,6 +415,14 @@ if ($loginError !== '') {
 
         <form class="login-form" method="post" action="/painel/">
           <input type="hidden" name="csrf" value="<?= htmlspecialchars(authCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+
+          <?php if ($loginToastMessage !== ''): ?>
+            <div class="login-toast" role="alert" aria-live="assertive">
+              <div class="toast-timer" aria-hidden="true"></div>
+              <strong>Login nao realizado</strong>
+              <span><?= htmlspecialchars($loginToastMessage, ENT_QUOTES, 'UTF-8') ?></span>
+            </div>
+          <?php endif; ?>
 
           <label class="field">
             <span>Email</span>
