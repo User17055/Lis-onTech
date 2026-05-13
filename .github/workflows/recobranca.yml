@@ -2,13 +2,23 @@ name: Recobranca automatica
 
 on:
   schedule:
-    - cron: "0 * * * *" # a cada hora, em UTC
+    - cron: "0 * * * *"
   workflow_dispatch:
 
 jobs:
-  run:
+  processar-fila:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+
     steps:
-      - name: Chamar cron de recobranca
+      - name: Validar URL do cron
+        env:
+          RECOBRANCA_CRON_URL: ${{ secrets.RECOBRANCA_CRON_URL }}
         run: |
-          curl -fsS "${{ secrets.RECOBRANCA_CRON_URL }}"
+          test -n "$RECOBRANCA_CRON_URL"
+
+      - name: Chamar recobranca
+        env:
+          RECOBRANCA_CRON_URL: ${{ secrets.RECOBRANCA_CRON_URL }}
+        run: |
+          curl --fail --show-error --silent --max-time 60 "$RECOBRANCA_CRON_URL"
