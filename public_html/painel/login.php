@@ -5,159 +5,391 @@ $loginUser = isset($_POST['user']) ? trim((string)$_POST['user']) : '';
 $loginError = $loginError ?? '';
 $loginConfigured = isset($cfg) && is_array($cfg) ? authConfigured($cfg) : false;
 ?>
-<!DOCTYPE html>
-<html lang="pt-br">
+<!doctype html>
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login - Lis'on</title>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <title>Login - Lis'onTech</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      min-height:100vh;
-      font-family:'Poppins',sans-serif;
-      background:#f6f8fb;
-      color:#172033;
-      display:grid;
-      place-items:center;
-      padding:24px;
+    :root {
+      --ink: #051A48;
+      --body: #324275;
+      --label: #17294D;
+      --accent: #2D6AFF;
+      --border: rgba(45, 106, 255, 0.25);
+      --surface: #F1F6FF;
+      --shadow: 0 4px 18px rgba(45, 106, 255, 0.16);
     }
-    .login-shell{
-      width:min(960px,100%);
-      min-height:560px;
-      display:grid;
-      grid-template-columns:1fr 430px;
-      background:#fff;
-      border:1px solid #e6edf5;
-      border-radius:8px;
-      overflow:hidden;
-      box-shadow:0 24px 70px rgba(23,32,51,.12);
+
+    * {
+      box-sizing: border-box;
     }
-    .login-brand{
-      background:#172033;
-      color:#fff;
-      padding:44px;
-      display:flex;
-      flex-direction:column;
-      justify-content:space-between;
-      min-width:0;
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
     }
-    .brand-top{display:flex;align-items:center;gap:14px;font-size:28px;font-weight:800}
-    .brand-top img{height:56px;width:auto;background:#fff;border-radius:8px;padding:6px}
-    .brand-top span span{color:#38b6ff}
-    .brand-copy strong{display:block;font-size:34px;line-height:1.1;margin-bottom:14px}
-    .brand-copy p{margin:0;color:#c9d5e3;font-weight:500;line-height:1.55;max-width:420px}
-    .login-form{
-      padding:44px;
-      display:flex;
-      flex-direction:column;
-      justify-content:center;
+
+    body {
+      background: linear-gradient(180deg, #E8EEFF 0%, #F6F9FF 100%);
+      color: var(--ink);
+      font-family: "Poppins", Arial, sans-serif;
     }
-    .login-form h1{margin:0 0 8px;font-size:28px;line-height:1.15}
-    .login-form .sub{margin:0 0 28px;color:#66758a;font-weight:600}
-    .field{display:grid;gap:8px;margin-bottom:16px}
-    .field label{font-size:13px;font-weight:800;color:#435169}
-    .input-wrap{position:relative}
-    .input-wrap i{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#93a4b7}
-    input{
-      width:100%;
-      height:50px;
-      border:1px solid #dce6f1;
-      border-radius:8px;
-      padding:0 14px 0 42px;
-      outline:none;
-      font:700 14px 'Poppins',sans-serif;
-      color:#172033;
-      background:#f8fafc;
+
+    button,
+    input {
+      font: inherit;
     }
-    input:focus{border-color:#38b6ff;background:#fff;box-shadow:0 0 0 4px rgba(56,182,255,.15)}
-    .btn{
-      width:100%;
-      height:52px;
-      border:0;
-      border-radius:8px;
-      background:#38b6ff;
-      color:#fff;
-      font:800 15px 'Poppins',sans-serif;
-      cursor:pointer;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      gap:10px;
-      margin-top:8px;
+
+    .login-page {
+      background: var(--surface);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-height: 100vh;
+      overflow: hidden;
     }
-    .btn:hover{background:#1677a8}
-    .alert{
-      border-radius:8px;
-      padding:12px 14px;
-      font-size:13px;
-      font-weight:700;
-      margin-bottom:18px;
-      line-height:1.35;
+
+    .login-panel {
+      align-items: center;
+      background: #EAF2FF;
+      display: flex;
+      justify-content: center;
+      padding: 48px 32px;
     }
-    .alert.error{background:#fee9e9;color:#9d2b2b}
-    .alert.warn{background:#fff4da;color:#8a5b0a}
-    .hint{margin-top:18px;color:#8795a8;font-size:12px;font-weight:600;line-height:1.45}
-    @media(max-width:820px){
-      .login-shell{grid-template-columns:1fr;min-height:0}
-      .login-brand{padding:28px;gap:50px}
-      .login-form{padding:30px}
+
+    .login-content {
+      margin-top: -2px;
+      width: min(100%, 314px);
+    }
+
+    .headline {
+      margin-bottom: 34px;
+    }
+
+    .headline h1 {
+      color: var(--ink);
+      font-size: 34px;
+      font-weight: 500;
+      letter-spacing: 1.02px;
+      line-height: 1.2;
+      margin: 0 0 3px;
+      text-transform: uppercase;
+    }
+
+    .headline p {
+      color: var(--body);
+      font-size: 14px;
+      font-weight: 400;
+      letter-spacing: 0.42px;
+      line-height: 1.55;
+      margin: 0;
+    }
+
+    .login-form {
+      display: grid;
+      gap: 18px;
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+    }
+
+    .field span,
+    .remember,
+    .form-options a {
+      color: var(--label);
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: 0.42px;
+      line-height: 1.35;
+    }
+
+    .field input {
+      background: rgba(196, 196, 196, 0);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      color: var(--body);
+      height: 41px;
+      outline: none;
+      padding: 0 15px;
+      transition: border-color 160ms ease, box-shadow 160ms ease;
+      width: 100%;
+    }
+
+    .field input::placeholder {
+      color: rgba(99, 99, 100, 0.72);
+      font-weight: 300;
+    }
+
+    .field input:disabled,
+    .button:disabled {
+      cursor: not-allowed;
+      opacity: 0.58;
+    }
+
+    .field input:focus {
+      border-color: rgba(45, 106, 255, 0.85);
+      box-shadow: 0 0 0 3px rgba(45, 106, 255, 0.16), var(--shadow);
+    }
+
+    .form-options {
+      align-items: center;
+      display: flex;
+      justify-content: space-between;
+      margin-top: -2px;
+    }
+
+    .remember {
+      align-items: center;
+      display: inline-flex;
+      gap: 8px;
+    }
+
+    .remember input {
+      accent-color: var(--accent);
+      height: 14px;
+      margin: 0;
+      width: 14px;
+    }
+
+    .form-options a,
+    .signup a {
+      color: var(--label);
+      text-decoration: none;
+      transition: color 160ms ease;
+    }
+
+    .form-options a:hover,
+    .signup a:hover {
+      color: var(--accent);
+    }
+
+    .button {
+      align-items: center;
+      border-radius: 12px;
+      cursor: pointer;
+      display: inline-flex;
+      font-size: 14px;
+      font-weight: 600;
+      height: 41px;
+      justify-content: center;
+      letter-spacing: 0.42px;
+      line-height: 1;
+      transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+      width: 100%;
+    }
+
+    .button:active {
+      transform: translateY(1px);
+    }
+
+    .button-primary {
+      background: var(--accent);
+      border: 1px solid var(--accent);
+      box-shadow: 0 4px 12px rgba(45, 106, 255, 0.22);
+      color: #ffffff;
+      margin-top: -3px;
+    }
+
+    .button-primary:hover:not(:disabled) {
+      background: #1e53e3;
+      box-shadow: 0 7px 18px rgba(45, 106, 255, 0.27);
+    }
+
+    .button-google {
+      background: rgba(196, 196, 196, 0);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      color: #181818;
+      gap: 10px;
+      margin-top: -6px;
+    }
+
+    .button-google:hover {
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.16);
+    }
+
+    .signup {
+      color: var(--label);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.3px;
+      line-height: 1.5;
+      margin: 15px 0 0;
+      text-align: center;
+    }
+
+    .signup a {
+      color: var(--accent);
+    }
+
+    .alert {
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.18px;
+      line-height: 1.45;
+      margin: -14px 0 18px;
+      padding: 12px 14px;
+    }
+
+    .alert.error {
+      background: #FEECEC;
+      border: 1px solid rgba(188, 52, 52, 0.18);
+      color: #922626;
+    }
+
+    .alert.warn {
+      background: #FFF6D8;
+      border: 1px solid rgba(196, 142, 24, 0.18);
+      color: #7B5410;
+    }
+
+    .art-panel {
+      background-color: #2D6AFF;
+      background-image: url("/assets/LISONTECH.png");
+      background-position: center center;
+      background-repeat: no-repeat;
+      background-size: cover;
+      min-height: 100vh;
+    }
+
+    @media (min-width: 900px) {
+      .login-page {
+        height: 100vh;
+        width: 100vw;
+      }
+
+      .login-panel,
+      .art-panel {
+        min-height: auto;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .login-page {
+        grid-template-columns: 1fr;
+      }
+
+      .art-panel {
+        min-height: 280px;
+        order: -1;
+      }
+
+      .login-panel {
+        padding: 42px 24px 48px;
+      }
+
+      .headline h1 {
+        font-size: 30px;
+      }
+    }
+
+    @media (max-width: 380px) {
+      .login-panel {
+        padding-inline: 18px;
+      }
+
+      .headline h1 {
+        font-size: 27px;
+      }
+
+      .form-options {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 10px;
+      }
     }
   </style>
 </head>
 <body>
-  <main class="login-shell">
-    <section class="login-brand">
-      <div class="brand-top">
-        <img src="/assets/lisonbb.svg" alt="Lis'on">
-        <span>Lis'<span>on</span></span>
-      </div>
-      <div class="brand-copy">
-        <strong>Painel protegido</strong>
-        <p>Entre para acessar cobrancas, chat WhatsApp, logs e rotinas administrativas.</p>
+  <main class="login-page" aria-label="Pagina de login">
+    <section class="login-panel" aria-labelledby="login-title">
+      <div class="login-content">
+        <header class="headline">
+          <h1 id="login-title">Bem-vindo de volta</h1>
+          <p>Bem-vindo! Por favor, informe seus dados.</p>
+        </header>
+
+        <?php if (!$loginConfigured): ?>
+          <div class="alert warn">
+            Configure ADMIN_USER e ADMIN_PASS no config.env antes de acessar o painel.
+          </div>
+        <?php elseif ($loginError !== ''): ?>
+          <div class="alert error"><?= htmlspecialchars($loginError, ENT_QUOTES, 'UTF-8') ?></div>
+        <?php endif; ?>
+
+        <form class="login-form" method="post" action="/painel/">
+          <input type="hidden" name="csrf" value="<?= htmlspecialchars(authCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+
+          <label class="field">
+            <span>Email</span>
+            <input
+              type="text"
+              name="user"
+              placeholder="Digite seu email"
+              autocomplete="username"
+              value="<?= htmlspecialchars($loginUser, ENT_QUOTES, 'UTF-8') ?>"
+              <?= !$loginConfigured ? 'disabled' : '' ?>
+            >
+          </label>
+
+          <label class="field">
+            <span>Senha</span>
+            <input
+              type="password"
+              name="pass"
+              placeholder="Digite sua senha"
+              autocomplete="current-password"
+              <?= !$loginConfigured ? 'disabled' : '' ?>
+            >
+          </label>
+
+          <div class="form-options">
+            <label class="remember">
+              <input type="checkbox" name="remember" <?= !$loginConfigured ? 'disabled' : '' ?>>
+              <span>Lembrar de mim</span>
+            </label>
+            <a href="#">Esqueceu a senha?</a>
+          </div>
+
+          <button class="button button-primary" type="submit" name="login" value="1" <?= !$loginConfigured ? 'disabled' : '' ?>>Entrar</button>
+          <button class="button button-google" type="button">
+            <svg aria-hidden="true" viewBox="0 0 24 24" width="29" height="29">
+              <path
+                fill="#4285F4"
+                d="M22.6 12.2c0-.8-.1-1.5-.2-2.2H12v4.2h5.9c-.3 1.3-1 2.4-2 3.1v2.6h3.3c2-1.8 3.4-4.4 3.4-7.7Z"
+              />
+              <path
+                fill="#34A853"
+                d="M12 23c2.8 0 5.2-.9 6.9-2.6l-3.3-2.6c-.9.6-2.1 1-3.6 1-2.7 0-5-1.8-5.8-4.3H2.8v2.7C4.5 20.6 8 23 12 23Z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M6.2 14.5c-.2-.6-.3-1.3-.3-2s.1-1.4.3-2V7.8H2.8A11 11 0 0 0 2 12.5c0 1.7.4 3.2 1.1 4.6l3.1-2.6Z"
+              />
+              <path
+                fill="#EA4335"
+                d="M12 6.3c1.5 0 2.9.5 4 1.6l3-3A10.3 10.3 0 0 0 12 2C8 2 4.5 4.4 2.8 7.8l3.4 2.7C7 8 9.3 6.3 12 6.3Z"
+              />
+            </svg>
+            <span>Entrar com Google</span>
+          </button>
+        </form>
+
+        <p class="signup">Ainda nao tem conta? <a href="#">Cadastre-se gratis!</a></p>
       </div>
     </section>
 
-    <section class="login-form">
-      <h1>Entrar</h1>
-      <p class="sub">Use o usuario administrativo configurado no servidor.</p>
-
-      <?php if (!$loginConfigured): ?>
-        <div class="alert warn">
-          Configure ADMIN_USER e ADMIN_PASS no config.env antes de acessar o painel.
-        </div>
-      <?php elseif ($loginError !== ''): ?>
-        <div class="alert error"><?= htmlspecialchars($loginError, ENT_QUOTES, 'UTF-8') ?></div>
-      <?php endif; ?>
-
-      <form method="post" action="/painel/">
-        <input type="hidden" name="csrf" value="<?= htmlspecialchars(authCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
-        <div class="field">
-          <label for="user">Usuario</label>
-          <div class="input-wrap">
-            <i class="fa-solid fa-user"></i>
-            <input id="user" name="user" autocomplete="username" value="<?= htmlspecialchars($loginUser, ENT_QUOTES, 'UTF-8') ?>" <?= !$loginConfigured ? 'disabled' : '' ?>>
-          </div>
-        </div>
-        <div class="field">
-          <label for="pass">Senha</label>
-          <div class="input-wrap">
-            <i class="fa-solid fa-lock"></i>
-            <input id="pass" name="pass" type="password" autocomplete="current-password" <?= !$loginConfigured ? 'disabled' : '' ?>>
-          </div>
-        </div>
-        <button class="btn" type="submit" name="login" value="1" <?= !$loginConfigured ? 'disabled' : '' ?>>
-          <i class="fa-solid fa-right-to-bracket"></i> Entrar
-        </button>
-      </form>
-
-      <div class="hint">
-        Dica: ADMIN_PASS pode ser texto simples ou hash gerado por password_hash do PHP.
-      </div>
-    </section>
+    <section class="art-panel" aria-label="Arte Lis'onTech"></section>
   </main>
 </body>
 </html>
