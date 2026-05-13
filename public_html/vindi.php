@@ -180,6 +180,37 @@ function billAmountOrNull(array $bill): ?string
     return null;
 }
 
+function isPaidStatus($value): bool
+{
+    $status = strtolower(trim((string) $value));
+    return in_array($status, ['paid', 'success', 'successful'], true);
+}
+
+function billAlreadyPaid(array $bill): bool
+{
+    if (isPaidStatus($bill['status'] ?? '')) {
+        return true;
+    }
+
+    foreach (['charge', 'last_charge'] as $key) {
+        $charge = $bill[$key] ?? null;
+        if (is_array($charge) && isPaidStatus($charge['status'] ?? '')) {
+            return true;
+        }
+    }
+
+    $charges = $bill['charges'] ?? [];
+    if (is_array($charges)) {
+        foreach ($charges as $charge) {
+            if (is_array($charge) && isPaidStatus($charge['status'] ?? '')) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
 $runId = null;
 
 
@@ -295,14 +326,15 @@ if ($evento === 'bill_paid' || $evento === 'bill_canceled') {
 
     if ($billIdInt > 0) {
         // Upsert: se não existir, cria; se existir, desativa
+        $statusEvento = $evento === 'bill_paid' ? 'paid' : 'canceled';
         $st = $pdo->prepare("
-            INSERT INTO bill_reminders (bill_id, active)
-            VALUES (?, 0)
-            ON DUPLICATE KEY UPDATE active=0
+            INSERT INTO bill_reminders (bill_id, active, status)
+            VALUES (?, 0, ?)
+            ON DUPLICATE KEY UPDATE active=0, status=VALUES(status)
         ");
-        $st->execute([$billIdInt]);
+        $st->execute([$billIdInt, $statusEvento]);
 
-        logLine($LOG_FILE, "bill_reminders desativado por {$evento} | bill_id={$billIdInt}");
+        logLine($LOG_FILE, "bill_reminders desativado por {$evento} | bill_id={$billIdInt} | status={$statusEvento}");
     } else {
         logLine($LOG_FILE, "AVISO: {$evento} sem bill_id no payload.");
     }
@@ -330,6 +362,7 @@ try {
         $link_fatura = (string) ($bill['url'] ?? '');
 
         $billIdInt = (int) ($billId ?? 0);
+        $billJaPaga = billAlreadyPaid($bill);
 
         // --- TRAVA: NÃO REENVIAR bill_created SE JÁ FOI ENVIADO ---
         if ($billIdInt > 0) {
@@ -418,6 +451,42 @@ try {
 
         dbg($LOG_FILE, $DEBUG, $pdo, $runId, 'RUN_CREATED', ['runId' => $runId]);
         runLog($pdo, $runId, 'info', 'Recebido bill_created, iniciando.');
+
+        if ($billJaPaga) {
+            $msg = "Cobranca ja paga no recebimento do bill_created, WhatsApp nao enviado.";
+            runLog($pdo, $runId, 'info', $msg);
+            runMarkNotSent($pdo, $runId, $msg);
+
+            if ($billIdInt > 0) {
+                try {
+                    $st = $pdo->prepare("
+                        UPDATE bill_reminders
+                        SET status='paid',
+                            active=0,
+                            customer_id = COALESCE(?, customer_id),
+                            customer_name = COALESCE(?, customer_name),
+                            bill_url = COALESCE(NULLIF(?, ''), bill_url),
+                            next_reminder_at = NULL
+                        WHERE bill_id = ?
+                    ");
+                    $st->execute([
+                        !empty($customerId) ? (int) $customerId : null,
+                        $nome !== '' ? $nome : null,
+                        $link_fatura,
+                        $billIdInt,
+                    ]);
+                } catch (Throwable $e) {
+                    logLine($LOG_FILE, "ERRO ao marcar bill_reminders como pago: " . $e->getMessage());
+                }
+            }
+
+            dbg($LOG_FILE, $DEBUG, $pdo, $runId, 'BILL_ALREADY_PAID_SKIP_WA', [
+                'bill_status' => $bill['status'] ?? null,
+                'billId' => $billId
+            ]);
+            http_response_code(200);
+            exit;
+        }
 
         // telefone
         $telefone_cliente = extractPhoneFromPayload($bill);
