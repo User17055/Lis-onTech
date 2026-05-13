@@ -270,6 +270,7 @@ if ($loginError !== '') {
       display: grid;
       gap: 3px;
       max-width: min(88vw, 390px);
+      max-height: 92px;
       min-height: 74px;
       overflow: hidden;
       padding: 16px 18px 16px 24px;
@@ -329,7 +330,13 @@ if ($loginError !== '') {
 
     @keyframes toast-leave {
       to {
+        border-width: 0;
+        margin: 0;
+        max-height: 0;
+        min-height: 0;
         opacity: 0;
+        padding-bottom: 0;
+        padding-top: 0;
         pointer-events: none;
         transform: translateY(-10px) scale(0.98);
       }
