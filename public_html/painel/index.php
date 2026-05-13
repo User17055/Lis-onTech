@@ -90,7 +90,8 @@ if (file_exists($pathPages)) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <title>Lis'on System</title>
-  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+  <link rel="icon" type="image/svg+xml" href="/assets/lisonbb.svg" media="(prefers-color-scheme: light)">
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" media="(prefers-color-scheme: dark)">
   <link rel="shortcut icon" type="image/svg+xml" href="/assets/favicon.svg">
 
   <!-- ✅ Sidebar Lis'on (Poppins + Boxicons) -->
