@@ -4,6 +4,13 @@ declare(strict_types=1);
 $loginUser = isset($_POST['user']) ? trim((string)$_POST['user']) : '';
 $loginError = $loginError ?? '';
 $loginConfigured = isset($cfg) && is_array($cfg) ? authConfigured($cfg) : false;
+$loginToastMessage = '';
+
+if ($loginError !== '') {
+    $loginToastMessage = str_contains(strtolower($loginError), 'invalid')
+        ? 'E-mail ou senha incorretos.'
+        : $loginError;
+}
 ?>
 <!doctype html>
 <html lang="pt-BR">
@@ -253,6 +260,90 @@ $loginConfigured = isset($cfg) && is_array($cfg) ? authConfigured($cfg) : false;
       color: #7B5410;
     }
 
+    .login-toast {
+      animation: toast-enter 380ms ease-out both, toast-leave 420ms ease-in 4.8s forwards;
+      background: rgba(255, 255, 255, 0.96);
+      border: 1px solid rgba(224, 44, 44, 0.22);
+      border-radius: 12px;
+      box-shadow: 0 18px 45px rgba(119, 25, 25, 0.18);
+      color: #8C1D1D;
+      display: grid;
+      gap: 3px;
+      left: 50%;
+      max-width: min(88vw, 390px);
+      min-height: 74px;
+      overflow: hidden;
+      padding: 16px 18px 16px 24px;
+      position: fixed;
+      top: 22px;
+      transform: translateX(-50%);
+      width: max-content;
+      z-index: 20;
+    }
+
+    .login-toast strong {
+      color: #771818;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.18px;
+      line-height: 1.25;
+    }
+
+    .login-toast span {
+      color: #A23B3B;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.18px;
+      line-height: 1.35;
+    }
+
+    .toast-timer {
+      background: rgba(224, 44, 44, 0.13);
+      bottom: 0;
+      left: 0;
+      position: absolute;
+      top: 0;
+      width: 6px;
+    }
+
+    .toast-timer::before {
+      animation: toast-timer 4.8s linear forwards;
+      background: linear-gradient(180deg, #FF4D4D 0%, #C81E1E 100%);
+      bottom: 0;
+      content: "";
+      left: 0;
+      position: absolute;
+      right: 0;
+      top: 0;
+      transform-origin: bottom;
+    }
+
+    @keyframes toast-enter {
+      from {
+        opacity: 0;
+        transform: translate(-50%, -18px) scale(0.98);
+      }
+
+      to {
+        opacity: 1;
+        transform: translate(-50%, 0) scale(1);
+      }
+    }
+
+    @keyframes toast-leave {
+      to {
+        opacity: 0;
+        pointer-events: none;
+        transform: translate(-50%, -14px) scale(0.98);
+      }
+    }
+
+    @keyframes toast-timer {
+      to {
+        transform: scaleY(0);
+      }
+    }
+
     .art-panel {
       background-color: #2D6AFF;
       background-image: url("/assets/LISONTECH.png");
@@ -311,6 +402,14 @@ $loginConfigured = isset($cfg) && is_array($cfg) ? authConfigured($cfg) : false;
   </style>
 </head>
 <body>
+  <?php if ($loginToastMessage !== ''): ?>
+    <div class="login-toast" role="alert" aria-live="assertive">
+      <div class="toast-timer" aria-hidden="true"></div>
+      <strong>Login nao realizado</strong>
+      <span><?= htmlspecialchars($loginToastMessage, ENT_QUOTES, 'UTF-8') ?></span>
+    </div>
+  <?php endif; ?>
+
   <main class="login-page" aria-label="Pagina de login">
     <section class="login-panel" aria-labelledby="login-title">
       <div class="login-content">
@@ -323,8 +422,6 @@ $loginConfigured = isset($cfg) && is_array($cfg) ? authConfigured($cfg) : false;
           <div class="alert warn">
             Configure ADMIN_USER e ADMIN_PASS no config.env antes de acessar o painel.
           </div>
-        <?php elseif ($loginError !== ''): ?>
-          <div class="alert error"><?= htmlspecialchars($loginError, ENT_QUOTES, 'UTF-8') ?></div>
         <?php endif; ?>
 
         <form class="login-form" method="post" action="/painel/">
