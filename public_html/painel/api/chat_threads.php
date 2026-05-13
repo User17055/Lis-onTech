@@ -26,6 +26,7 @@ try {
     $limit = max(1, min(100, (int)($_GET['limit'] ?? 60)));
     $q = trim((string)($_GET['q'] ?? ''));
     $onlyUnread = (string)($_GET['unread'] ?? '0') === '1';
+    $direction = strtolower(trim((string)($_GET['direction'] ?? '')));
 
     $where = 'WHERE 1=1';
     $params = [];
@@ -37,6 +38,16 @@ try {
 
     if ($onlyUnread) {
         $where .= ' AND t.unread_count > 0';
+    }
+
+    if (in_array($direction, ['in', 'out'], true)) {
+        $where .= ' AND EXISTS (
+            SELECT 1
+            FROM chat_messages cm_filter
+            WHERE cm_filter.thread_id = t.id
+              AND cm_filter.direction = :direction
+        )';
+        $params[':direction'] = $direction;
     }
 
     $count = $pdo->prepare("SELECT COUNT(*) FROM chat_threads t {$where}");

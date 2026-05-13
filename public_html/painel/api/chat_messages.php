@@ -60,11 +60,27 @@ try {
         ORDER BY created_at ASC, id ASC
     ");
     $stmt->execute([$phone]);
+    $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $chargeStmt = $pdo->prepare("
+        SELECT source_ref, body, created_at
+        FROM chat_messages
+        WHERE phone = ?
+          AND direction = 'out'
+          AND source IN ('automation', 'automation_backfill', 'same_resend', 'manual_resend')
+          AND source_ref IS NOT NULL
+          AND source_ref <> ''
+        ORDER BY created_at DESC, id DESC
+        LIMIT 1
+    ");
+    $chargeStmt->execute([$phone]);
+    $lastCharge = $chargeStmt->fetch(PDO::FETCH_ASSOC) ?: null;
 
     chatMessagesOut([
         'ok' => true,
         'thread' => $thread,
-        'messages' => $stmt->fetchAll(PDO::FETCH_ASSOC),
+        'messages' => $messages,
+        'last_charge' => $lastCharge,
     ]);
 } catch (Throwable $e) {
     chatMessagesOut(['ok' => false, 'error' => $e->getMessage()], 500);

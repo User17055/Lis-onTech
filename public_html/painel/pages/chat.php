@@ -20,6 +20,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       --soft-warn:#fff4da;
       --soft-danger:#fee9e9;
       --shadow:0 10px 30px rgba(23,32,51,.07);
+      --shadow-strong:0 24px 70px rgba(23,32,51,.22);
       font-family:'Nunito',sans-serif;
       color:var(--text);
       width:100%;
@@ -139,6 +140,34 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .switch-line label{display:inline-flex;align-items:center;gap:8px;cursor:pointer;}
     .switch-line input{accent-color:var(--brand);}
 
+    .filter-tabs{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:6px;
+      padding:4px;
+      border:1px solid var(--line);
+      border-radius:8px;
+      background:#f2f6fb;
+    }
+    .filter-tab{
+      height:36px;
+      border:0;
+      border-radius:6px;
+      background:transparent;
+      color:#5f6f83;
+      font-family:'Nunito',sans-serif;
+      font-size:12px;
+      font-weight:900;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:7px;
+      transition:.16s;
+    }
+    .filter-tab:hover{background:#fff;color:var(--brand-dark);}
+    .filter-tab.active{background:#fff;color:#172033;box-shadow:0 4px 12px rgba(23,32,51,.07);}
+
     .thread-list{
       overflow:auto;
       flex:1;
@@ -202,6 +231,28 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .status-pill.delivered,.status-pill.sent,.status-pill.accepted{background:var(--soft-ok);color:#08734d;}
     .status-pill.failed{background:var(--soft-danger);color:var(--danger);}
     .status-pill.received{background:#f0f4f8;color:#405064;}
+
+    .chat-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;}
+    .charge-btn{
+      height:48px;
+      border:1px solid #bfe8ff;
+      border-radius:8px;
+      background:#eef8ff;
+      color:#12628f;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:9px;
+      padding:0 14px;
+      cursor:pointer;
+      transition:.18s;
+      font-family:'Nunito',sans-serif;
+      font-size:13px;
+      font-weight:900;
+      white-space:nowrap;
+    }
+    .charge-btn:hover{background:#dff3ff;border-color:#8bd5ff;}
+    .charge-btn:disabled{opacity:.45;cursor:not-allowed;background:#f3f7fb;border-color:var(--line);color:#7d8da1;}
 
     .window-panel{
       border-bottom:1px solid var(--line);
@@ -298,6 +349,81 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .toast.show{display:block;}
     .toast.error{background:#8f2525;}
 
+    .confirm-backdrop{
+      position:fixed;
+      inset:0;
+      z-index:1300;
+      background:rgba(12,20,33,.46);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+    }
+    .confirm-backdrop.show{display:flex;}
+    .confirm-modal{
+      width:min(440px,100%);
+      border-radius:8px;
+      background:#fff;
+      box-shadow:var(--shadow-strong);
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.65);
+    }
+    .confirm-head{
+      padding:18px 20px;
+      display:flex;
+      align-items:center;
+      gap:12px;
+      border-bottom:1px solid var(--line);
+      background:linear-gradient(180deg,#ffffff 0%,#f7fbff 100%);
+    }
+    .confirm-icon{
+      width:46px;
+      height:46px;
+      border-radius:8px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:#e6f6ff;
+      color:var(--brand-dark);
+      font-size:19px;
+      flex:0 0 46px;
+    }
+    .confirm-title{font-size:17px;font-weight:900;line-height:1.15;}
+    .confirm-subtitle{font-size:12px;font-weight:800;color:var(--muted);margin-top:4px;}
+    .confirm-body{padding:18px 20px;color:#405064;font-size:14px;font-weight:800;line-height:1.45;}
+    .confirm-note{
+      margin-top:12px;
+      border:1px solid var(--line);
+      border-radius:8px;
+      background:#f8fafc;
+      padding:11px 12px;
+      color:#596a80;
+      font-size:12px;
+      font-weight:900;
+    }
+    .confirm-actions{
+      padding:14px 20px 18px;
+      display:flex;
+      justify-content:flex-end;
+      gap:10px;
+      background:#fff;
+    }
+    .confirm-btn{
+      height:42px;
+      border-radius:8px;
+      border:1px solid var(--line);
+      padding:0 14px;
+      font-family:'Nunito',sans-serif;
+      font-size:13px;
+      font-weight:900;
+      cursor:pointer;
+      background:#fff;
+      color:#334155;
+    }
+    .confirm-btn.primary{background:var(--brand);border-color:var(--brand);color:#fff;}
+    .confirm-btn.primary:hover{background:var(--brand-dark);border-color:var(--brand-dark);}
+    .confirm-btn:hover{background:#f8fafc;}
+
     @media(max-width:920px){
       .chat-wrap{height:auto;min-height:calc(100vh - var(--header-height, 70px));overflow:visible;}
       .chat-shell{height:auto;min-height:calc(100vh - var(--header-height, 70px));grid-template-columns:1fr;}
@@ -339,8 +465,14 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
             <i class="fa-solid fa-arrow-right"></i>
           </button>
         </div>
+        <div class="filter-tabs" id="threadFilters" role="group" aria-label="Filtros de conversa">
+          <button class="filter-tab active" type="button" data-filter="all"><i class="fa-solid fa-layer-group"></i> Todas</button>
+          <button class="filter-tab" type="button" data-filter="received"><i class="fa-solid fa-inbox"></i> Recebidas</button>
+          <button class="filter-tab" type="button" data-filter="unread"><i class="fa-solid fa-circle"></i> Nao lidas</button>
+        </div>
         <div class="switch-line">
-          <label><input type="checkbox" id="onlyUnread"> Nao lidas</label>
+          <input type="checkbox" id="onlyUnread" hidden>
+          <span id="filterHint">Todas as conversas</span>
           <span id="listStatus">online</span>
         </div>
       </div>
@@ -357,7 +489,10 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
             <span id="activePhone">Nenhum telefone aberto</span>
           </div>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;">
+        <div class="chat-actions">
+          <button class="charge-btn" id="btnResendCharge" type="button" disabled>
+            <i class="fa-solid fa-repeat"></i> Reenviar cobranca
+          </button>
           <button class="icon-btn" id="btnSendTemplate" type="button" title="Enviar modelo inicial" disabled>
             <i class="fa-solid fa-file-lines"></i>
           </button>
@@ -396,6 +531,25 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
   </div>
 
   <div class="toast" id="toast"></div>
+  <div class="confirm-backdrop" id="confirmBackdrop" aria-hidden="true">
+    <div class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+      <div class="confirm-head">
+        <div class="confirm-icon"><i class="fa-solid fa-paper-plane"></i></div>
+        <div>
+          <div class="confirm-title" id="confirmTitle">Confirmar envio</div>
+          <div class="confirm-subtitle" id="confirmSubtitle">Revise antes de disparar</div>
+        </div>
+      </div>
+      <div class="confirm-body">
+        <div id="confirmMessage">Deseja enviar esta mensagem?</div>
+        <div class="confirm-note" id="confirmNote"></div>
+      </div>
+      <div class="confirm-actions">
+        <button class="confirm-btn" id="confirmCancel" type="button">Cancelar</button>
+        <button class="confirm-btn primary" id="confirmOk" type="button">Enviar</button>
+      </div>
+    </div>
+  </div>
 
   <script>
     const state = {
@@ -404,6 +558,9 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       activeThread: null,
       loadingMessages: false,
       lastMessageHash: '',
+      lastCharge: null,
+      threadFilter: 'all',
+      confirmResolve: null,
       backfillDone: false,
       threadTimer: null,
       messageTimer: null
@@ -501,6 +658,41 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       setTimeout(() => box.classList.remove('show'), 3200);
     }
 
+    function syncFilterUi(){
+      const labels = {
+        all:'Todas as conversas',
+        received:'Conversas que receberam mensagem',
+        unread:'Conversas nao lidas'
+      };
+      el('filterHint').textContent = labels[state.threadFilter] || labels.all;
+      el('onlyUnread').checked = state.threadFilter === 'unread';
+      document.querySelectorAll('.filter-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.filter === state.threadFilter);
+      });
+    }
+
+    function askConfirm({title, subtitle, message, note, okText='Enviar'}){
+      return new Promise(resolve => {
+        state.confirmResolve = resolve;
+        el('confirmTitle').textContent = title || 'Confirmar envio';
+        el('confirmSubtitle').textContent = subtitle || 'Revise antes de disparar';
+        el('confirmMessage').textContent = message || 'Deseja enviar esta mensagem?';
+        el('confirmNote').textContent = note || '';
+        el('confirmNote').style.display = note ? 'block' : 'none';
+        el('confirmOk').textContent = okText;
+        el('confirmBackdrop').classList.add('show');
+        el('confirmBackdrop').setAttribute('aria-hidden', 'false');
+        el('confirmOk').focus();
+      });
+    }
+
+    function closeConfirm(result){
+      el('confirmBackdrop').classList.remove('show');
+      el('confirmBackdrop').setAttribute('aria-hidden', 'true');
+      if (state.confirmResolve) state.confirmResolve(Boolean(result));
+      state.confirmResolve = null;
+    }
+
     async function fetchJson(url, options = {}){
       const fetchOptions = {credentials:'same-origin', ...options};
       const resp = await fetch(url, fetchOptions);
@@ -558,7 +750,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       const url = new URL('/painel/api/chat_threads.php', location.origin);
       const q = el('searchThreads').value.trim();
       if (q) url.searchParams.set('q', q);
-      if (el('onlyUnread').checked) url.searchParams.set('unread', '1');
+      if (el('onlyUnread').checked || state.threadFilter === 'unread') url.searchParams.set('unread', '1');
+      if (state.threadFilter === 'received') url.searchParams.set('direction', 'in');
       if (!state.backfillDone) url.searchParams.set('backfill', '1');
 
       try {
@@ -609,6 +802,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       el('activeStatus').outerHTML = statusPill(thread?.last_status || 'received').replace('<span class="status-pill', '<span id="activeStatus" class="status-pill');
       el('btnSendTemplate').disabled = !phone;
       el('btnSendTemplateBottom').disabled = !phone;
+      el('btnResendCharge').disabled = !phone || !state.lastCharge?.source_ref;
       updateWindowPanel();
     }
 
@@ -667,6 +861,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       try {
         const data = await fetchJson(url.toString(), {cache:'no-store'});
         const messages = Array.isArray(data.messages) ? data.messages : [];
+        state.lastCharge = data.last_charge || null;
         const hash = JSON.stringify(messages.map(m => [m.id, m.status, m.body, m.error_text]));
         const activeThread = data.thread || state.threads.find(t => t.phone === state.selectedPhone);
         setActiveHeader(activeThread);
@@ -690,6 +885,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     function openConversation(phone, markRead=true){
       state.selectedPhone = digits(phone);
       state.lastMessageHash = '';
+      state.lastCharge = null;
       const url = new URL(location.href);
       url.searchParams.set('pagina', 'chat');
       url.searchParams.set('phone', state.selectedPhone);
@@ -708,6 +904,15 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         updateWindowPanel();
         return;
       }
+
+      const ok = await askConfirm({
+        title:'Enviar resposta',
+        subtitle:state.activeThread?.display_name || phone,
+        message,
+        note:'Texto livre sera enviado agora pela janela ativa de 24h.',
+        okText:'Enviar resposta'
+      });
+      if (!ok) return;
 
       const btn = el('btnSend');
       const text = el('messageText');
@@ -738,6 +943,15 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     async function sendTemplate(){
       const phone = state.selectedPhone;
       if (!phone) return;
+      const ok = await askConfirm({
+        title:'Enviar mensagem de abertura',
+        subtitle:state.activeThread?.display_name || phone,
+        message:'Deseja enviar o modelo inicial aprovado para abrir atendimento?',
+        note:'Esse envio usa o template configurado em META_TEMPLATE_CHAT_START_NAME.',
+        okText:'Enviar abertura'
+      });
+      if (!ok) return;
+
       const btn = el('btnSendTemplate');
       const bottomBtn = el('btnSendTemplateBottom');
       btn.disabled = true;
@@ -764,6 +978,50 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         btn.innerHTML = '<i class="fa-solid fa-file-lines"></i>';
         bottomBtn.innerHTML = '<i class="fa-solid fa-file-lines"></i>';
         updateWindowPanel();
+      }
+    }
+
+    async function resendLastCharge(){
+      const phone = state.selectedPhone;
+      const lastCharge = state.lastCharge;
+      if (!phone || !lastCharge?.source_ref) {
+        toast('Nenhuma cobranca enviada encontrada nesta conversa.', 'error');
+        return;
+      }
+
+      const ok = await askConfirm({
+        title:'Reenviar cobranca',
+        subtitle:state.activeThread?.display_name || phone,
+        message:'Deseja reenviar a ultima mensagem de cobranca desta conversa?',
+        note:lastCharge.body || 'A mesma cobranca sera reenviada pelo template de fatura.',
+        okText:'Reenviar cobranca'
+      });
+      if (!ok) return;
+
+      const btn = el('btnResendCharge');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Reenviando';
+
+      try {
+        await fetchJson('/painel/api/run_resend_whatsapp.php', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({
+            run_id:lastCharge.source_ref,
+            phone,
+            mode:'same',
+            reason:'Reenvio pelo chat'
+          })
+        });
+        await loadMessages(false);
+        await loadThreads(false);
+        toast('Cobranca reenviada');
+      } catch (e) {
+        await loadMessages(false);
+        toast(e.message || 'Falha ao reenviar cobranca', 'error');
+      } finally {
+        btn.innerHTML = '<i class="fa-solid fa-repeat"></i> Reenviar cobranca';
+        setActiveHeader(state.activeThread);
       }
     }
 
@@ -798,11 +1056,31 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       clearTimeout(state.searchTimer);
       state.searchTimer = setTimeout(() => loadThreads(false), 350);
     });
-    el('onlyUnread').onchange = () => loadThreads(true);
+    el('threadFilters').addEventListener('click', (event) => {
+      const btn = event.target.closest('button[data-filter]');
+      if (!btn) return;
+      state.threadFilter = btn.getAttribute('data-filter') || 'all';
+      syncFilterUi();
+      loadThreads(true);
+    });
+    el('onlyUnread').onchange = () => {
+      state.threadFilter = el('onlyUnread').checked ? 'unread' : 'all';
+      syncFilterUi();
+      loadThreads(true);
+    };
     el('btnReloadThreads').onclick = () => loadThreads(true);
     el('btnSend').onclick = sendMessage;
     el('btnSendTemplate').onclick = sendTemplate;
     el('btnSendTemplateBottom').onclick = sendTemplate;
+    el('btnResendCharge').onclick = resendLastCharge;
+    el('confirmCancel').onclick = () => closeConfirm(false);
+    el('confirmOk').onclick = () => closeConfirm(true);
+    el('confirmBackdrop').addEventListener('click', (event) => {
+      if (event.target === el('confirmBackdrop')) closeConfirm(false);
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && el('confirmBackdrop').classList.contains('show')) closeConfirm(false);
+    });
     el('messageText').addEventListener('keydown', (event) => {
       if (event.key === 'Enter' && !event.shiftKey) {
         event.preventDefault();
@@ -811,6 +1089,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     });
 
     const initialPhone = state.selectedPhone;
+    syncFilterUi();
     loadThreads(true).then(() => {
       if (initialPhone) openConversation(initialPhone);
     });
