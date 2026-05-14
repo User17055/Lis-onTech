@@ -209,6 +209,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .due-note.overdue{background:var(--red-bg);color:var(--red-text);}
     .due-note.soon{background:var(--orange-bg);color:var(--orange-text);}
     .due-note.future{background:var(--blue-bg);color:var(--blue-text);}
+    .due-note.paid{background:var(--green-bg);color:var(--green-text);}
+    .due-note.canceled{background:#e2e8f0;color:#334155;}
     .action-grid{display:grid;grid-template-columns:repeat(2,max-content);gap:10px;justify-content:end;}
     .next-stack{display:flex;flex-direction:column;gap:6px;align-items:flex-start;}
     .next-label{color:var(--text-muted);font-size:12px;font-weight:900;}
@@ -389,6 +391,13 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     }
 
     function dueInfo(row){
+      const normalized = normalizeStatus(row.status, row.blocked);
+      if (normalized === 'paid') {
+        return { cls:'paid', icon:'fa-circle-check', text:'Pago' };
+      }
+      if (normalized === 'canceled') {
+        return { cls:'canceled', icon:'fa-ban', text:'Cancelado' };
+      }
       const daysOverdue = Number(row.days_overdue || 0);
       const daysUntil = row.days_until_due === null || row.days_until_due === undefined ? null : Number(row.days_until_due);
       if (daysOverdue > 0 || daysUntil < 0) {
@@ -413,6 +422,9 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     }
 
     function nextReminderText(row){
+      const normalized = normalizeStatus(row.status, row.blocked);
+      if (normalized === 'paid') return { at:'-', label:'Pago' };
+      if (normalized === 'canceled') return { at:'-', label:'Cancelado' };
       const at = row.next_reminder_at ? fmtDateTimeBr(row.next_reminder_at) : '-';
       const label = row.next_reminder_label || (row.next_reminder_at ? 'Agendada' : 'Sem agenda');
       return { at, label };
@@ -569,6 +581,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
           const days = Number(row.days_overdue || 0);
           const ready = normalized === 'unpaid' && days >= 7;
           const blocked = Number(row.blocked || 0) === 1;
+          const settled = normalized === 'paid' || normalized === 'canceled';
           const billUrl = String(row.bill_url || '');
           const phone = row.phone ? `Tel ${esc(row.phone)}` : 'Tel nao salvo';
           const next = nextReminderText(row);
@@ -577,16 +590,16 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
           const lastOk = row.last_message_ok;
           const lastStatus = row.last_status ? esc(row.last_status) : '-';
           const due = dueInfo(row);
-          const debtAge = due.cls === 'overdue' ? `${days} dias em atraso` : due.text;
+          const debtAge = settled ? due.text : (due.cls === 'overdue' ? `${days} dias em atraso` : due.text);
           const expanded = expandedRows.has(String(billId));
 
           const btnNow = `<button type="button" class="btn-mini" data-act="send_now" data-id="${billId}" ${blocked || !ready ? 'disabled' : ''} title="${ready ? 'Agenda e processa agora' : 'So libera apos 7 dias de atraso'}">
             <i class="fa-solid fa-bolt"></i> Enviar
           </button>`;
-          const btnPause = `<button type="button" class="btn-mini danger" data-act="pause" data-id="${billId}" ${blocked ? 'disabled' : ''}>
+          const btnPause = `<button type="button" class="btn-mini danger" data-act="pause" data-id="${billId}" ${blocked || settled ? 'disabled' : ''}>
             <i class="fa-solid fa-pause"></i> Parar
           </button>`;
-          const btnResume = `<button type="button" class="btn-mini ok" data-act="resume" data-id="${billId}" ${blocked ? '' : 'disabled'}>
+          const btnResume = `<button type="button" class="btn-mini ok" data-act="resume" data-id="${billId}" ${blocked && !settled ? '' : 'disabled'}>
             <i class="fa-solid fa-play"></i> Reativar
           </button>`;
           const btnBill = billUrl
@@ -641,7 +654,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
                     <div class="detail-item"><span>Ultimo envio</span><strong>${esc(lastAt)}</strong></div>
                     <div class="detail-item"><span>Proxima cobranca</span><strong>${esc(next.at)} - ${esc(next.label)}</strong></div>
                     <div class="detail-item wide"><span>Ultima mensagem</span><strong>${esc(lastMessage)}</strong></div>
-                    <div class="detail-item wide"><span>Observacao</span><strong>${ready ? 'Liberada para envio pela regra de atraso.' : 'Ainda nao completou o prazo minimo de 7 dias apos o vencimento.'}</strong></div>
+                    <div class="detail-item wide"><span>Observacao</span><strong>${settled ? 'Fatura encerrada; nao entra na fila de recobranca.' : (ready ? 'Liberada para envio pela regra de atraso.' : 'Ainda nao completou o prazo minimo de 7 dias apos o vencimento.')}</strong></div>
                   </div>
                 </td>
               </tr>

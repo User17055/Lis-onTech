@@ -311,14 +311,17 @@ try {
   if ($statusVindi !== '') $parts[] = "status={$statusVindi}";
 
   $now = date('Y-m-d H:i:s');
-  if ($dueFilter === 'overdue') {
-    $parts[] = 'due_at<="' . $now . '"';
-  } elseif ($dueFilter === 'due_soon') {
-    $soon = date('Y-m-d H:i:s', strtotime('+7 days'));
-    $parts[] = 'due_at>"' . $now . '"';
-    $parts[] = 'due_at<="' . $soon . '"';
-  } elseif ($dueFilter === 'not_due') {
-    $parts[] = 'due_at>"' . $now . '"';
+  $ignoreDueFilter = in_array($statusUI, ['paid', 'canceled'], true);
+  if (!$ignoreDueFilter) {
+    if ($dueFilter === 'overdue') {
+      $parts[] = 'due_at<="' . $now . '"';
+    } elseif ($dueFilter === 'due_soon') {
+      $soon = date('Y-m-d H:i:s', strtotime('+7 days'));
+      $parts[] = 'due_at>"' . $now . '"';
+      $parts[] = 'due_at<="' . $soon . '"';
+    } elseif ($dueFilter === 'not_due') {
+      $parts[] = 'due_at>"' . $now . '"';
+    }
   }
 
   // Busca:
@@ -387,6 +390,11 @@ try {
     $amount = $b['amount'] ?? null;   // Vindi pode devolver string
     $dueAt  = $b['due_at'] ?? null;
     $status = (string)($b['status'] ?? '');
+    $normalizedStatus = strtolower($status);
+    $settled = in_array($normalizedStatus, ['paid', 'canceled', 'cancelled'], true);
+    if ($settled) {
+      $dueAt = null;
+    }
 
     $loc = $localMap[$billId] ?? [];
     $url = (string)($b['url'] ?? ($loc['bill_url'] ?? ''));
@@ -400,7 +408,14 @@ try {
     }
     $daysUntilDue = daysFromDate($dueAt);
 
-    $nextInfo = nextReminderInfo($loc['next_reminder_at'] ?? null, $dueAt, $FIRST_DELAY_DAYS);
+    $nextInfo = $settled
+      ? [
+        'at' => null,
+        'label' => $normalizedStatus === 'paid' ? 'Pago' : 'Cancelado',
+        'source' => $normalizedStatus,
+        'ready' => false,
+      ]
+      : nextReminderInfo($loc['next_reminder_at'] ?? null, $dueAt, $FIRST_DELAY_DAYS);
 
     $row = [
       'bill_id' => $billId,
