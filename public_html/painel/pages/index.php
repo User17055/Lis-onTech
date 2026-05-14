@@ -492,14 +492,36 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     pager.innerHTML = parts.join('');
   }
 
-  let previousDataHash = null;
+  const initialParams = new URLSearchParams(location.search);
+  const initialPage = parseInt(initialParams.get('page') || '1', 10);
 
-  let currentPage = 1;
+  let previousDataHash = null;
+  let currentPage = Number.isFinite(initialPage) && initialPage > 0 ? initialPage : 1;
   const limit = 50;
+
+  document.getElementById("q").value = initialParams.get("q") || "";
+  document.getElementById("status").value = initialParams.get("status") || "";
+
+  function currentListUrl() {
+    const url = new URL('/painel/index.php', location.origin);
+    const q = document.getElementById("q").value.trim();
+    const status = document.getElementById("status").value;
+
+    url.searchParams.set('pagina', 'index');
+    if (q) url.searchParams.set('q', q);
+    if (status) url.searchParams.set('status', status);
+    if (currentPage > 1) url.searchParams.set('page', String(currentPage));
+    return url.toString();
+  }
+
+  function syncListUrl() {
+    history.replaceState(null, '', currentListUrl());
+  }
 
   async function loadRuns(isManual = false) {
     const q = document.getElementById("q").value.trim();
     const status = document.getElementById("status").value;
+    syncListUrl();
 
     const url = new URL("api/runs.php", location.href);
     url.searchParams.set("limit", limit);
@@ -571,7 +593,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
 
       tbody.innerHTML = j.rows.map(row => {
         const quando = formatDateTimeBr(row.created_at);
-        const linkDestino = `/painel/index.php?pagina=detalhes&id=${encodeURIComponent(row.run_id)}`;
+        const backUrl = encodeURIComponent(currentListUrl());
+        const linkDestino = `/painel/index.php?pagina=detalhes&id=${encodeURIComponent(row.run_id)}&back=${backUrl}`;
 
         const dotColor = (row.status === 'error') ? 'var(--red-text)' : 'var(--primary)';
         const dotBg = (row.status === 'error') ? 'var(--red-bg)' : 'var(--blue-bg)';

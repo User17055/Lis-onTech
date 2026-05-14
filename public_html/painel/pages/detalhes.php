@@ -9,10 +9,29 @@ require_once __DIR__ . '/../../config.php';
 require_once __DIR__ . '/../../includes/auth.php';
 if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
 
+$backHref = '/painel/index.php?pagina=index';
+$backRaw = trim((string) ($_GET['back'] ?? ''));
+if ($backRaw !== '') {
+    $parts = parse_url($backRaw);
+    $currentHost = (string) ($_SERVER['HTTP_HOST'] ?? '');
+    $backHost = (string) ($parts['host'] ?? '');
+    $backPath = (string) ($parts['path'] ?? '');
+
+    if (($backHost === '' || strcasecmp($backHost, $currentHost) === 0)
+        && in_array($backPath, ['/painel/index.php', '/painel/'], true)
+    ) {
+        $backQuery = isset($parts['query']) && $parts['query'] !== '' ? '?' . $parts['query'] : '';
+        $candidate = $backPath . $backQuery;
+        if (!str_contains($candidate, 'pagina=detalhes')) {
+            $backHref = $candidate;
+        }
+    }
+}
+
 if (!isset($_GET['id']) || trim((string) $_GET['id']) === '') {
     echo "<h3 style='font-family:Poppins'>
           Erro: Run ID obrigatório!
-          <a href='/painel/index.php?pagina=index'>Voltar</a>
+          <a href='" . htmlspecialchars($backHref, ENT_QUOTES, 'UTF-8') . "'>Voltar</a>
         </h3>";
     exit;
 }
@@ -600,7 +619,7 @@ $run_id = (string) $_GET['id'];
 <div class="det-wrap">
 
     <div class="det-top">
-        <a class="det-back" href="/painel/index.php?pagina=index">
+        <a class="det-back" href="<?= htmlspecialchars($backHref, ENT_QUOTES, 'UTF-8') ?>">
             <i class="fa-solid fa-arrow-left"></i>
         </a>
 
