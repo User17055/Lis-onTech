@@ -65,6 +65,19 @@ require_once $ROOT . '/includes/auth.php';
 
 $CRON_TOKEN = cfg($cfg, 'CRON_TOKEN', '');
 $REQ_TOKEN = (string)($_GET['token'] ?? '');
+
+if (isset($_GET['debug_token']) && $_GET['debug_token'] === '1') {
+  header('Content-Type: application/json; charset=utf-8');
+  echo json_encode([
+    'ok' => true,
+    'cron_token_configured' => $CRON_TOKEN !== '',
+    'cron_token_length' => strlen($CRON_TOKEN),
+    'request_token_length' => strlen($REQ_TOKEN),
+    'token_match' => ($CRON_TOKEN !== '' && $REQ_TOKEN !== '' && hash_equals($CRON_TOKEN, $REQ_TOKEN)),
+  ], JSON_UNESCAPED_UNICODE);
+  exit;
+}
+
 if (!($CRON_TOKEN !== '' && hash_equals($CRON_TOKEN, $REQ_TOKEN))) {
   authRequireApi();
 }
