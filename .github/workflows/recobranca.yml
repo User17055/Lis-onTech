@@ -16,8 +16,18 @@ jobs:
           RECOBRANCA_CRON_URL: ${{ secrets.RECOBRANCA_CRON_URL }}
           RECOBRANCA_CRON_TOKEN: ${{ secrets.RECOBRANCA_CRON_TOKEN }}
         run: |
-          test -n "$RECOBRANCA_CRON_URL"
-          test -n "$RECOBRANCA_CRON_TOKEN"
+          if [ -z "$RECOBRANCA_CRON_URL" ]; then
+            echo "::error::Secret RECOBRANCA_CRON_URL nao configurado ou vazio."
+            exit 1
+          fi
+
+          if [ -z "$RECOBRANCA_CRON_TOKEN" ]; then
+            echo "::error::Secret RECOBRANCA_CRON_TOKEN nao configurado ou vazio."
+            exit 1
+          fi
+
+          echo "URL configurada: ${RECOBRANCA_CRON_URL%%\?*}"
+          echo "Token configurado: sim (${#RECOBRANCA_CRON_TOKEN} caracteres)"
 
       - name: Chamar recobranca
         env:
@@ -29,5 +39,22 @@ jobs:
             *\?*) separator="&" ;;
           esac
 
-          curl --fail --show-error --silent --max-time 60 \
-            "${RECOBRANCA_CRON_URL}${separator}token=${RECOBRANCA_CRON_TOKEN}"
+          cron_url="${RECOBRANCA_CRON_URL}${separator}token=${RECOBRANCA_CRON_TOKEN}"
+          echo "::add-mask::$cron_url"
+          echo "Chamando cron de recobranca..."
+
+          http_code="$(
+            curl --show-error --silent --max-time 60 \
+              --output /tmp/recobranca_cron_response.txt \
+              --write-out "%{http_code}" \
+              "$cron_url"
+          )"
+
+          echo "HTTP status: $http_code"
+          echo "Resposta:"
+          sed -n '1,20p' /tmp/recobranca_cron_response.txt
+
+          if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
+            echo "::error::Cron retornou HTTP $http_code."
+            exit 1
+          fi
