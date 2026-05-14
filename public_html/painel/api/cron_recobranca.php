@@ -70,6 +70,9 @@ if (isset($_GET['debug_token']) && $_GET['debug_token'] === '1') {
   header('Content-Type: application/json; charset=utf-8');
   echo json_encode([
     'ok' => true,
+    'config_env_found' => !empty($GLOBALS['LISON_CONFIG_ENV_LABEL']),
+    'config_env_loaded_from' => $GLOBALS['LISON_CONFIG_ENV_LABEL'] ?? null,
+    'config_env_checked' => $GLOBALS['LISON_CONFIG_ENV_CHECKS'] ?? [],
     'cron_token_configured' => $CRON_TOKEN !== '',
     'cron_token_length' => strlen($CRON_TOKEN),
     'request_token_length' => strlen($REQ_TOKEN),
