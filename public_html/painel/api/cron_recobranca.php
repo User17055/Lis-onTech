@@ -140,6 +140,12 @@ $TEMPLATE_LANG = cfg($cfg, 'META_TEMPLATE_LANG', 'pt_BR');
 $DRY_RUN = (isset($_GET['dry_run']) && $_GET['dry_run'] === '1');
 $LIMIT   = isset($_GET['limit']) ? max(1, (int)$_GET['limit']) : 50;
 $ONLY_BILL_ID = isset($_GET['bill_id']) ? max(0, (int)$_GET['bill_id']) : 0;
+$BACKFILL = (isset($_GET['backfill']) && $_GET['backfill'] === '1');
+$BACKFILL_PAGE = isset($_GET['backfill_page']) ? max(1, (int)$_GET['backfill_page']) : 1;
+$BACKFILL_PAGES = isset($_GET['backfill_pages']) ? max(1, min(20, (int)$_GET['backfill_pages'])) : 1;
+$BACKFILL_LIMIT = isset($_GET['backfill_limit']) ? max(1, min(50, (int)$_GET['backfill_limit'])) : min(50, $LIMIT);
+$BACKFILL_BEFORE_RAW = trim((string)($_GET['backfill_before'] ?? ''));
+$BACKFILL_FORCE_READY = (isset($_GET['backfill_force_ready']) && $_GET['backfill_force_ready'] === '1');
 
 $INTERVAL_DAYS = (int) cfg($cfg, 'RECOBRANCA_INTERVAL_DAYS', 7);
 $FIRST_DELAY_DAYS = max(7, (int) cfg($cfg, 'RECOBRANCA_FIRST_DELAY_DAYS', '7'));
@@ -173,6 +179,19 @@ function curlGetJson(string $url, string $apiKey): ?array {
   if ($res === false || $http < 200 || $http >= 300) return null;
   $json = json_decode($res, true);
   return is_array($json) ? $json : null;
+}
+
+function vindiListBillsForBackfill(string $base, string $apiKey, string $query, int $page, int $perPage): array {
+  $url = rtrim($base, '/') . "/bills?per_page={$perPage}&page={$page}&query=" . rawurlencode($query);
+  $resp = curlGetJson($url, $apiKey);
+  if (!$resp) {
+    return ['ok' => false, 'error' => 'vindi_list_error'];
+  }
+
+  $bills = $resp['bills'] ?? [];
+  if (!is_array($bills)) $bills = [];
+
+  return ['ok' => true, 'bills' => $bills];
 }
 
 function vindiGetBill(int $billId, string $base, string $apiKey): ?array {
@@ -253,11 +272,116 @@ function mysqlDateTimeOrNull($value): ?string {
   return $ts ? date('Y-m-d H:i:s', $ts) : null;
 }
 
+function inputDateTimeOrNull($value): ?string {
+  $raw = trim((string)($value ?? ''));
+  if ($raw === '') return null;
+
+  if (preg_match('/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/', $raw, $m)) {
+    $day = (int)$m[1];
+    $month = (int)$m[2];
+    $year = (int)$m[3];
+    $hour = isset($m[4]) && $m[4] !== '' ? (int)$m[4] : 23;
+    $minute = isset($m[5]) && $m[5] !== '' ? (int)$m[5] : 59;
+    $second = isset($m[6]) && $m[6] !== '' ? (int)$m[6] : 59;
+    if (checkdate($month, $day, $year)) {
+      return sprintf('%04d-%02d-%02d %02d:%02d:%02d', $year, $month, $day, $hour, $minute, $second);
+    }
+  }
+
+  if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $raw)) {
+    $raw .= ' 23:59:59';
+  }
+
+  return mysqlDateTimeOrNull($raw);
+}
+
 function billAmountOrNull(array $bill): ?float {
   foreach (['amount', 'total', 'price'] as $key) {
     if (isset($bill[$key]) && is_numeric($bill[$key])) return (float)$bill[$key];
   }
   return null;
+}
+
+function upsertReminderFromBill(PDO $pdo, array $bill, string $base, string $apiKey, bool $forceReady = false): bool {
+  $billId = (int)($bill['id'] ?? 0);
+  if ($billId <= 0) return false;
+
+  $customer = $bill['customer'] ?? [];
+  if (!is_array($customer)) $customer = [];
+
+  $customerId = (int)($customer['id'] ?? ($bill['customer_id'] ?? 0));
+  $vindiStatus = strtolower((string)($bill['status'] ?? ''));
+  $localStatus = 'unpaid';
+  $active = 1;
+
+  if ($vindiStatus === 'paid') {
+    $localStatus = 'paid';
+    $active = 0;
+  } elseif (in_array($vindiStatus, ['canceled', 'cancelled'], true)) {
+    $localStatus = 'canceled';
+    $active = 0;
+  }
+
+  $phone = extractPhoneFromBill($bill);
+  if ((!$phone || trim($phone) === '') && $customerId > 0) {
+    $phone = getCustomerPhoneFromVindi($customerId, $base, $apiKey);
+  }
+
+  $nextReminderAt = $forceReady && $active === 1 ? date('Y-m-d H:i:s') : null;
+  $itemsText = (!empty($bill['bill_items']) && is_array($bill['bill_items']))
+    ? buildBillItemsText($bill)
+    : '';
+
+  $st = $pdo->prepare("
+    INSERT INTO bill_reminders (
+      bill_id, customer_id, customer_name, phone, bill_url, items_text,
+      amount, due_at, active, blocked, status, next_reminder_at,
+      last_status, last_status_check_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, NOW())
+    ON DUPLICATE KEY UPDATE
+      customer_id = VALUES(customer_id),
+      customer_name = VALUES(customer_name),
+      phone = VALUES(phone),
+      bill_url = VALUES(bill_url),
+      items_text = VALUES(items_text),
+      amount = VALUES(amount),
+      due_at = VALUES(due_at),
+      active = CASE
+        WHEN VALUES(status) IN ('paid', 'canceled') THEN 0
+        WHEN blocked = 1 THEN active
+        ELSE 1
+      END,
+      status = CASE
+        WHEN VALUES(status) IN ('paid', 'canceled') THEN VALUES(status)
+        WHEN blocked = 1 THEN status
+        ELSE 'unpaid'
+      END,
+      next_reminder_at = CASE
+        WHEN blocked = 1 THEN next_reminder_at
+        WHEN VALUES(status) IN ('paid', 'canceled') THEN NULL
+        WHEN VALUES(next_reminder_at) IS NOT NULL AND last_overdue_sent_at IS NULL THEN VALUES(next_reminder_at)
+        ELSE next_reminder_at
+      END,
+      last_status = VALUES(last_status),
+      last_status_check_at = NOW()
+  ");
+  $st->execute([
+    $billId,
+    $customerId > 0 ? $customerId : null,
+    (string)($customer['name'] ?? 'Cliente'),
+    (string)($phone ?? ''),
+    (string)($bill['url'] ?? ''),
+    $itemsText,
+    billAmountOrNull($bill),
+    mysqlDateTimeOrNull($bill['due_at'] ?? null),
+    $active,
+    $localStatus,
+    $nextReminderAt,
+    $vindiStatus ?: $localStatus,
+  ]);
+
+  return true;
 }
 
 function ensureManualReminderRow(PDO $pdo, int $billId, string $base, string $apiKey): ?string {
@@ -414,6 +538,65 @@ function logReminderAttempt(PDO $pdo, int $billId, bool $ok, int $httpCode, stri
 /**
  * Seleciona bills vencidas e liberadas pra enviar
  */
+$backfillSeeded = 0;
+$backfillSkipped = 0;
+$backfillIssues = [];
+
+if ($BACKFILL && $ONLY_BILL_ID <= 0) {
+  $backfillBefore = inputDateTimeOrNull($BACKFILL_BEFORE_RAW);
+  if ($backfillBefore === null) {
+    $backfillBefore = date('Y-m-d H:i:s', strtotime("-{$FIRST_DELAY_DAYS} days"));
+  }
+
+  $backfillQuery = 'status=pending AND due_at<="' . $backfillBefore . '"';
+  for ($pageOffset = 0; $pageOffset < $BACKFILL_PAGES; $pageOffset++) {
+    $pageToFetch = $BACKFILL_PAGE + $pageOffset;
+    $backfillResp = vindiListBillsForBackfill(
+      $VINDI_API_BASE,
+      $VINDI_API_KEY,
+      $backfillQuery,
+      $pageToFetch,
+      $BACKFILL_LIMIT
+    );
+
+    if (!($backfillResp['ok'] ?? false)) {
+      $msg = (string)($backfillResp['error'] ?? 'erro_backfill_vindi');
+      $backfillIssues[] = $msg;
+      logLine("BACKFILL fail query={$backfillQuery} page={$pageToFetch} error={$msg}");
+      break;
+    }
+
+    $bills = $backfillResp['bills'] ?? [];
+    if (empty($bills)) {
+      logLine("BACKFILL empty page={$pageToFetch} query={$backfillQuery}");
+      break;
+    }
+
+    foreach ($bills as $bill) {
+      if (!is_array($bill)) {
+        $backfillSkipped++;
+        continue;
+      }
+
+      try {
+        $ok = upsertReminderFromBill($pdo, $bill, $VINDI_API_BASE, $VINDI_API_KEY, $BACKFILL_FORCE_READY);
+        if ($ok) $backfillSeeded++;
+        else $backfillSkipped++;
+      } catch (Throwable $e) {
+        $billId = (int)($bill['id'] ?? 0);
+        $backfillSkipped++;
+        $backfillIssues[] = "bill_id={$billId} " . $e->getMessage();
+        logLine("BACKFILL bill_id={$billId} fail=" . $e->getMessage());
+      }
+    }
+
+    logLine(
+      "BACKFILL page={$pageToFetch} limit={$BACKFILL_LIMIT} before={$backfillBefore} " .
+      "seeded={$backfillSeeded} skipped={$backfillSkipped} force_ready=" . ($BACKFILL_FORCE_READY ? '1' : '0')
+    );
+  }
+}
+
 if ($ONLY_BILL_ID > 0) {
   $manualSeedError = ensureManualReminderRow($pdo, $ONLY_BILL_ID, $VINDI_API_BASE, $VINDI_API_KEY);
   if ($manualSeedError !== null) {
@@ -731,5 +914,7 @@ foreach ($rows as $r) {
 
 logLine("CRON end sent={$sent} skipped={$skipped}");
 header('Content-Type: text/plain; charset=utf-8');
-$suffix = $issues ? ' | ' . implode(' | ', array_slice($issues, 0, 5)) : '';
-echo "OK sent={$sent} skipped={$skipped}{$suffix}\n";
+$allIssues = array_merge($backfillIssues, $issues);
+$suffix = $allIssues ? ' | ' . implode(' | ', array_slice($allIssues, 0, 5)) : '';
+$backfillText = $BACKFILL ? " backfill_seeded={$backfillSeeded} backfill_skipped={$backfillSkipped}" : '';
+echo "OK sent={$sent} skipped={$skipped}{$backfillText}{$suffix}\n";
