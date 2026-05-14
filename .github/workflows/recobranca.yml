@@ -16,8 +16,24 @@ jobs:
           RECOBRANCA_CRON_URL: ${{ secrets.RECOBRANCA_CRON_URL }}
           RECOBRANCA_CRON_TOKEN: ${{ secrets.RECOBRANCA_CRON_TOKEN }}
         run: |
+          RECOBRANCA_CRON_URL="$(printf '%s' "$RECOBRANCA_CRON_URL" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+          RECOBRANCA_CRON_TOKEN="$(printf '%s' "$RECOBRANCA_CRON_TOKEN" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+
           if [ -z "$RECOBRANCA_CRON_URL" ]; then
             echo "::error::Secret RECOBRANCA_CRON_URL nao configurado ou vazio."
+            exit 1
+          fi
+
+          case "$RECOBRANCA_CRON_URL" in
+            http://*|https://*) ;;
+            *)
+              echo "::error::Secret RECOBRANCA_CRON_URL precisa comecar com http:// ou https://."
+              exit 1
+              ;;
+          esac
+
+          if printf '%s' "$RECOBRANCA_CRON_URL" | grep -q '[[:space:]]'; then
+            echo "::error::Secret RECOBRANCA_CRON_URL contem espacos. Use a URL limpa do cron."
             exit 1
           fi
 
@@ -34,6 +50,9 @@ jobs:
           RECOBRANCA_CRON_URL: ${{ secrets.RECOBRANCA_CRON_URL }}
           RECOBRANCA_CRON_TOKEN: ${{ secrets.RECOBRANCA_CRON_TOKEN }}
         run: |
+          RECOBRANCA_CRON_URL="$(printf '%s' "$RECOBRANCA_CRON_URL" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+          RECOBRANCA_CRON_TOKEN="$(printf '%s' "$RECOBRANCA_CRON_TOKEN" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+
           separator="?"
           case "$RECOBRANCA_CRON_URL" in
             *\?*) separator="&" ;;
