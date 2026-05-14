@@ -560,6 +560,8 @@ $backfillIssues = [];
 $backfillBeforeUsed = null;
 $backfillQueryUsed = '';
 $backfillPageCounts = [];
+$backfillBillIds = [];
+$backfillQueueDebug = [];
 
 if ($BACKFILL && $ONLY_BILL_ID <= 0) {
   $backfillBefore = inputDateTimeOrNull($BACKFILL_BEFORE_RAW);
@@ -603,8 +605,13 @@ if ($BACKFILL && $ONLY_BILL_ID <= 0) {
 
       try {
         $ok = upsertReminderFromBill($pdo, $bill, $VINDI_API_BASE, $VINDI_API_KEY, $BACKFILL_FORCE_READY, $MAX_OVERDUE);
-        if ($ok) $backfillSeeded++;
-        else $backfillSkipped++;
+        if ($ok) {
+          $backfillSeeded++;
+          $bid = (int)($bill['id'] ?? 0);
+          if ($bid > 0) $backfillBillIds[] = $bid;
+        } else {
+          $backfillSkipped++;
+        }
       } catch (Throwable $e) {
         $billId = (int)($bill['id'] ?? 0);
         $backfillSkipped++;
@@ -661,8 +668,13 @@ if ($BACKFILL && $ONLY_BILL_ID <= 0) {
 
         try {
           $ok = upsertReminderFromBill($pdo, $bill, $VINDI_API_BASE, $VINDI_API_KEY, $BACKFILL_FORCE_READY, $MAX_OVERDUE);
-          if ($ok) $backfillSeeded++;
-          else $backfillSkipped++;
+          if ($ok) {
+            $backfillSeeded++;
+            $bid = (int)($bill['id'] ?? 0);
+            if ($bid > 0) $backfillBillIds[] = $bid;
+          } else {
+            $backfillSkipped++;
+          }
         } catch (Throwable $e) {
           $billId = (int)($bill['id'] ?? 0);
           $backfillSkipped++;
@@ -675,6 +687,40 @@ if ($BACKFILL && $ONLY_BILL_ID <= 0) {
         "BACKFILL fallback page={$pageToFetch} limit={$BACKFILL_LIMIT} before={$backfillBefore} " .
         "seeded={$backfillSeeded} skipped={$backfillSkipped} force_ready=" . ($BACKFILL_FORCE_READY ? '1' : '0')
       );
+    }
+  }
+
+  $backfillBillIds = array_values(array_unique(array_filter($backfillBillIds)));
+  if (!empty($backfillBillIds)) {
+    $in = implode(',', array_fill(0, count($backfillBillIds), '?'));
+    $debugSql = "
+      SELECT
+        COUNT(*) AS total,
+        SUM(CASE WHEN active = 1 THEN 1 ELSE 0 END) AS active_ok,
+        SUM(CASE WHEN blocked = 0 THEN 1 ELSE 0 END) AS unblocked_ok,
+        SUM(CASE WHEN status IS NULL OR status = '' OR status = 'unpaid' THEN 1 ELSE 0 END) AS status_ok,
+        SUM(CASE WHEN due_at IS NULL OR due_at <= DATE_SUB(NOW(), INTERVAL {$FIRST_DELAY_DAYS} DAY) THEN 1 ELSE 0 END) AS due_ok,
+        SUM(CASE WHEN next_reminder_at IS NULL OR next_reminder_at <= NOW() THEN 1 ELSE 0 END) AS next_ok,
+        SUM(CASE WHEN overdue_sent_count IS NULL OR overdue_sent_count < ? THEN 1 ELSE 0 END) AS count_ok,
+        SUM(CASE
+          WHEN active = 1
+           AND blocked = 0
+           AND (status IS NULL OR status = '' OR status = 'unpaid')
+           AND (due_at IS NULL OR due_at <= DATE_SUB(NOW(), INTERVAL {$FIRST_DELAY_DAYS} DAY))
+           AND (next_reminder_at IS NULL OR next_reminder_at <= NOW())
+           AND (overdue_sent_count IS NULL OR overdue_sent_count < ?)
+          THEN 1 ELSE 0 END
+        ) AS ready
+      FROM bill_reminders
+      WHERE bill_id IN ($in)
+    ";
+    $debugParams = array_merge([$MAX_OVERDUE, $MAX_OVERDUE], $backfillBillIds);
+    try {
+      $debugSt = $pdo->prepare($debugSql);
+      $debugSt->execute($debugParams);
+      $backfillQueueDebug = $debugSt->fetch(PDO::FETCH_ASSOC) ?: [];
+    } catch (Throwable $e) {
+      $backfillQueueDebug = ['error' => $e->getMessage()];
     }
   }
 }
@@ -999,6 +1045,6 @@ header('Content-Type: text/plain; charset=utf-8');
 $allIssues = array_merge($backfillIssues, $issues);
 $suffix = $allIssues ? ' | ' . implode(' | ', array_slice($allIssues, 0, 5)) : '';
 $backfillText = $BACKFILL
-  ? " backfill_seeded={$backfillSeeded} backfill_skipped={$backfillSkipped} backfill_before={$backfillBeforeUsed} backfill_pages=" . implode(',', $backfillPageCounts) . " backfill_query={$backfillQueryUsed}"
+  ? " backfill_seeded={$backfillSeeded} backfill_skipped={$backfillSkipped} backfill_before={$backfillBeforeUsed} backfill_pages=" . implode(',', $backfillPageCounts) . " backfill_ready=" . (string)($backfillQueueDebug['ready'] ?? '-') . " backfill_debug=" . json_encode($backfillQueueDebug, JSON_UNESCAPED_UNICODE) . " backfill_query={$backfillQueryUsed}"
   : '';
 echo "OK sent={$sent} skipped={$skipped}{$backfillText}{$suffix}\n";
