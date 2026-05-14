@@ -288,11 +288,22 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
 
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    @keyframes pulse-dot {
-      0% { opacity: 0.5; transform: scale(1); }
-      50% { opacity: 1; transform: scale(1.3); }
-      100% { opacity: 0.5; transform: scale(1); }
-    }
+@keyframes pulse-dot {
+  0% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.3); }
+  100% { opacity: 0.5; transform: scale(1); }
+}
+
+@keyframes toastIn {
+  0% { opacity: 0; transform: translateY(18px) scale(.96); }
+  65% { opacity: 1; transform: translateY(-3px) scale(1.01); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes toastBar {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
 
     .live-dot {
       display: inline-block;
@@ -347,6 +358,67 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
   color: var(--text-muted);
   font-weight:700;
   padding: 8px 12px;
+}
+
+.pa-toast {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  min-width: min(360px, calc(100vw - 44px));
+  max-width: 420px;
+  display: none;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: #ffffff;
+  border: 2px solid #bbf7d0;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, .18);
+  z-index: 10000;
+  overflow: hidden;
+}
+
+.pa-toast.show {
+  display: flex;
+  animation: toastIn .42s cubic-bezier(.2, .9, .22, 1.2);
+}
+
+.pa-toast-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  color: #047857;
+  background: #d1fae5;
+}
+
+.pa-toast-title {
+  font-size: 14px;
+  color: #0f172a;
+  font-weight: 1000;
+  line-height: 1.2;
+}
+
+.pa-toast-sub {
+  margin-top: 2px;
+  color: #64748b;
+  font-weight: 800;
+  font-size: 12px;
+}
+
+.pa-toast::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 4px;
+  background: #22c55e;
+  transform-origin: left center;
+  animation: toastBar 3s linear forwards;
 }
 
   </style>
@@ -404,6 +476,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     <div id="pager" class="pager"></div>
 
   </div>
+
+  <div class="pa-toast" id="pageToast" role="status" aria-live="polite"></div>
 
   <script>
   function esc(s) {
@@ -501,6 +575,26 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
 
   document.getElementById("q").value = initialParams.get("q") || "";
   document.getElementById("status").value = initialParams.get("status") || "";
+
+  function showPageToast(title, sub) {
+    const toast = document.getElementById("pageToast");
+    if (!toast) return;
+    toast.innerHTML = `
+      <span class="pa-toast-icon"><i class="fa-solid fa-check"></i></span>
+      <span>
+        <span class="pa-toast-title">${esc(title)}</span>
+        <span class="pa-toast-sub">${esc(sub || '')}</span>
+      </span>
+    `;
+    toast.classList.remove("show");
+    void toast.offsetWidth;
+    toast.classList.add("show");
+    setTimeout(() => toast.classList.remove("show"), 3000);
+  }
+
+  if (initialParams.get("deleted_message") === "1") {
+    showPageToast("Mensagem excluida com sucesso", "Ela saiu da lista e nao fica mais pendente.");
+  }
 
   function currentListUrl() {
     const url = new URL('/painel/index.php', location.origin);

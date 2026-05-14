@@ -1092,7 +1092,9 @@ $run_id = (string) $_GET['id'];
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ run_id: runId })
                     });
-                    location.href = backHref || "/painel/index.php?pagina=index";
+                    const redirect = new URL(backHref || "/painel/index.php?pagina=index", location.origin);
+                    redirect.searchParams.set("deleted_message", "1");
+                    location.href = redirect.pathname + redirect.search + redirect.hash;
                 } catch (e) {
                     btn.disabled = false;
                     btn.innerHTML = original;
