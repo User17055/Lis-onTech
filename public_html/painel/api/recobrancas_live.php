@@ -161,6 +161,30 @@ function applyLastMessage(array &$row, array $lastLogs): void {
   $row['last_message_http'] = null;
 }
 
+function daysFromDate($value): ?int {
+  if (empty($value)) return null;
+  $ts = strtotime((string)$value);
+  if (!$ts) return null;
+  return (int)floor(($ts - time()) / 86400);
+}
+
+function sortReminderRows(array &$rows, string $sort): void {
+  usort($rows, function(array $a, array $b) use ($sort): int {
+    $aDue = strtotime((string)($a['due_at'] ?? '')) ?: 0;
+    $bDue = strtotime((string)($b['due_at'] ?? '')) ?: 0;
+    $aDays = (int)($a['days_overdue'] ?? 0);
+    $bDays = (int)($b['days_overdue'] ?? 0);
+    $aAmount = (float)($a['amount'] ?? 0);
+    $bAmount = (float)($b['amount'] ?? 0);
+
+    if ($sort === 'less_overdue') return $aDays <=> $bDays ?: $aDue <=> $bDue;
+    if ($sort === 'due_soon') return $aDue <=> $bDue;
+    if ($sort === 'amount_desc') return $bAmount <=> $aAmount ?: $bDays <=> $aDays;
+    if ($sort === 'amount_asc') return $aAmount <=> $bAmount ?: $bDays <=> $aDays;
+    return $bDays <=> $aDays ?: $aDue <=> $bDue;
+  });
+}
+
 try {
   $ROOT = findRootWithFiles(['config.php', 'db.php']);
   require_once $ROOT . '/config.php';
@@ -174,7 +198,17 @@ try {
   $page  = max(1, (int)($_GET['page'] ?? 1));
   $limit = max(1, min(50, (int)($_GET['limit'] ?? 50))); // Vindi limita per_page em 50 :contentReference[oaicite:4]{index=4}
 
-  $onlyOverdue = (string)($_GET['only_overdue'] ?? '1') !== '0';
+  $dueFilter = strtolower(trim((string)($_GET['due_filter'] ?? '')));
+  if ($dueFilter === '') {
+    $dueFilter = (string)($_GET['only_overdue'] ?? '1') !== '0' ? 'overdue' : 'all';
+  }
+  if (!in_array($dueFilter, ['all', 'overdue', 'due_soon', 'not_due'], true)) {
+    $dueFilter = 'overdue';
+  }
+  $sort = strtolower(trim((string)($_GET['sort'] ?? 'most_overdue')));
+  if (!in_array($sort, ['most_overdue', 'less_overdue', 'due_soon', 'amount_desc', 'amount_asc'], true)) {
+    $sort = 'most_overdue';
+  }
   $statusUI = trim((string)($_GET['status'] ?? '')); // unpaid/paid/canceled/blocked/""
   $q = trim((string)($_GET['q'] ?? ''));
 
@@ -187,12 +221,18 @@ try {
 
   // Se quiser listar "blocked" (é local), a gente lista do banco e opcionalmente puxa detalhes por ID depois.
   if ($statusUI === 'blocked') {
+    $whereLocal = ['blocked=1'];
+    if ($dueFilter === 'overdue') $whereLocal[] = 'due_at IS NOT NULL AND due_at <= NOW()';
+    if ($dueFilter === 'due_soon') $whereLocal[] = 'due_at IS NOT NULL AND due_at > NOW() AND due_at <= DATE_ADD(NOW(), INTERVAL 7 DAY)';
+    if ($dueFilter === 'not_due') $whereLocal[] = 'due_at IS NOT NULL AND due_at > NOW()';
+    $whereLocalSql = implode(' AND ', $whereLocal);
+
     $st = $pdo->prepare("
       SELECT bill_id, customer_name, phone, bill_url, amount, due_at, status, blocked,
              overdue_sent_count, reminder_attempts, next_reminder_at, last_overdue_sent_at,
              last_reminder_sent_at, last_status, last_status_check_at
       FROM bill_reminders
-      WHERE blocked=1
+      WHERE {$whereLocalSql}
       ORDER BY updated_at DESC
       LIMIT {$limit} OFFSET " . (($page-1)*$limit)
     );
@@ -204,10 +244,12 @@ try {
       if (!empty($row['due_at'])) {
         $days = (int)floor((time() - strtotime((string)$row['due_at'])) / 86400);
         $row['days_overdue'] = max(0, $days);
+        $row['days_until_due'] = daysFromDate($row['due_at']);
       }
       applyLastMessage($row, $lastLogs);
     }
     unset($row);
+    sortReminderRows($rows, $sort);
 
     echo json_encode([
       'ok'=>true,
@@ -225,9 +267,15 @@ try {
 
   if ($statusVindi !== '') $parts[] = "status={$statusVindi}";
 
-  if ($onlyOverdue) {
-    $now = date('Y-m-d H:i:s');
+  $now = date('Y-m-d H:i:s');
+  if ($dueFilter === 'overdue') {
     $parts[] = 'due_at<="' . $now . '"';
+  } elseif ($dueFilter === 'due_soon') {
+    $soon = date('Y-m-d H:i:s', strtotime('+7 days'));
+    $parts[] = 'due_at>"' . $now . '"';
+    $parts[] = 'due_at<="' . $soon . '"';
+  } elseif ($dueFilter === 'not_due') {
+    $parts[] = 'due_at>"' . $now . '"';
   }
 
   // Busca:
@@ -307,6 +355,7 @@ try {
     if (!empty($dueAt)) {
       $daysOverdue = max(0, (int)floor((time() - strtotime((string)$dueAt)) / 86400));
     }
+    $daysUntilDue = daysFromDate($dueAt);
 
     $row = [
       'bill_id' => $billId,
@@ -318,6 +367,7 @@ try {
       'bill_url' => $url,
       'phone' => $phone,
       'days_overdue' => $daysOverdue,
+      'days_until_due' => $daysUntilDue,
 
       // controle interno (do seu banco)
       'blocked' => (int)($loc['blocked'] ?? 0),
@@ -334,6 +384,8 @@ try {
     $rows[] = $row;
   }
 
+  sortReminderRows($rows, $sort);
+
   echo json_encode([
     'ok'=>true,
     'page'=>$page,
@@ -341,6 +393,8 @@ try {
     'total'=>$total,
     'total_pages'=>max(1,$totalPages),
     'rows'=>$rows,
+    'due_filter'=>$dueFilter,
+    'sort'=>$sort,
     'mode'=>'vindi_live'
   ], JSON_UNESCAPED_UNICODE);
 

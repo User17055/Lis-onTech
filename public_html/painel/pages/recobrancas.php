@@ -16,8 +16,9 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       --red-bg:#fee2e2; --red-text:#991b1b;
       --blue-bg:#dbeafe; --blue-text:#1e40af;
       --yellow-bg:#fef3c7; --yellow-text:#92400e;
+      --orange-bg:#ffedd5; --orange-text:#9a3412;
       --radius-pill:50px;
-      --radius-card:20px;
+      --radius-card:8px;
       --shadow-soft:0 4px 6px -1px rgba(0,0,0,.05),0 2px 4px -1px rgba(0,0,0,.03);
       --shadow-hover:0 10px 15px -3px rgba(59,130,246,.15);
       font-family:'Nunito',sans-serif;
@@ -66,8 +67,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .toolbar{
       background:#fff;
       border:2px solid var(--border-color);
-      border-radius:var(--radius-pill);
-      padding:12px 20px;
+      border-radius:8px;
+      padding:14px;
       display:flex;
       gap:12px;
       align-items:center;
@@ -120,16 +121,51 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .custom-check{accent-color:var(--primary);width:18px;height:18px;cursor:pointer;}
     .toggle-wrapper label{font-size:14px;font-weight:700;color:var(--text-muted);cursor:pointer;}
 
-    .summary-grid{display:grid;grid-template-columns:repeat(4,minmax(160px,1fr));gap:14px;margin-bottom:18px;}
+    .filter-tabs{
+      display:grid;
+      grid-template-columns:repeat(4,minmax(120px,1fr));
+      gap:8px;
+      margin-bottom:16px;
+    }
+    .filter-tab{
+      min-height:54px;
+      border:2px solid var(--border-color);
+      border-radius:8px;
+      background:#fff;
+      color:var(--text-main);
+      font-family:'Nunito',sans-serif;
+      font-weight:900;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:9px;
+      transition:.18s;
+      box-shadow:var(--shadow-soft);
+    }
+    .filter-tab i{color:var(--text-muted);}
+    .filter-tab:hover{border-color:#bfdbfe;color:var(--primary);}
+    .filter-tab.active{background:#eef8ff;border-color:#9bdcff;color:#12628f;}
+    .filter-tab.active i{color:#12628f;}
+
+    .summary-grid{display:grid;grid-template-columns:repeat(5,minmax(150px,1fr));gap:14px;margin-bottom:18px;}
     .metric{
       background:#fff;
       border:2px solid var(--border-color);
-      border-radius:20px;
+      border-radius:8px;
       padding:16px 18px;
       box-shadow:var(--shadow-soft);
+      display:grid;
+      grid-template-columns:1fr 42px;
+      gap:12px;
+      align-items:center;
     }
     .metric span{display:block;color:var(--text-muted);font-size:12px;font-weight:900;text-transform:uppercase;}
     .metric strong{display:block;font-size:24px;font-weight:900;margin-top:4px;}
+    .metric-icon{width:42px;height:42px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:#eef8ff;color:#12628f;}
+    .metric.danger .metric-icon{background:var(--red-bg);color:var(--red-text);}
+    .metric.warn .metric-icon{background:var(--orange-bg);color:var(--orange-text);}
+    .metric.ok .metric-icon{background:var(--green-bg);color:var(--green-text);}
 
     table{width:100%;border-collapse:separate;border-spacing:0 12px;}
     thead th{color:var(--text-muted);font-size:13px;text-transform:uppercase;font-weight:800;padding:0 20px;text-align:left;}
@@ -149,6 +185,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .b-canceled{background:#e2e8f0;color:#334155;}
     .b-blocked{background:var(--yellow-bg);color:var(--yellow-text);}
     .b-ready{background:var(--blue-bg);color:var(--blue-text);}
+    .b-due-soon{background:var(--orange-bg);color:var(--orange-text);}
 
     .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:var(--bg-panel);border:2px solid var(--border-color);font-weight:800;font-size:12px;color:var(--text-main);white-space:nowrap;}
 
@@ -166,6 +203,11 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .last-message.fail i{color:var(--red-text);}
     .date-line{display:inline-flex;align-items:center;gap:7px;color:var(--text-muted);font-weight:800;font-size:12px;}
     .date-line i{color:#94a3b8;}
+    .due-stack{display:flex;flex-direction:column;align-items:flex-start;gap:8px;}
+    .due-note{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:5px 10px;font-size:12px;font-weight:900;}
+    .due-note.overdue{background:var(--red-bg);color:var(--red-text);}
+    .due-note.soon{background:var(--orange-bg);color:var(--orange-text);}
+    .due-note.future{background:var(--blue-bg);color:var(--blue-text);}
     .action-grid{display:grid;grid-template-columns:repeat(2,max-content);gap:10px;justify-content:end;}
 
     .btn-mini{
@@ -200,6 +242,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     @media(max-width:900px){
       .pa-header{padding:0 18px;}
       .summary-grid{grid-template-columns:repeat(2,minmax(140px,1fr));}
+      .filter-tabs{grid-template-columns:repeat(2,minmax(140px,1fr));}
       table{min-width:980px;}
       .container{overflow-x:auto;padding:0 12px;}
     }
@@ -214,6 +257,13 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
   </div>
 
   <div class="container">
+    <div class="filter-tabs" id="dueTabs">
+      <button type="button" class="filter-tab active" data-due="overdue"><i class="fa-solid fa-triangle-exclamation"></i> Vencidos</button>
+      <button type="button" class="filter-tab" data-due="due_soon"><i class="fa-regular fa-calendar"></i> Proximos a vencer</button>
+      <button type="button" class="filter-tab" data-due="not_due"><i class="fa-solid fa-hourglass-half"></i> A vencer</button>
+      <button type="button" class="filter-tab" data-due="all"><i class="fa-solid fa-layer-group"></i> Todos</button>
+    </div>
+
     <div class="toolbar">
       <div style="flex:2;min-width:220px;position:relative;">
         <i class="fa-solid fa-search" style="color:var(--text-muted);position:absolute;left:18px;top:15px;font-size:15px;"></i>
@@ -228,10 +278,13 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         <option value="blocked">Bloqueados</option>
       </select>
 
-      <div class="toggle-wrapper">
-        <input type="checkbox" id="onlyOverdue" checked class="custom-check">
-        <label for="onlyOverdue">So vencidas</label>
-      </div>
+      <select id="sort" class="form-control" style="max-width:240px;cursor:pointer;">
+        <option value="most_overdue" selected>Mais tempo devendo</option>
+        <option value="less_overdue">Menos tempo devendo</option>
+        <option value="due_soon">Vencimento mais proximo</option>
+        <option value="amount_desc">Maior valor</option>
+        <option value="amount_asc">Menor valor</option>
+      </select>
 
       <div class="toggle-wrapper" style="border-right:none;">
         <input type="checkbox" id="auto" checked class="custom-check">
@@ -243,10 +296,11 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     </div>
 
     <div class="summary-grid">
-      <div class="metric"><span>Registros</span><strong id="mTotal">0</strong></div>
-      <div class="metric"><span>Prontos</span><strong id="mReady">0</strong></div>
-      <div class="metric"><span>Bloqueados</span><strong id="mBlocked">0</strong></div>
-      <div class="metric"><span>Envios</span><strong id="mSent">0</strong></div>
+      <div class="metric"><div><span>Registros</span><strong id="mTotal">0</strong></div><div class="metric-icon"><i class="fa-solid fa-list"></i></div></div>
+      <div class="metric danger"><div><span>Vencidos</span><strong id="mOverdue">0</strong></div><div class="metric-icon"><i class="fa-solid fa-triangle-exclamation"></i></div></div>
+      <div class="metric warn"><div><span>Proximos</span><strong id="mDueSoon">0</strong></div><div class="metric-icon"><i class="fa-regular fa-calendar"></i></div></div>
+      <div class="metric ok"><div><span>Prontos</span><strong id="mReady">0</strong></div><div class="metric-icon"><i class="fa-solid fa-bolt"></i></div></div>
+      <div class="metric"><div><span>Envios</span><strong id="mSent">0</strong></div><div class="metric-icon"><i class="fa-solid fa-paper-plane"></i></div></div>
     </div>
 
     <table>
@@ -310,6 +364,30 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       if (normalized === 'paid') return 'paid';
       if (ready) return 'ready';
       return 'wait';
+    }
+
+    function dueInfo(row){
+      const daysOverdue = Number(row.days_overdue || 0);
+      const daysUntil = row.days_until_due === null || row.days_until_due === undefined ? null : Number(row.days_until_due);
+      if (daysOverdue > 0 || daysUntil < 0) {
+        return {
+          cls:'overdue',
+          icon:'fa-triangle-exclamation',
+          text: daysOverdue === 1 ? '1 dia vencida' : `${daysOverdue} dias vencida`
+        };
+      }
+      if (daysUntil !== null && daysUntil <= 7) {
+        return {
+          cls:'soon',
+          icon:'fa-calendar-day',
+          text: daysUntil <= 0 ? 'Vence hoje' : `Vence em ${daysUntil} dias`
+        };
+      }
+      return {
+        cls:'future',
+        icon:'fa-calendar-check',
+        text: daysUntil === null ? 'Sem data' : `Vence em ${daysUntil} dias`
+      };
     }
 
     function setStatus(text, type='ok'){
@@ -392,15 +470,17 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     let currentPage = 1;
     const limit = 50;
     let previousHash = null;
+    let dueFilter = 'overdue';
 
     async function load(isManual=false){
       const q = document.getElementById('q').value.trim();
       const status = document.getElementById('status').value;
-      const onlyOverdue = document.getElementById('onlyOverdue').checked ? '1' : '0';
+      const sort = document.getElementById('sort').value;
       const url = new URL('/painel/api/recobrancas_live.php', location.origin);
       url.searchParams.set('page', currentPage);
       url.searchParams.set('limit', limit);
-      url.searchParams.set('only_overdue', onlyOverdue);
+      url.searchParams.set('due_filter', dueFilter);
+      url.searchParams.set('sort', sort);
       if (q) url.searchParams.set('q', q);
       if (status) url.searchParams.set('status', status);
 
@@ -430,8 +510,12 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         const rows = Array.isArray(j.rows) ? j.rows : [];
 
         document.getElementById('mTotal').textContent = String(j.total ?? rows.length ?? 0);
+        document.getElementById('mOverdue').textContent = String(rows.filter(x => Number(x.days_overdue || 0) > 0 || Number(x.days_until_due || 0) < 0).length);
+        document.getElementById('mDueSoon').textContent = String(rows.filter(x => {
+          const d = x.days_until_due === null || x.days_until_due === undefined ? null : Number(x.days_until_due);
+          return d !== null && d >= 0 && d <= 7;
+        }).length);
         document.getElementById('mReady').textContent = String(rows.filter(x => normalizeStatus(x.status, x.blocked)==='unpaid' && Number(x.days_overdue || 0) >= 7).length);
-        document.getElementById('mBlocked').textContent = String(rows.filter(x => Number(x.blocked || 0) === 1).length);
         document.getElementById('mSent').textContent = String(rows.reduce((acc,x) => acc + Number(x.overdue_sent_count || 0), 0));
 
         if (!j.ok || rows.length === 0){
@@ -463,6 +547,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
           const lastMessage = row.last_message || 'Nenhuma mensagem enviada ainda';
           const lastOk = row.last_message_ok;
           const lastStatus = row.last_status ? esc(row.last_status) : '-';
+          const due = dueInfo(row);
+          const debtAge = due.cls === 'overdue' ? `${days} dias em atraso` : due.text;
 
           const btnNow = `<button type="button" class="btn-mini" data-act="send_now" data-id="${billId}" ${blocked || !ready ? 'disabled' : ''} title="${ready ? 'Agenda e processa agora' : 'So libera apos 7 dias de atraso'}">
             <i class="fa-solid fa-bolt"></i> Enviar
@@ -485,14 +571,17 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
                   <div>
                     <span class="customer-name">${esc(row.customer_name || 'Cliente')}</span>
                     <span class="bill-id">Bill ${esc(billId)}</span>
-                    <span class="muted">${phone} | ${days} dias em atraso</span>
+                    <span class="muted">${phone} | ${esc(debtAge)}</span>
                   </div>
                 </div>
               </td>
               <td><span class="pill"><i class="fa-solid fa-coins"></i> ${fmtMoney(row.amount)}</span></td>
               <td>
-                <span class="pill"><i class="fa-regular fa-calendar"></i> ${fmtDateTimeBr(row.due_at)}</span>
-                <span class="muted">Prox: ${esc(next)}</span>
+                <div class="due-stack">
+                  <span class="pill"><i class="fa-regular fa-calendar"></i> ${fmtDateTimeBr(row.due_at)}</span>
+                  <span class="due-note ${due.cls}"><i class="fa-solid ${due.icon}"></i> ${esc(due.text)}</span>
+                  <span class="muted">Prox: ${esc(next)}</span>
+                </div>
               </td>
               <td>
                 <div class="status-stack">
@@ -557,7 +646,16 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     document.getElementById('btnReload').onclick = () => load(true);
     document.getElementById('btnRunQueue').onclick = () => runQueue(20);
     document.getElementById('status').onchange = () => { currentPage = 1; previousHash=null; load(true); };
-    document.getElementById('onlyOverdue').onchange = () => { currentPage = 1; previousHash=null; load(true); };
+    document.getElementById('sort').onchange = () => { currentPage = 1; previousHash=null; load(true); };
+    document.getElementById('dueTabs').addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-due]');
+      if (!btn) return;
+      dueFilter = btn.getAttribute('data-due') || 'overdue';
+      document.querySelectorAll('#dueTabs .filter-tab').forEach(tab => tab.classList.toggle('active', tab === btn));
+      currentPage = 1;
+      previousHash = null;
+      load(true);
+    });
     document.getElementById('q').onkeydown = (e) => {
       if (e.key === 'Enter'){ currentPage=1; previousHash=null; load(true); }
     };
