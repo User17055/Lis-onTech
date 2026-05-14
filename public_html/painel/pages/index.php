@@ -276,6 +276,28 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       border-color: #dbeafe;
     }
 
+    .btn-icon.danger {
+      background: #fff;
+      color: var(--red-text);
+      border-color: #fee2e2;
+      cursor: pointer;
+      font-family: 'Nunito', sans-serif;
+    }
+
+    .btn-icon.danger:hover {
+      background: var(--red-bg);
+      color: var(--red-text);
+      border-color: var(--red-bg);
+    }
+
+    .btn-icon:disabled {
+      opacity: .42;
+      cursor: not-allowed;
+      background: #f8fafc;
+      color: #94a3b8;
+      border-color: #eef2f6;
+    }
+
     .spinner {
       width: 30px;
       height: 30px;
@@ -595,6 +617,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         const quando = formatDateTimeBr(row.created_at);
         const backUrl = encodeURIComponent(currentListUrl());
         const linkDestino = `/painel/index.php?pagina=detalhes&id=${encodeURIComponent(row.run_id)}&back=${backUrl}`;
+        const canDelete = ['not_sent', 'error', 'failed', ''].includes(String(row.status || '').toLowerCase());
 
         const dotColor = (row.status === 'error') ? 'var(--red-text)' : 'var(--primary)';
         const dotBg = (row.status === 'error') ? 'var(--red-bg)' : 'var(--blue-bg)';
@@ -613,6 +636,9 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
             <td style="text-align:right;">
               <div style="display:flex; align-items:center; justify-content:flex-end; gap:15px;">
                 <span style="font-size:13px; color:var(--text-muted); font-weight:600;">${quando}</span>
+                <button type="button" class="btn-icon danger" data-delete-run="${esc(row.run_id)}" onclick="event.stopPropagation()" title="${canDelete ? 'Excluir registro pendente' : 'Ja enviado: nao pode excluir'}" ${canDelete ? '' : 'disabled'}>
+                  <i class="fa-solid fa-trash"></i>
+                </button>
                 <a href="${linkDestino}" class="btn-icon" onclick="event.stopPropagation()">
                   <i class="fa-solid fa-chevron-right"></i>
                 </a>
@@ -633,6 +659,41 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       `;
     }
   }
+
+  async function deleteRun(runId) {
+    if (!runId) return;
+    const ok = confirm('Excluir este registro pendente da lista? Essa acao nao apaga mensagem ja entregue no WhatsApp.');
+    if (!ok) return;
+
+    try {
+      const r = await fetch('/painel/api/run_delete.php', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ run_id: runId })
+      });
+      const text = await r.text();
+      let j = null;
+      try { j = JSON.parse(text); } catch (e) {}
+
+      if (!r.ok || !j || j.ok === false) {
+        throw new Error(j?.error || text.slice(0, 220) || 'Falha ao excluir');
+      }
+
+      previousDataHash = null;
+      await loadRuns(true);
+    } catch (e) {
+      alert(e.message || 'Falha ao excluir registro');
+    }
+  }
+
+  document.getElementById("tbody").addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-delete-run]");
+    if (!btn || btn.disabled) return;
+    e.preventDefault();
+    e.stopPropagation();
+    deleteRun(btn.getAttribute("data-delete-run"));
+  });
 
   document.getElementById("btnReload").onclick = () => loadRuns(true);
 
