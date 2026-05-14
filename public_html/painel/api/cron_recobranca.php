@@ -147,10 +147,11 @@ $BACKFILL_LIMIT = isset($_GET['backfill_limit']) ? max(1, min(50, (int)$_GET['ba
 $BACKFILL_BEFORE_RAW = trim((string)($_GET['backfill_before'] ?? ''));
 $BACKFILL_AFTER_RAW = trim((string)($_GET['backfill_after'] ?? ''));
 $BACKFILL_FORCE_READY = (isset($_GET['backfill_force_ready']) && $_GET['backfill_force_ready'] === '1');
+$BACKFILL_RESET_COUNT = (isset($_GET['backfill_reset_count']) && $_GET['backfill_reset_count'] === '1');
 
 $INTERVAL_DAYS = (int) cfg($cfg, 'RECOBRANCA_INTERVAL_DAYS', 7);
 $FIRST_DELAY_DAYS = max(7, (int) cfg($cfg, 'RECOBRANCA_FIRST_DELAY_DAYS', '7'));
-$MAX_OVERDUE   = (int) cfg($cfg, 'RECOBRANCA_MAX_OVERDUE', 12);
+$MAX_OVERDUE   = max(1, (int) cfg($cfg, 'RECOBRANCA_MAX_OVERDUE', 12));
 
 if ($META_PHONE_NUMBER_ID === '' || $META_ACCESS_TOKEN === '' || $VINDI_API_KEY === '' || $TEMPLATE_NAME === '') {
   logLine("ERRO config incompleta META/VINDI/TEMPLATE.");
@@ -303,7 +304,7 @@ function billAmountOrNull(array $bill): ?float {
   return null;
 }
 
-function upsertReminderFromBill(PDO $pdo, array $bill, string $base, string $apiKey, bool $forceReady = false, int $maxOverdue = 12): bool {
+function upsertReminderFromBill(PDO $pdo, array $bill, string $base, string $apiKey, bool $forceReady = false, int $maxOverdue = 12, bool $resetCount = false): bool {
   $billId = (int)($bill['id'] ?? 0);
   if ($billId <= 0) return false;
 
@@ -367,6 +368,10 @@ function upsertReminderFromBill(PDO $pdo, array $bill, string $base, string $api
       overdue_sent_count = CASE
         WHEN VALUES(next_reminder_at) IS NOT NULL
           AND VALUES(status) NOT IN ('paid', 'canceled')
+          AND ? = 1
+        THEN 0
+        WHEN VALUES(next_reminder_at) IS NOT NULL
+          AND VALUES(status) NOT IN ('paid', 'canceled')
           AND COALESCE(overdue_sent_count, 0) >= ?
         THEN ?
         ELSE overdue_sent_count
@@ -393,6 +398,7 @@ function upsertReminderFromBill(PDO $pdo, array $bill, string $base, string $api
     $localStatus,
     $nextReminderAt,
     $vindiStatus ?: $localStatus,
+    $resetCount ? 1 : 0,
     max(1, $maxOverdue),
     max(0, $maxOverdue - 1),
   ]);
@@ -604,7 +610,7 @@ if ($BACKFILL && $ONLY_BILL_ID <= 0) {
       }
 
       try {
-        $ok = upsertReminderFromBill($pdo, $bill, $VINDI_API_BASE, $VINDI_API_KEY, $BACKFILL_FORCE_READY, $MAX_OVERDUE);
+        $ok = upsertReminderFromBill($pdo, $bill, $VINDI_API_BASE, $VINDI_API_KEY, $BACKFILL_FORCE_READY, $MAX_OVERDUE, $BACKFILL_RESET_COUNT);
         if ($ok) {
           $backfillSeeded++;
           $bid = (int)($bill['id'] ?? 0);
@@ -622,7 +628,8 @@ if ($BACKFILL && $ONLY_BILL_ID <= 0) {
 
     logLine(
       "BACKFILL page={$pageToFetch} limit={$BACKFILL_LIMIT} before={$backfillBefore} " .
-      "seeded={$backfillSeeded} skipped={$backfillSkipped} force_ready=" . ($BACKFILL_FORCE_READY ? '1' : '0')
+      "seeded={$backfillSeeded} skipped={$backfillSkipped} force_ready=" . ($BACKFILL_FORCE_READY ? '1' : '0') .
+      " reset_count=" . ($BACKFILL_RESET_COUNT ? '1' : '0')
     );
   }
 
@@ -667,7 +674,7 @@ if ($BACKFILL && $ONLY_BILL_ID <= 0) {
         }
 
         try {
-          $ok = upsertReminderFromBill($pdo, $bill, $VINDI_API_BASE, $VINDI_API_KEY, $BACKFILL_FORCE_READY, $MAX_OVERDUE);
+          $ok = upsertReminderFromBill($pdo, $bill, $VINDI_API_BASE, $VINDI_API_KEY, $BACKFILL_FORCE_READY, $MAX_OVERDUE, $BACKFILL_RESET_COUNT);
           if ($ok) {
             $backfillSeeded++;
             $bid = (int)($bill['id'] ?? 0);
@@ -685,7 +692,8 @@ if ($BACKFILL && $ONLY_BILL_ID <= 0) {
 
       logLine(
         "BACKFILL fallback page={$pageToFetch} limit={$BACKFILL_LIMIT} before={$backfillBefore} " .
-        "seeded={$backfillSeeded} skipped={$backfillSkipped} force_ready=" . ($BACKFILL_FORCE_READY ? '1' : '0')
+        "seeded={$backfillSeeded} skipped={$backfillSkipped} force_ready=" . ($BACKFILL_FORCE_READY ? '1' : '0') .
+        " reset_count=" . ($BACKFILL_RESET_COUNT ? '1' : '0')
       );
     }
   }
@@ -1045,6 +1053,6 @@ header('Content-Type: text/plain; charset=utf-8');
 $allIssues = array_merge($backfillIssues, $issues);
 $suffix = $allIssues ? ' | ' . implode(' | ', array_slice($allIssues, 0, 5)) : '';
 $backfillText = $BACKFILL
-  ? " backfill_seeded={$backfillSeeded} backfill_skipped={$backfillSkipped} backfill_before={$backfillBeforeUsed} backfill_pages=" . implode(',', $backfillPageCounts) . " backfill_ready=" . (string)($backfillQueueDebug['ready'] ?? '-') . " backfill_debug=" . json_encode($backfillQueueDebug, JSON_UNESCAPED_UNICODE) . " backfill_query={$backfillQueryUsed}"
+  ? " backfill_seeded={$backfillSeeded} backfill_skipped={$backfillSkipped} backfill_before={$backfillBeforeUsed} backfill_reset_count=" . ($BACKFILL_RESET_COUNT ? '1' : '0') . " backfill_pages=" . implode(',', $backfillPageCounts) . " backfill_ready=" . (string)($backfillQueueDebug['ready'] ?? '-') . " backfill_debug=" . json_encode($backfillQueueDebug, JSON_UNESCAPED_UNICODE) . " backfill_query={$backfillQueryUsed}"
   : '';
 echo "OK sent={$sent} skipped={$skipped}{$backfillText}{$suffix}\n";
