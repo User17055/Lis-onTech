@@ -220,7 +220,6 @@ function nextReminderFromDue(?string $dueAt, int $firstDelayDays): ?string {
   if ($dueAt === null || trim($dueAt) === '') return null;
   $ts = strtotime($dueAt);
   if (!$ts) return null;
-  if ($ts >= time()) return date('Y-m-d H:i:s', $ts);
   return date('Y-m-d H:i:s', $ts + ($firstDelayDays * 86400));
 }
 

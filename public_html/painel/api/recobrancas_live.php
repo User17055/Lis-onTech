@@ -204,15 +204,6 @@ function nextReminderInfo($nextReminderAt, $dueAt, int $firstDelayDays): array {
     return ['at' => null, 'label' => 'Sem vencimento', 'source' => 'invalid_due', 'ready' => false];
   }
 
-  if ($dueTs >= time()) {
-    return [
-      'at' => date('Y-m-d H:i:s', $dueTs),
-      'label' => 'No vencimento',
-      'source' => 'due_at',
-      'ready' => false,
-    ];
-  }
-
   $eligibleTs = $dueTs + ($firstDelayDays * 86400);
   return [
     'at' => date('Y-m-d H:i:s', $eligibleTs),
