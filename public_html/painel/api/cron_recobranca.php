@@ -63,25 +63,56 @@ $ROOT = findRootWithFiles(['config.php', 'db.php']);
 require_once $ROOT . '/config.php';
 require_once $ROOT . '/includes/auth.php';
 
-$CRON_TOKEN = cfg($cfg, 'CRON_TOKEN', '');
+$CRON_TOKENS = array_values(array_unique(array_filter([
+  cfg($cfg, 'CRON_TOKEN', ''),
+  cfg($cfg, 'RECOBRANCA_CRON_TOKEN', ''),
+], static fn($v) => trim((string)$v) !== '')));
 $REQ_TOKEN = (string)($_GET['token'] ?? '');
+if ($REQ_TOKEN === '') {
+  $REQ_TOKEN = (string)($_POST['token'] ?? '');
+}
+if ($REQ_TOKEN === '') {
+  $REQ_TOKEN = (string)($_SERVER['HTTP_X_CRON_TOKEN'] ?? '');
+}
+if ($REQ_TOKEN === '') {
+  $authHeader = (string)($_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '');
+  if (preg_match('/^Bearer\s+(.+)$/i', $authHeader, $m)) {
+    $REQ_TOKEN = trim((string)$m[1]);
+  }
+}
 
 if (isset($_GET['debug_token']) && $_GET['debug_token'] === '1') {
+  $tokenMatch = false;
+  foreach ($CRON_TOKENS as $tokenCandidate) {
+    if ($REQ_TOKEN !== '' && hash_equals($tokenCandidate, $REQ_TOKEN)) {
+      $tokenMatch = true;
+      break;
+    }
+  }
+
   header('Content-Type: application/json; charset=utf-8');
   echo json_encode([
     'ok' => true,
     'config_env_found' => !empty($GLOBALS['LISON_CONFIG_ENV_LABEL']),
     'config_env_loaded_from' => $GLOBALS['LISON_CONFIG_ENV_LABEL'] ?? null,
     'config_env_checked' => $GLOBALS['LISON_CONFIG_ENV_CHECKS'] ?? [],
-    'cron_token_configured' => $CRON_TOKEN !== '',
-    'cron_token_length' => strlen($CRON_TOKEN),
+    'cron_token_configured' => count($CRON_TOKENS) > 0,
+    'cron_token_lengths' => array_map('strlen', $CRON_TOKENS),
     'request_token_length' => strlen($REQ_TOKEN),
-    'token_match' => ($CRON_TOKEN !== '' && $REQ_TOKEN !== '' && hash_equals($CRON_TOKEN, $REQ_TOKEN)),
+    'token_match' => $tokenMatch,
   ], JSON_UNESCAPED_UNICODE);
   exit;
 }
 
-if (!($CRON_TOKEN !== '' && hash_equals($CRON_TOKEN, $REQ_TOKEN))) {
+$TOKEN_OK = false;
+foreach ($CRON_TOKENS as $tokenCandidate) {
+  if ($REQ_TOKEN !== '' && hash_equals($tokenCandidate, $REQ_TOKEN)) {
+    $TOKEN_OK = true;
+    break;
+  }
+}
+
+if (!$TOKEN_OK) {
   authRequireApi();
 }
 

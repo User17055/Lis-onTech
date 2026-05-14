@@ -59,11 +59,14 @@ jobs:
           esac
 
           cron_url="${RECOBRANCA_CRON_URL}${separator}token=${RECOBRANCA_CRON_TOKEN}"
+          echo "::add-mask::$RECOBRANCA_CRON_TOKEN"
           echo "::add-mask::$cron_url"
           echo "Chamando cron de recobranca..."
 
           http_code="$(
             curl --show-error --silent --max-time 60 \
+              --header "X-Cron-Token: ${RECOBRANCA_CRON_TOKEN}" \
+              --header "Authorization: Bearer ${RECOBRANCA_CRON_TOKEN}" \
               --output /tmp/recobranca_cron_response.txt \
               --write-out "%{http_code}" \
               "$cron_url"
