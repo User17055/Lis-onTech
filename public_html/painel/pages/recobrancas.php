@@ -212,6 +212,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .action-grid{display:grid;grid-template-columns:repeat(2,max-content);gap:10px;justify-content:end;}
     .next-stack{display:flex;flex-direction:column;gap:6px;align-items:flex-start;}
     .next-label{color:var(--text-muted);font-size:12px;font-weight:900;}
+    .sent-count{background:#f8fafc;color:#405064;border-color:#e6edf5;}
     .expand-cell{width:34px;text-align:center;color:var(--text-muted);}
     .detail-row td{padding:0 20px 18px;background:#fff;border:none;}
     .detail-panel{
@@ -614,6 +615,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
               <td>
                 <div class="status-stack">
                   ${badge(row.status, row.blocked, ready)}
+                  <span class="pill sent-count"><i class="fa-solid fa-paper-plane"></i> ${Number(row.overdue_sent_count || 0)}x enviado</span>
                 </div>
               </td>
               <td>

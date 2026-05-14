@@ -216,6 +216,13 @@ function preferFilled($newValue, $oldValue) {
   return $newValue;
 }
 
+function nextReminderFromDue(?string $dueAt, int $firstDelayDays): ?string {
+  if ($dueAt === null || trim($dueAt) === '') return null;
+  $ts = strtotime($dueAt);
+  if (!$ts) return null;
+  return date('Y-m-d H:i:s', $ts + ($firstDelayDays * 86400));
+}
+
 try {
   if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     throw new RuntimeException('POST obrigatorio');
@@ -235,9 +242,10 @@ try {
 
   $VINDI_API_KEY = cfg($cfg, 'VINDI_API_KEY');
   $VINDI_API_BASE = cfg($cfg, 'VINDI_API_BASE', 'https://app.vindi.com.br/api/v1');
+  $FIRST_DELAY_DAYS = max(1, (int)cfg($cfg, 'RECOBRANCA_FIRST_DELAY_DAYS', '7'));
 
   $st = $pdo->prepare("
-    SELECT bill_id, customer_id, customer_name, phone, bill_url, items_text, amount, due_at
+    SELECT bill_id, customer_id, customer_name, phone, bill_url, items_text, amount, due_at, next_reminder_at
     FROM bill_reminders
     WHERE bill_id = ?
     LIMIT 1
@@ -269,7 +277,6 @@ try {
 
   $blocked = $action === 'pause' ? 1 : 0;
   $status = $action === 'pause' ? 'blocked' : 'unpaid';
-  $nextReminderAt = $action === 'pause' ? null : date('Y-m-d H:i:s');
 
   if ($existing) {
     $merged = [
@@ -281,6 +288,13 @@ try {
       'amount' => preferFilled($seed['amount'], $existing['amount'] ?? null),
       'due_at' => preferFilled($seed['due_at'], $existing['due_at'] ?? null),
     ];
+    if ($action === 'pause') {
+      $nextReminderAt = null;
+    } elseif ($action === 'send_now') {
+      $nextReminderAt = $existing['next_reminder_at'] ?? nextReminderFromDue($merged['due_at'], $FIRST_DELAY_DAYS);
+    } else {
+      $nextReminderAt = nextReminderFromDue($merged['due_at'], $FIRST_DELAY_DAYS);
+    }
 
     $st = $pdo->prepare("
       UPDATE bill_reminders
@@ -311,6 +325,10 @@ try {
       $billId,
     ]);
   } else {
+    $nextReminderAt = $action === 'pause'
+      ? null
+      : ($action === 'send_now' ? null : nextReminderFromDue($seed['due_at'], $FIRST_DELAY_DAYS));
+
     $st = $pdo->prepare("
       INSERT INTO bill_reminders (
         bill_id, customer_id, customer_name, phone, bill_url, items_text,
