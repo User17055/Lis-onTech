@@ -6,7 +6,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
 <div class="pa-wrap">
 
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap');
 
     /* ✅ Variáveis isoladas (não usa :root global) */
     .pa-wrap{
@@ -365,7 +365,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
 .pa-toast {
   position: fixed;
   right: 22px;
-  bottom: 22px;
+  bottom: 42px;
   min-width: min(360px, calc(100vw - 44px));
   max-width: 420px;
   display: none;
@@ -378,7 +378,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
   box-shadow: 0 24px 70px rgba(15, 23, 42, .18);
   z-index: 10000;
   overflow: hidden;
-  font-family: 'Baloo 2', 'Nunito', sans-serif;
+  font-family: 'Fredoka', 'Nunito', sans-serif;
 }
 
 .pa-toast.show {
@@ -399,19 +399,19 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
 }
 
 .pa-toast-title {
-  font-size: 17px;
+  font-size: 16px;
   color: #0f172a;
-  font-weight: 800;
-  line-height: 1.05;
+  font-weight: 700;
+  line-height: 1.15;
   letter-spacing: 0;
 }
 
 .pa-toast-sub {
   margin-top: 3px;
   color: #64748b;
-  font-weight: 700;
+  font-weight: 500;
   font-size: 13px;
-  line-height: 1.15;
+  line-height: 1.25;
   letter-spacing: 0;
 }
 
