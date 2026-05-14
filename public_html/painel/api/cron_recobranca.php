@@ -303,7 +303,7 @@ function billAmountOrNull(array $bill): ?float {
   return null;
 }
 
-function upsertReminderFromBill(PDO $pdo, array $bill, string $base, string $apiKey, bool $forceReady = false): bool {
+function upsertReminderFromBill(PDO $pdo, array $bill, string $base, string $apiKey, bool $forceReady = false, int $maxOverdue = 12): bool {
   $billId = (int)($bill['id'] ?? 0);
   if ($billId <= 0) return false;
 
@@ -350,18 +350,31 @@ function upsertReminderFromBill(PDO $pdo, array $bill, string $base, string $api
       due_at = VALUES(due_at),
       active = CASE
         WHEN VALUES(status) IN ('paid', 'canceled') THEN 0
+        WHEN VALUES(next_reminder_at) IS NOT NULL THEN 1
         WHEN blocked = 1 THEN active
         ELSE 1
       END,
       status = CASE
         WHEN VALUES(status) IN ('paid', 'canceled') THEN VALUES(status)
+        WHEN VALUES(next_reminder_at) IS NOT NULL THEN 'unpaid'
         WHEN blocked = 1 THEN status
         ELSE 'unpaid'
       END,
+      blocked = CASE
+        WHEN VALUES(next_reminder_at) IS NOT NULL AND VALUES(status) NOT IN ('paid', 'canceled') THEN 0
+        ELSE blocked
+      END,
+      overdue_sent_count = CASE
+        WHEN VALUES(next_reminder_at) IS NOT NULL
+          AND VALUES(status) NOT IN ('paid', 'canceled')
+          AND COALESCE(overdue_sent_count, 0) >= ?
+        THEN ?
+        ELSE overdue_sent_count
+      END,
       next_reminder_at = CASE
-        WHEN blocked = 1 THEN next_reminder_at
         WHEN VALUES(status) IN ('paid', 'canceled') THEN NULL
-        WHEN VALUES(next_reminder_at) IS NOT NULL AND last_overdue_sent_at IS NULL THEN VALUES(next_reminder_at)
+        WHEN VALUES(next_reminder_at) IS NOT NULL THEN VALUES(next_reminder_at)
+        WHEN blocked = 1 THEN next_reminder_at
         ELSE next_reminder_at
       END,
       last_status = VALUES(last_status),
@@ -380,6 +393,8 @@ function upsertReminderFromBill(PDO $pdo, array $bill, string $base, string $api
     $localStatus,
     $nextReminderAt,
     $vindiStatus ?: $localStatus,
+    max(1, $maxOverdue),
+    max(0, $maxOverdue - 1),
   ]);
 
   return true;
@@ -587,7 +602,7 @@ if ($BACKFILL && $ONLY_BILL_ID <= 0) {
       }
 
       try {
-        $ok = upsertReminderFromBill($pdo, $bill, $VINDI_API_BASE, $VINDI_API_KEY, $BACKFILL_FORCE_READY);
+        $ok = upsertReminderFromBill($pdo, $bill, $VINDI_API_BASE, $VINDI_API_KEY, $BACKFILL_FORCE_READY, $MAX_OVERDUE);
         if ($ok) $backfillSeeded++;
         else $backfillSkipped++;
       } catch (Throwable $e) {
@@ -645,7 +660,7 @@ if ($BACKFILL && $ONLY_BILL_ID <= 0) {
         }
 
         try {
-          $ok = upsertReminderFromBill($pdo, $bill, $VINDI_API_BASE, $VINDI_API_KEY, $BACKFILL_FORCE_READY);
+          $ok = upsertReminderFromBill($pdo, $bill, $VINDI_API_BASE, $VINDI_API_KEY, $BACKFILL_FORCE_READY, $MAX_OVERDUE);
           if ($ok) $backfillSeeded++;
           else $backfillSkipped++;
         } catch (Throwable $e) {
