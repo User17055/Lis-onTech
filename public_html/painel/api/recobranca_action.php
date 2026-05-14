@@ -223,6 +223,18 @@ function nextReminderFromDue(?string $dueAt, int $firstDelayDays): ?string {
   return date('Y-m-d H:i:s', $ts + ($firstDelayDays * 86400));
 }
 
+function keepValidNextReminder($existingNextReminderAt, ?string $dueAt, int $firstDelayDays): ?string {
+  $predicted = nextReminderFromDue($dueAt, $firstDelayDays);
+  if ($predicted === null) {
+    return is_string($existingNextReminderAt) && trim($existingNextReminderAt) !== '' ? $existingNextReminderAt : null;
+  }
+
+  $existingTs = is_string($existingNextReminderAt) ? strtotime($existingNextReminderAt) : false;
+  $predictedTs = strtotime($predicted);
+  if ($existingTs && $predictedTs && $existingTs >= $predictedTs) return $existingNextReminderAt;
+  return $predicted;
+}
+
 try {
   if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     throw new RuntimeException('POST obrigatorio');
@@ -242,7 +254,7 @@ try {
 
   $VINDI_API_KEY = cfg($cfg, 'VINDI_API_KEY');
   $VINDI_API_BASE = cfg($cfg, 'VINDI_API_BASE', 'https://app.vindi.com.br/api/v1');
-  $FIRST_DELAY_DAYS = max(1, (int)cfg($cfg, 'RECOBRANCA_FIRST_DELAY_DAYS', '7'));
+  $FIRST_DELAY_DAYS = max(7, (int)cfg($cfg, 'RECOBRANCA_FIRST_DELAY_DAYS', '7'));
 
   $st = $pdo->prepare("
     SELECT bill_id, customer_id, customer_name, phone, bill_url, items_text, amount, due_at, next_reminder_at
@@ -291,7 +303,7 @@ try {
     if ($action === 'pause') {
       $nextReminderAt = null;
     } elseif ($action === 'send_now') {
-      $nextReminderAt = $existing['next_reminder_at'] ?? nextReminderFromDue($merged['due_at'], $FIRST_DELAY_DAYS);
+      $nextReminderAt = keepValidNextReminder($existing['next_reminder_at'] ?? null, $merged['due_at'], $FIRST_DELAY_DAYS);
     } else {
       $nextReminderAt = nextReminderFromDue($merged['due_at'], $FIRST_DELAY_DAYS);
     }

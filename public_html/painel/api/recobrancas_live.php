@@ -186,16 +186,15 @@ function sortReminderRows(array &$rows, string $sort): void {
 }
 
 function nextReminderInfo($nextReminderAt, $dueAt, int $firstDelayDays): array {
-  if (!empty($nextReminderAt)) {
-    return [
-      'at' => (string)$nextReminderAt,
-      'label' => 'Agendada',
-      'source' => 'stored',
-      'ready' => strtotime((string)$nextReminderAt) !== false && strtotime((string)$nextReminderAt) <= time(),
-    ];
-  }
-
   if (empty($dueAt)) {
+    if (!empty($nextReminderAt)) {
+      return [
+        'at' => (string)$nextReminderAt,
+        'label' => 'Agendada',
+        'source' => 'stored',
+        'ready' => strtotime((string)$nextReminderAt) !== false && strtotime((string)$nextReminderAt) <= time(),
+      ];
+    }
     return ['at' => null, 'label' => 'Sem vencimento', 'source' => 'none', 'ready' => false];
   }
 
@@ -205,6 +204,16 @@ function nextReminderInfo($nextReminderAt, $dueAt, int $firstDelayDays): array {
   }
 
   $eligibleTs = $dueTs + ($firstDelayDays * 86400);
+  $storedTs = !empty($nextReminderAt) ? strtotime((string)$nextReminderAt) : false;
+  if ($storedTs && $storedTs >= $eligibleTs) {
+    return [
+      'at' => (string)$nextReminderAt,
+      'label' => 'Agendada',
+      'source' => 'stored',
+      'ready' => $storedTs <= time(),
+    ];
+  }
+
   return [
     'at' => date('Y-m-d H:i:s', $eligibleTs),
     'label' => $eligibleTs <= time() ? 'Disponivel agora' : "Prevista apos {$firstDelayDays} dias",
@@ -220,7 +229,7 @@ try {
 
   $VINDI_API_KEY  = cfg($cfg, 'VINDI_API_KEY');
   $VINDI_API_BASE = cfg($cfg, 'VINDI_API_BASE', 'https://app.vindi.com.br/api/v1');
-  $FIRST_DELAY_DAYS = max(1, (int) cfg($cfg, 'RECOBRANCA_FIRST_DELAY_DAYS', '7'));
+  $FIRST_DELAY_DAYS = max(7, (int) cfg($cfg, 'RECOBRANCA_FIRST_DELAY_DAYS', '7'));
 
   if (!$VINDI_API_KEY) throw new RuntimeException("VINDI_API_KEY não configurada");
 

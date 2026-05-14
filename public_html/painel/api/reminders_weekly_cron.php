@@ -253,7 +253,7 @@ $VINDI_API_BASE = cfg($cfg, 'VINDI_API_BASE', 'https://app.vindi.com.br/api/v1')
 
 $TEMPLATE_WEEKLY_NAME = cfg($cfg, 'META_TEMPLATE_WEEKLY_NAME', '');
 $TEMPLATE_WEEKLY_LANG = cfg($cfg, 'META_TEMPLATE_WEEKLY_LANG', 'pt_BR');
-$FIRST_DELAY_DAYS = max(1, (int) cfg($cfg, 'RECOBRANCA_FIRST_DELAY_DAYS', '7'));
+$FIRST_DELAY_DAYS = max(7, (int) cfg($cfg, 'RECOBRANCA_FIRST_DELAY_DAYS', '7'));
 
 if ($META_PHONE_NUMBER_ID === '' || $META_ACCESS_TOKEN === '' || $VINDI_API_KEY === '' || $TEMPLATE_WEEKLY_NAME === '') {
     logLine("ERRO: config incompleto. META/VINDI/TEMPLATE_WEEKLY.");

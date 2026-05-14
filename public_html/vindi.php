@@ -115,7 +115,7 @@ if ($TEMPLATE_NAME === '') {
     $TEMPLATE_NAME = 'fatura22';
 }
 $TEMPLATE_LANG = cfg($cfg, 'META_TEMPLATE_LANG', 'pt_BR');
-$FIRST_DELAY_DAYS = max(1, (int) cfg($cfg, 'RECOBRANCA_FIRST_DELAY_DAYS', '7'));
+$FIRST_DELAY_DAYS = max(7, (int) cfg($cfg, 'RECOBRANCA_FIRST_DELAY_DAYS', '7'));
 
 $LOG_FILE = $LOG_DIR . '/vindi.log';
 
