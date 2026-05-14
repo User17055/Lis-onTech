@@ -14,11 +14,20 @@ jobs:
       - name: Validar URL do cron
         env:
           RECOBRANCA_CRON_URL: ${{ secrets.RECOBRANCA_CRON_URL }}
+          RECOBRANCA_CRON_TOKEN: ${{ secrets.RECOBRANCA_CRON_TOKEN }}
         run: |
           test -n "$RECOBRANCA_CRON_URL"
+          test -n "$RECOBRANCA_CRON_TOKEN"
 
       - name: Chamar recobranca
         env:
           RECOBRANCA_CRON_URL: ${{ secrets.RECOBRANCA_CRON_URL }}
+          RECOBRANCA_CRON_TOKEN: ${{ secrets.RECOBRANCA_CRON_TOKEN }}
         run: |
-          curl --fail --show-error --silent --max-time 60 "$RECOBRANCA_CRON_URL"
+          separator="?"
+          case "$RECOBRANCA_CRON_URL" in
+            *\?*) separator="&" ;;
+          esac
+
+          curl --fail --show-error --silent --max-time 60 \
+            "${RECOBRANCA_CRON_URL}${separator}token=${RECOBRANCA_CRON_TOKEN}"
