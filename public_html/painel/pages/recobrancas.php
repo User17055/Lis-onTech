@@ -169,8 +169,9 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
 
     table{width:100%;border-collapse:separate;border-spacing:0 12px;}
     thead th{color:var(--text-muted);font-size:13px;text-transform:uppercase;font-weight:800;padding:0 20px;text-align:left;}
-    tbody tr{background:#fff;box-shadow:var(--shadow-soft);border:2px solid var(--border-color);border-radius:var(--radius-card);transition:.2s;}
-    tbody tr:hover{transform:translateY(-3px) scale(1.003);box-shadow:var(--shadow-hover);border-color:#dbeafe;}
+    tbody tr.rec-row{background:#fff;box-shadow:var(--shadow-soft);border:2px solid var(--border-color);border-radius:var(--radius-card);transition:.2s;cursor:pointer;}
+    tbody tr.rec-row:hover{transform:translateY(-2px);box-shadow:var(--shadow-hover);border-color:#dbeafe;}
+    tbody tr.rec-row.open{box-shadow:var(--shadow-hover);border-color:#bfe8ff;}
     tbody td{padding:18px 20px;vertical-align:middle;border-top:2px solid var(--border-color);border-bottom:2px solid var(--border-color);}
     tbody td:first-child{border-left:2px solid var(--border-color);border-top-left-radius:var(--radius-card);border-bottom-left-radius:var(--radius-card);}
     tbody td:last-child{border-right:2px solid var(--border-color);border-top-right-radius:var(--radius-card);border-bottom-right-radius:var(--radius-card);}
@@ -196,7 +197,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .status-dot.blocked{background:#d97706;box-shadow:0 0 0 4px #fef3c7;}
     .status-dot.paid{background:#059669;box-shadow:0 0 0 4px #d1fae5;}
 
-    .status-stack{display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-width:270px;}
+    .status-stack{display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-width:190px;}
     .last-message{display:flex;align-items:flex-start;gap:9px;background:#f8fafc;border:2px solid var(--border-color);border-radius:14px;padding:9px 11px;max-width:340px;color:var(--text-main);font-size:12px;font-weight:800;line-height:1.3;}
     .last-message i{color:var(--primary);margin-top:1px;}
     .last-message.fail{background:var(--red-bg);border-color:var(--red-bg);color:var(--red-text);}
@@ -209,6 +210,24 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .due-note.soon{background:var(--orange-bg);color:var(--orange-text);}
     .due-note.future{background:var(--blue-bg);color:var(--blue-text);}
     .action-grid{display:grid;grid-template-columns:repeat(2,max-content);gap:10px;justify-content:end;}
+    .next-stack{display:flex;flex-direction:column;gap:6px;align-items:flex-start;}
+    .next-label{color:var(--text-muted);font-size:12px;font-weight:900;}
+    .expand-cell{width:34px;text-align:center;color:var(--text-muted);}
+    .detail-row td{padding:0 20px 18px;background:#fff;border:none;}
+    .detail-panel{
+      border:2px solid #e6eef7;
+      border-radius:8px;
+      background:#fbfdff;
+      padding:16px;
+      display:grid;
+      grid-template-columns:repeat(4,minmax(160px,1fr));
+      gap:14px;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.8);
+    }
+    .detail-item{background:#fff;border:1px solid var(--border-color);border-radius:8px;padding:12px;}
+    .detail-item span{display:block;color:var(--text-muted);font-size:11px;font-weight:900;text-transform:uppercase;margin-bottom:5px;}
+    .detail-item strong{display:block;color:var(--text-main);font-size:13px;font-weight:900;line-height:1.35;}
+    .detail-item.wide{grid-column:span 2;}
 
     .btn-mini{
       border:2px solid var(--border-color);
@@ -243,6 +262,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       .pa-header{padding:0 18px;}
       .summary-grid{grid-template-columns:repeat(2,minmax(140px,1fr));}
       .filter-tabs{grid-template-columns:repeat(2,minmax(140px,1fr));}
+      .detail-panel{grid-template-columns:1fr;}
+      .detail-item.wide{grid-column:auto;}
       table{min-width:980px;}
       .container{overflow-x:auto;padding:0 12px;}
     }
@@ -309,8 +330,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
           <th>Cliente / Bill</th>
           <th>Valor</th>
           <th>Vencimento</th>
-          <th>Status / Ultima mensagem</th>
-          <th>Envios</th>
+          <th>Status</th>
+          <th>Proxima cobranca</th>
           <th style="text-align:right;">Acoes</th>
         </tr>
       </thead>
@@ -388,6 +409,12 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         icon:'fa-calendar-check',
         text: daysUntil === null ? 'Sem data' : `Vence em ${daysUntil} dias`
       };
+    }
+
+    function nextReminderText(row){
+      const at = row.next_reminder_at ? fmtDateTimeBr(row.next_reminder_at) : '-';
+      const label = row.next_reminder_label || (row.next_reminder_at ? 'Agendada' : 'Sem agenda');
+      return { at, label };
     }
 
     function setStatus(text, type='ok'){
@@ -471,6 +498,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     const limit = 50;
     let previousHash = null;
     let dueFilter = 'overdue';
+    const expandedRows = new Set();
 
     async function load(isManual=false){
       const q = document.getElementById('q').value.trim();
@@ -542,13 +570,14 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
           const blocked = Number(row.blocked || 0) === 1;
           const billUrl = String(row.bill_url || '');
           const phone = row.phone ? `Tel ${esc(row.phone)}` : 'Tel nao salvo';
-          const next = row.next_reminder_at ? fmtDateTimeBr(row.next_reminder_at) : '-';
+          const next = nextReminderText(row);
           const lastAt = row.last_message_at ? fmtDateTimeBr(row.last_message_at) : 'Sem envio';
           const lastMessage = row.last_message || 'Nenhuma mensagem enviada ainda';
           const lastOk = row.last_message_ok;
           const lastStatus = row.last_status ? esc(row.last_status) : '-';
           const due = dueInfo(row);
           const debtAge = due.cls === 'overdue' ? `${days} dias em atraso` : due.text;
+          const expanded = expandedRows.has(String(billId));
 
           const btnNow = `<button type="button" class="btn-mini" data-act="send_now" data-id="${billId}" ${blocked || !ready ? 'disabled' : ''} title="${ready ? 'Agenda e processa agora' : 'So libera apos 7 dias de atraso'}">
             <i class="fa-solid fa-bolt"></i> Enviar
@@ -564,7 +593,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
             : `<span class="btn-mini" style="opacity:.45;pointer-events:none;"><i class="fa-solid fa-link-slash"></i> Bill</span>`;
 
           return `
-            <tr>
+            <tr class="rec-row ${expanded ? 'open' : ''}" data-row-id="${esc(billId)}">
               <td>
                 <div class="customer-cell">
                   <span class="status-dot ${rowDotClass(normalized, ready)}"></span>
@@ -580,22 +609,18 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
                 <div class="due-stack">
                   <span class="pill"><i class="fa-regular fa-calendar"></i> ${fmtDateTimeBr(row.due_at)}</span>
                   <span class="due-note ${due.cls}"><i class="fa-solid ${due.icon}"></i> ${esc(due.text)}</span>
-                  <span class="muted">Prox: ${esc(next)}</span>
                 </div>
               </td>
               <td>
                 <div class="status-stack">
                   ${badge(row.status, row.blocked, ready)}
-                  <div class="last-message ${lastOk === 0 ? 'fail' : ''}">
-                    <i class="fa-solid ${lastOk === 0 ? 'fa-triangle-exclamation' : 'fa-message'}"></i>
-                    <span>${esc(lastMessage)}</span>
-                  </div>
-                  <span class="date-line"><i class="fa-regular fa-clock"></i> ${esc(lastAt)} | ${lastStatus}</span>
                 </div>
               </td>
               <td>
-                <span class="pill"><i class="fa-solid fa-paper-plane"></i> ${Number(row.overdue_sent_count || 0)}</span>
-                <span class="pill" style="margin-left:6px;"><i class="fa-solid fa-triangle-exclamation"></i> ${Number(row.reminder_attempts || 0)}</span>
+                <div class="next-stack">
+                  <span class="pill"><i class="fa-regular fa-bell"></i> ${esc(next.at)}</span>
+                  <span class="next-label">${esc(next.label)}</span>
+                </div>
               </td>
               <td style="text-align:right;">
                 <div class="action-grid">
@@ -603,6 +628,22 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
                 </div>
               </td>
             </tr>
+            ${expanded ? `
+              <tr class="detail-row">
+                <td colspan="6">
+                  <div class="detail-panel">
+                    <div class="detail-item"><span>Telefone</span><strong>${phone}</strong></div>
+                    <div class="detail-item"><span>Bill</span><strong>${esc(billId)}</strong></div>
+                    <div class="detail-item"><span>Envios</span><strong>${Number(row.overdue_sent_count || 0)} enviados / ${Number(row.reminder_attempts || 0)} tentativas</strong></div>
+                    <div class="detail-item"><span>Status tecnico</span><strong>${lastStatus}</strong></div>
+                    <div class="detail-item"><span>Ultimo envio</span><strong>${esc(lastAt)}</strong></div>
+                    <div class="detail-item"><span>Proxima cobranca</span><strong>${esc(next.at)} - ${esc(next.label)}</strong></div>
+                    <div class="detail-item wide"><span>Ultima mensagem</span><strong>${esc(lastMessage)}</strong></div>
+                    <div class="detail-item wide"><span>Observacao</span><strong>${ready ? 'Liberada para envio pela regra de atraso.' : 'Ainda nao completou o prazo minimo de 7 dias apos o vencimento.'}</strong></div>
+                  </div>
+                </td>
+              </tr>
+            ` : ''}
           `;
         }).join('');
       } catch(e){
@@ -620,7 +661,17 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
 
     document.getElementById('tbody').addEventListener('click', async (e) => {
       const btn = e.target.closest('button[data-act]');
-      if (!btn) return;
+      if (!btn) {
+        if (e.target.closest('a')) return;
+        const row = e.target.closest('tr.rec-row[data-row-id]');
+        if (!row) return;
+        const id = row.getAttribute('data-row-id');
+        if (expandedRows.has(id)) expandedRows.delete(id);
+        else expandedRows.add(id);
+        previousHash = '__force_render__';
+        load(false);
+        return;
+      }
       e.preventDefault();
       const act = btn.getAttribute('data-act');
       const id = btn.getAttribute('data-id');
