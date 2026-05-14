@@ -6,6 +6,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
 <div class="pa-wrap">
 
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&display=swap');
+
     /* ✅ Variáveis isoladas (não usa :root global) */
     .pa-wrap{
       --bg-body: #ffffff;
@@ -376,6 +378,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
   box-shadow: 0 24px 70px rgba(15, 23, 42, .18);
   z-index: 10000;
   overflow: hidden;
+  font-family: 'Baloo 2', 'Nunito', sans-serif;
 }
 
 .pa-toast.show {
@@ -396,17 +399,20 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
 }
 
 .pa-toast-title {
-  font-size: 14px;
+  font-size: 17px;
   color: #0f172a;
-  font-weight: 1000;
-  line-height: 1.2;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: 0;
 }
 
 .pa-toast-sub {
-  margin-top: 2px;
+  margin-top: 3px;
   color: #64748b;
-  font-weight: 800;
-  font-size: 12px;
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1.15;
+  letter-spacing: 0;
 }
 
 .pa-toast::after {
@@ -418,7 +424,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
   height: 4px;
   background: #22c55e;
   transform-origin: left center;
-  animation: toastBar 3s linear forwards;
+  animation: toastBar 6s linear forwards;
 }
 
   </style>
@@ -589,7 +595,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     toast.classList.remove("show");
     void toast.offsetWidth;
     toast.classList.add("show");
-    setTimeout(() => toast.classList.remove("show"), 3000);
+    setTimeout(() => toast.classList.remove("show"), 6000);
   }
 
   if (initialParams.get("deleted_message") === "1") {
