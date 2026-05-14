@@ -54,14 +54,20 @@ try {
     ], 403);
   }
 
-  if (!in_array($status, ['not_sent', 'error', 'failed', ''], true)) {
+  if (!in_array($status, ['not_sent', 'error', 'failed', 'processing', ''], true)) {
     out(['ok' => false, 'error' => 'Status nao permitido para exclusao: ' . ($status ?: '-')], 403);
   }
 
   $pdo->beginTransaction();
 
-  $logDel = $pdo->prepare("DELETE FROM automation_run_logs WHERE run_id = ?");
-  $logDel->execute([$runId]);
+  $deletedLogs = 0;
+  try {
+    $logDel = $pdo->prepare("DELETE FROM automation_run_logs WHERE run_id = ?");
+    $logDel->execute([$runId]);
+    $deletedLogs = $logDel->rowCount();
+  } catch (Throwable $ignored) {
+    $deletedLogs = 0;
+  }
 
   $runDel = $pdo->prepare("DELETE FROM automation_runs WHERE run_id = ?");
   $runDel->execute([$runId]);
@@ -71,7 +77,7 @@ try {
   out([
     'ok' => true,
     'run_id' => $runId,
-    'deleted_logs' => $logDel->rowCount(),
+    'deleted_logs' => $deletedLogs,
     'deleted_runs' => $runDel->rowCount(),
   ]);
 } catch (Throwable $e) {

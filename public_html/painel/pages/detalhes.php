@@ -87,6 +87,40 @@ $run_id = (string) $_GET['id'];
         transform: translateX(-3px);
     }
 
+    .det-top-actions {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 0 0 auto;
+    }
+
+    .det-delete {
+        height: 42px;
+        border: 1px solid #fecaca;
+        border-radius: 14px;
+        background: #fff;
+        color: #991b1b;
+        padding: 0 14px;
+        display: none;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        font-weight: 1000;
+        font-family: 'Nunito', sans-serif;
+        transition: .2s;
+    }
+
+    .det-delete:hover {
+        background: #fee2e2;
+        border-color: #fee2e2;
+    }
+
+    .det-delete:disabled {
+        opacity: .55;
+        cursor: not-allowed;
+    }
+
     .det-head {
         min-width: 0;
         display: flex;
@@ -647,6 +681,12 @@ $run_id = (string) $_GET['id'];
                 </span>
             </div>
         </div>
+
+        <div class="det-top-actions">
+            <button type="button" class="det-delete" id="btnDeleteRun">
+                <i class="fa-solid fa-trash"></i> Excluir
+            </button>
+        </div>
     </div>
 
     <div id="loadingDet" class="det-card" style="text-align:center;color:#64748b;font-weight:1000;">
@@ -815,6 +855,7 @@ $run_id = (string) $_GET['id'];
 <script>
     (() => {
         const runId = "<?= htmlspecialchars($run_id, ENT_QUOTES, 'UTF-8'); ?>";
+        const backHref = <?= json_encode($backHref, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE); ?>;
 
         const stepNameMap = {
             validate: 'Validação de dados',
@@ -1018,6 +1059,46 @@ $run_id = (string) $_GET['id'];
             if (window.Prism) Prism.highlightElement(codeEl);
 
             card.style.display = "block";
+        }
+
+        function canDeleteRun(run) {
+            const st = String(run?.status || "").toLowerCase();
+            const sent = Number(run?.step_whatsapp || 0) === 1;
+            if (sent) return false;
+            return ["not_sent", "error", "failed", "processing", ""].includes(st);
+        }
+
+        function bindDeleteRun(run) {
+            const btn = document.getElementById("btnDeleteRun");
+            if (!btn) return;
+
+            if (!canDeleteRun(run)) {
+                btn.style.display = "none";
+                return;
+            }
+
+            btn.style.display = "inline-flex";
+            btn.onclick = async () => {
+                const ok = confirm("Excluir este registro pendente/falhado? Isso remove a execucao da lista, mas nao apaga mensagem ja entregue no WhatsApp.");
+                if (!ok) return;
+
+                const original = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Excluindo...`;
+
+                try {
+                    await fetchApiJson("/painel/api/run_delete.php", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ run_id: runId })
+                    });
+                    location.href = backHref || "/painel/index.php?pagina=index";
+                } catch (e) {
+                    btn.disabled = false;
+                    btn.innerHTML = original;
+                    toast(e.message || "Falha ao excluir registro", "error");
+                }
+            };
         }
 
         function setupTabs() {
@@ -1419,6 +1500,7 @@ $run_id = (string) $_GET['id'];
                 bindResend(run, logs, inputItems, outputItems);
                 bindResendSame(run, logs, inputItems, outputItems);
                 bindRetryVindi(run);
+                bindDeleteRun(run);
 
                 renderFields("detInputFields", inputItems, "");
                 renderFields("detOutputFields", outputItems, "");
