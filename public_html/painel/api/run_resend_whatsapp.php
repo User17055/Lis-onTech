@@ -165,6 +165,8 @@ try {
     $TEMPLATE_NAME = 'fatura22';
   }
   $TEMPLATE_LANG        = cfg($cfg, 'META_TEMPLATE_LANG', 'pt_BR');
+  $VINDI_API_KEY        = cfg($cfg, 'VINDI_API_KEY');
+  $VINDI_API_BASE       = cfg($cfg, 'VINDI_API_BASE', 'https://app.vindi.com.br/api/v1');
 
   if ($META_PHONE_NUMBER_ID === '' || $META_ACCESS_TOKEN === '' || $TEMPLATE_NAME === '') {
     http_response_code(500);
@@ -227,6 +229,39 @@ try {
       http_response_code(403);
       echo json_encode(['ok' => false, 'error' => 'Reenvio permitido apenas para falhas de telefone']);
       exit;
+    }
+  }
+
+  $billId = (int)($run['bill_id'] ?? 0);
+  if ($billId > 0) {
+    $st = $pdo->prepare("SELECT status, last_status FROM bill_reminders WHERE bill_id=? LIMIT 1");
+    $st->execute([$billId]);
+    $reminder = $st->fetch(PDO::FETCH_ASSOC) ?: [];
+    $localStatus = strtolower(trim((string)($reminder['status'] ?? '')));
+    $localLastStatus = strtolower(trim((string)($reminder['last_status'] ?? '')));
+    if (in_array($localStatus, ['paid', 'canceled', 'cancelled'], true) || in_array($localLastStatus, ['paid', 'canceled', 'cancelled'], true)) {
+      http_response_code(409);
+      echo json_encode(['ok' => false, 'error' => 'Fatura paga ou cancelada nao pode ser reenviada']);
+      exit;
+    }
+
+    $currentBill = vindiGetBill($billId, $VINDI_API_BASE, $VINDI_API_KEY);
+    if ($currentBill) {
+      $currentStatus = strtolower((string)($currentBill['status'] ?? ''));
+      if ($currentStatus === 'paid') {
+        $pdo->prepare("UPDATE bill_reminders SET status='paid', active=0, blocked=0, next_reminder_at=NULL, last_status=?, last_status_check_at=NOW() WHERE bill_id=?")
+          ->execute([$currentStatus, $billId]);
+        http_response_code(409);
+        echo json_encode(['ok' => false, 'error' => 'Fatura ja esta paga na Vindi e nao pode ser reenviada']);
+        exit;
+      }
+      if (in_array($currentStatus, ['canceled', 'cancelled'], true)) {
+        $pdo->prepare("UPDATE bill_reminders SET status='canceled', active=0, blocked=0, next_reminder_at=NULL, last_status=?, last_status_check_at=NOW() WHERE bill_id=?")
+          ->execute([$currentStatus, $billId]);
+        http_response_code(409);
+        echo json_encode(['ok' => false, 'error' => 'Fatura ja esta cancelada na Vindi e nao pode ser reenviada']);
+        exit;
+      }
     }
   }
 
@@ -373,6 +408,32 @@ function buildBillItemsText(array $bill): string {
     else $linhas[] = "{$nomeItem}";
   }
   return waClean(implode(" | ", $linhas));
+}
+
+function curlGetJson(string $url, string $apiKey): ?array {
+  if ($apiKey === '') return null;
+  $ch = curl_init($url);
+  curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+  curl_setopt($ch, CURLOPT_HTTPHEADER, [
+    'Accept: application/json',
+    'Authorization: Basic ' . base64_encode($apiKey . ':'),
+  ]);
+  curl_setopt($ch, CURLOPT_TIMEOUT, 25);
+  $res = curl_exec($ch);
+  $http = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+  curl_close($ch);
+
+  if ($res === false || $http < 200 || $http >= 300) return null;
+  $json = json_decode($res, true);
+  return is_array($json) ? $json : null;
+}
+
+function vindiGetBill(int $billId, string $base, string $apiKey): ?array {
+  if ($billId <= 0 || $apiKey === '') return null;
+  $resp = curlGetJson(rtrim($base, '/') . '/bills/' . $billId, $apiKey);
+  if (!$resp) return null;
+  $bill = $resp['bill'] ?? $resp;
+  return is_array($bill) ? $bill : null;
 }
 
 function enviarTemplateWhatsApp(

@@ -257,13 +257,39 @@ try {
   $FIRST_DELAY_DAYS = max(7, (int)cfg($cfg, 'RECOBRANCA_FIRST_DELAY_DAYS', '7'));
 
   $st = $pdo->prepare("
-    SELECT bill_id, customer_id, customer_name, phone, bill_url, items_text, amount, due_at, next_reminder_at
+    SELECT bill_id, customer_id, customer_name, phone, bill_url, items_text, amount, due_at, next_reminder_at, status, last_status
     FROM bill_reminders
     WHERE bill_id = ?
     LIMIT 1
   ");
   $st->execute([$billId]);
   $existing = $st->fetch(PDO::FETCH_ASSOC) ?: null;
+
+  if ($existing) {
+    $existingStatus = strtolower(trim((string)($existing['status'] ?? '')));
+    $existingLastStatus = strtolower(trim((string)($existing['last_status'] ?? '')));
+    if (in_array($existingStatus, ['paid', 'canceled', 'cancelled'], true) || in_array($existingLastStatus, ['paid', 'canceled', 'cancelled'], true)) {
+      $finalStatus = in_array($existingStatus, ['paid', 'canceled', 'cancelled'], true) ? $existingStatus : $existingLastStatus;
+      throw new RuntimeException($finalStatus === 'paid' ? 'Fatura ja esta paga e nao pode ser reativada.' : 'Fatura ja esta cancelada e nao pode ser reativada.');
+    }
+  }
+
+  if ($action !== 'pause') {
+    $currentBill = vindiGetBill($billId, $VINDI_API_BASE, $VINDI_API_KEY);
+    if ($currentBill) {
+      $currentStatus = strtolower((string)($currentBill['status'] ?? ''));
+      if ($currentStatus === 'paid') {
+        $pdo->prepare("UPDATE bill_reminders SET status='paid', active=0, blocked=0, next_reminder_at=NULL, last_status=?, last_status_check_at=NOW() WHERE bill_id=?")
+          ->execute([$currentStatus, $billId]);
+        throw new RuntimeException('Fatura ja esta paga na Vindi e nao pode ser reativada.');
+      }
+      if (in_array($currentStatus, ['canceled', 'cancelled'], true)) {
+        $pdo->prepare("UPDATE bill_reminders SET status='canceled', active=0, blocked=0, next_reminder_at=NULL, last_status=?, last_status_check_at=NOW() WHERE bill_id=?")
+          ->execute([$currentStatus, $billId]);
+        throw new RuntimeException('Fatura ja esta cancelada na Vindi e nao pode ser reativada.');
+      }
+    }
+  }
 
   $needsSeed = !$existing;
   if ($existing) {

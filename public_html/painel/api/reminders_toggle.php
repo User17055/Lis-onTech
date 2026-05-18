@@ -11,9 +11,15 @@ $action = (string)($_POST['action'] ?? '');
 $INTERVAL_DAYS = (int) cfg($cfg, 'REMINDERS_INTERVAL_DAYS', '7');
 
 if ($billId <= 0) {
-  echo json_encode(['ok'=>false,'msg'=>'bill_id inválido']);
+  echo json_encode(['ok'=>false,'msg'=>'bill_id invalido']);
   exit;
 }
+
+$st = $pdo->prepare("SELECT status, last_status FROM bill_reminders WHERE bill_id=? LIMIT 1");
+$st->execute([$billId]);
+$row = $st->fetch(PDO::FETCH_ASSOC) ?: [];
+$status = strtolower(trim((string)($row['status'] ?? '')));
+$lastStatus = strtolower(trim((string)($row['last_status'] ?? '')));
 
 if ($action === 'block') {
   $pdo->prepare("
@@ -27,6 +33,11 @@ if ($action === 'block') {
 }
 
 if ($action === 'unblock') {
+  if (in_array($status, ['paid', 'canceled', 'cancelled'], true) || in_array($lastStatus, ['paid', 'canceled', 'cancelled'], true)) {
+    echo json_encode(['ok'=>false,'msg'=>'Fatura paga ou cancelada nao pode ser desbloqueada para cobranca']);
+    exit;
+  }
+
   $pdo->prepare("
     UPDATE bill_reminders
     SET blocked=0, status='unpaid', active=1,
@@ -38,4 +49,4 @@ if ($action === 'unblock') {
   exit;
 }
 
-echo json_encode(['ok'=>false,'msg'=>'action inválida']);
+echo json_encode(['ok'=>false,'msg'=>'action invalida']);

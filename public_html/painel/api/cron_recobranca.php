@@ -407,9 +407,32 @@ function upsertReminderFromBill(PDO $pdo, array $bill, string $base, string $api
 }
 
 function ensureManualReminderRow(PDO $pdo, int $billId, string $base, string $apiKey): ?string {
-  $st = $pdo->prepare("SELECT bill_id FROM bill_reminders WHERE bill_id = ? LIMIT 1");
+  $st = $pdo->prepare("SELECT bill_id, status, last_status FROM bill_reminders WHERE bill_id = ? LIMIT 1");
   $st->execute([$billId]);
-  if ($st->fetch(PDO::FETCH_ASSOC)) {
+  $existing = $st->fetch(PDO::FETCH_ASSOC);
+  if ($existing) {
+    $existingStatus = strtolower(trim((string)($existing['status'] ?? '')));
+    $existingLastStatus = strtolower(trim((string)($existing['last_status'] ?? '')));
+    if (in_array($existingStatus, ['paid', 'canceled', 'cancelled'], true) || in_array($existingLastStatus, ['paid', 'canceled', 'cancelled'], true)) {
+      $finalStatus = $existingStatus ?: $existingLastStatus;
+      return "fatura ja esta {$finalStatus} e nao pode ser colocada na cobranca";
+    }
+
+    $bill = vindiGetBill($billId, $base, $apiKey);
+    if ($bill) {
+      $vindiStatus = strtolower((string)($bill['status'] ?? ''));
+      if ($vindiStatus === 'paid') {
+        $pdo->prepare("UPDATE bill_reminders SET status='paid', active=0, blocked=0, next_reminder_at=NULL, last_status=?, last_status_check_at=NOW() WHERE bill_id=?")
+          ->execute([$vindiStatus, $billId]);
+        return "fatura ja esta paga na Vindi e nao pode ser colocada na cobranca";
+      }
+      if (in_array($vindiStatus, ['canceled', 'cancelled'], true)) {
+        $pdo->prepare("UPDATE bill_reminders SET status='canceled', active=0, blocked=0, next_reminder_at=NULL, last_status=?, last_status_check_at=NOW() WHERE bill_id=?")
+          ->execute([$vindiStatus, $billId]);
+        return "fatura ja esta cancelada na Vindi e nao pode ser colocada na cobranca";
+      }
+    }
+
     $pdo->prepare("
       UPDATE bill_reminders
       SET active = 1,
@@ -423,6 +446,10 @@ function ensureManualReminderRow(PDO $pdo, int $billId, string $base, string $ap
 
   $bill = vindiGetBill($billId, $base, $apiKey);
   if (!$bill) return "nao consegui buscar esta bill na Vindi";
+
+  $vindiStatus = strtolower((string)($bill['status'] ?? ''));
+  if ($vindiStatus === 'paid') return "fatura ja esta paga na Vindi e nao pode ser colocada na cobranca";
+  if (in_array($vindiStatus, ['canceled', 'cancelled'], true)) return "fatura ja esta cancelada na Vindi e nao pode ser colocada na cobranca";
 
   $customer = $bill['customer'] ?? [];
   if (!is_array($customer)) $customer = [];
@@ -747,6 +774,7 @@ $whereSql = "
   active = 1
   AND blocked = 0
   AND (status IS NULL OR status = '' OR status = 'unpaid')
+  AND (last_status IS NULL OR last_status = '' OR last_status NOT IN ('paid', 'canceled', 'cancelled'))
   AND (due_at IS NULL OR due_at <= DATE_SUB(NOW(), INTERVAL {$FIRST_DELAY_DAYS} DAY))
   AND (next_reminder_at IS NULL OR next_reminder_at <= NOW())
   AND (overdue_sent_count IS NULL OR overdue_sent_count < :max_overdue)
@@ -805,6 +833,7 @@ foreach ($rows as $r) {
       AND active = 1
       AND blocked = 0
       AND (status IS NULL OR status = '' OR status = 'unpaid')
+      AND (last_status IS NULL OR last_status = '' OR last_status NOT IN ('paid', 'canceled', 'cancelled'))
       AND (due_at IS NULL OR due_at <= DATE_SUB(NOW(), INTERVAL {$FIRST_DELAY_DAYS} DAY))
       AND (next_reminder_at IS NULL OR next_reminder_at <= NOW())
       ") . "

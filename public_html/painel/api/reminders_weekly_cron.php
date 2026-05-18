@@ -272,8 +272,11 @@ $st = $pdo->prepare("
     SELECT bill_id, customer_id, due_at, created_sent_at, weekly_last_sent_at
     FROM bill_reminders
     WHERE active=1
+      AND blocked=0
       AND bill_id IS NOT NULL
       AND customer_id IS NOT NULL
+      AND COALESCE(NULLIF(status, ''), 'unpaid') = 'unpaid'
+      AND (last_status IS NULL OR last_status = '' OR last_status NOT IN ('paid', 'canceled', 'cancelled'))
       AND due_at IS NOT NULL
       AND due_at <= DATE_SUB(NOW(), INTERVAL {$FIRST_DELAY_DAYS} DAY)
       AND (weekly_last_sent_at IS NULL OR weekly_last_sent_at <= DATE_SUB(NOW(), INTERVAL 7 DAY))

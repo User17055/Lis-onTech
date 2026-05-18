@@ -129,6 +129,7 @@ try {
     WHERE active=1
       AND blocked=0
       AND COALESCE(NULLIF(status, ''), 'unpaid') = 'unpaid'
+      AND (last_status IS NULL OR last_status = '' OR last_status NOT IN ('paid', 'canceled', 'cancelled'))
       AND due_at IS NOT NULL
       AND due_at <= DATE_SUB(NOW(), INTERVAL {$FIRST_DELAY_DAYS} DAY)
       AND (next_reminder_at IS NULL OR next_reminder_at <= NOW())
