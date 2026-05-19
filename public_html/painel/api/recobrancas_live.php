@@ -185,7 +185,19 @@ function sortReminderRows(array &$rows, string $sort): void {
   });
 }
 
-function nextReminderInfo($nextReminderAt, $dueAt, int $firstDelayDays): array {
+function nextReminderInfo($nextReminderAt, $dueAt, int $firstDelayDays, $lastSentAt = null, int $intervalDays = 7): array {
+  $lastSentTs = !empty($lastSentAt) ? strtotime((string)$lastSentAt) : false;
+  $storedTs = !empty($nextReminderAt) ? strtotime((string)$nextReminderAt) : false;
+  if ($lastSentTs && (!$storedTs || $storedTs <= $lastSentTs)) {
+    $nextTs = $lastSentTs + (max(1, $intervalDays) * 86400);
+    return [
+      'at' => date('Y-m-d H:i:s', $nextTs),
+      'label' => 'Agendada',
+      'source' => 'last_sent',
+      'ready' => $nextTs <= time(),
+    ];
+  }
+
   if (empty($dueAt)) {
     if (!empty($nextReminderAt)) {
       return [
@@ -204,7 +216,6 @@ function nextReminderInfo($nextReminderAt, $dueAt, int $firstDelayDays): array {
   }
 
   $eligibleTs = $dueTs + ($firstDelayDays * 86400);
-  $storedTs = !empty($nextReminderAt) ? strtotime((string)$nextReminderAt) : false;
   if ($storedTs && $storedTs >= $eligibleTs) {
     return [
       'at' => (string)$nextReminderAt,
@@ -230,6 +241,7 @@ try {
   $VINDI_API_KEY  = cfg($cfg, 'VINDI_API_KEY');
   $VINDI_API_BASE = cfg($cfg, 'VINDI_API_BASE', 'https://app.vindi.com.br/api/v1');
   $FIRST_DELAY_DAYS = max(7, (int) cfg($cfg, 'RECOBRANCA_FIRST_DELAY_DAYS', '7'));
+  $INTERVAL_DAYS = max(1, (int) cfg($cfg, 'RECOBRANCA_INTERVAL_DAYS', cfg($cfg, 'REMINDERS_INTERVAL_DAYS', '7')));
 
   if (!$VINDI_API_KEY) throw new RuntimeException("VINDI_API_KEY não configurada");
 
@@ -284,7 +296,8 @@ try {
         $row['days_overdue'] = max(0, $days);
         $row['days_until_due'] = daysFromDate($row['due_at']);
       }
-      $nextInfo = nextReminderInfo($row['next_reminder_at'] ?? null, $row['due_at'] ?? null, $FIRST_DELAY_DAYS);
+      $lastSentAt = $row['last_overdue_sent_at'] ?? ($row['last_reminder_sent_at'] ?? null);
+      $nextInfo = nextReminderInfo($row['next_reminder_at'] ?? null, $row['due_at'] ?? null, $FIRST_DELAY_DAYS, $lastSentAt, $INTERVAL_DAYS);
       $row['next_reminder_at'] = $nextInfo['at'];
       $row['next_reminder_label'] = $nextInfo['label'];
       $row['next_reminder_source'] = $nextInfo['source'];
@@ -415,7 +428,7 @@ try {
         'source' => $normalizedStatus,
         'ready' => false,
       ]
-      : nextReminderInfo($loc['next_reminder_at'] ?? null, $dueAt, $FIRST_DELAY_DAYS);
+      : nextReminderInfo($loc['next_reminder_at'] ?? null, $dueAt, $FIRST_DELAY_DAYS, $loc['last_overdue_sent_at'] ?? ($loc['last_reminder_sent_at'] ?? null), $INTERVAL_DAYS);
 
     $row = [
       'bill_id' => $billId,

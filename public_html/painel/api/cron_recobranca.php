@@ -149,7 +149,7 @@ $BACKFILL_AFTER_RAW = trim((string)($_GET['backfill_after'] ?? ''));
 $BACKFILL_FORCE_READY = (isset($_GET['backfill_force_ready']) && $_GET['backfill_force_ready'] === '1');
 $BACKFILL_RESET_COUNT = (isset($_GET['backfill_reset_count']) && $_GET['backfill_reset_count'] === '1');
 
-$INTERVAL_DAYS = (int) cfg($cfg, 'RECOBRANCA_INTERVAL_DAYS', 7);
+$INTERVAL_DAYS = max(1, (int) cfg($cfg, 'RECOBRANCA_INTERVAL_DAYS', cfg($cfg, 'REMINDERS_INTERVAL_DAYS', '7')));
 $FIRST_DELAY_DAYS = max(7, (int) cfg($cfg, 'RECOBRANCA_FIRST_DELAY_DAYS', '7'));
 $MAX_OVERDUE   = max(1, (int) cfg($cfg, 'RECOBRANCA_MAX_OVERDUE', 12));
 

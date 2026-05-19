@@ -167,7 +167,7 @@ try {
   $TEMPLATE_LANG        = cfg($cfg, 'META_TEMPLATE_LANG', 'pt_BR');
   $VINDI_API_KEY        = cfg($cfg, 'VINDI_API_KEY');
   $VINDI_API_BASE       = cfg($cfg, 'VINDI_API_BASE', 'https://app.vindi.com.br/api/v1');
-  $INTERVAL_DAYS        = max(1, (int) cfg($cfg, 'REMINDERS_INTERVAL_DAYS', '7'));
+  $INTERVAL_DAYS        = max(1, (int) cfg($cfg, 'RECOBRANCA_INTERVAL_DAYS', cfg($cfg, 'REMINDERS_INTERVAL_DAYS', '7')));
 
   if ($META_PHONE_NUMBER_ID === '' || $META_ACCESS_TOKEN === '' || $TEMPLATE_NAME === '') {
     http_response_code(500);
