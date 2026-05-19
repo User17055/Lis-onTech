@@ -167,6 +167,7 @@ try {
   $TEMPLATE_LANG        = cfg($cfg, 'META_TEMPLATE_LANG', 'pt_BR');
   $VINDI_API_KEY        = cfg($cfg, 'VINDI_API_KEY');
   $VINDI_API_BASE       = cfg($cfg, 'VINDI_API_BASE', 'https://app.vindi.com.br/api/v1');
+  $INTERVAL_DAYS        = max(1, (int) cfg($cfg, 'REMINDERS_INTERVAL_DAYS', '7'));
 
   if ($META_PHONE_NUMBER_ID === '' || $META_ACCESS_TOKEN === '' || $TEMPLATE_NAME === '') {
     http_response_code(500);
@@ -348,6 +349,29 @@ try {
     try { runLog($pdo, $runId, 'info', "[{$tag}] Meta aceitou."); } catch(Throwable $e){}
 
     // ✅ opcional: NÃO sobrescrever o envio original quando for mode=same
+    if ($billId > 0) {
+      try {
+        $st = $pdo->prepare("
+          UPDATE bill_reminders
+          SET last_overdue_sent_at = NOW(),
+              last_reminder_at = NOW(),
+              last_reminder_sent_at = NOW(),
+              overdue_sent_count = COALESCE(overdue_sent_count,0) + 1,
+              reminder_count = COALESCE(reminder_count,0) + 1,
+              reminder_attempts = 0,
+              next_reminder_at = DATE_ADD(NOW(), INTERVAL {$INTERVAL_DAYS} DAY),
+              last_status = 'meta_ok',
+              last_status_check_at = NOW()
+          WHERE bill_id = ?
+            AND COALESCE(NULLIF(status, ''), 'unpaid') = 'unpaid'
+            AND (last_status IS NULL OR last_status = '' OR last_status NOT IN ('paid', 'canceled', 'cancelled'))
+        ");
+        $st->execute([$billId]);
+      } catch (Throwable $e) {
+        try { runLog($pdo, $runId, 'error', "[{$tag}] Falha ao reagendar proxima cobranca: " . $e->getMessage()); } catch(Throwable $ignored) {}
+      }
+    }
+
     if ($mode !== 'same') {
       try { runMarkProcessed($pdo, $runId, $phone, $resultado['request'], $respArr, $http); } catch(Throwable $e){}
     }
