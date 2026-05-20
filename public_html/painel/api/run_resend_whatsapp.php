@@ -160,9 +160,12 @@ try {
   // configs Meta
   $META_PHONE_NUMBER_ID = cfg($cfg, 'META_PHONE_NUMBER_ID');
   $META_ACCESS_TOKEN    = cfg($cfg, 'META_ACCESS_TOKEN');
-  $TEMPLATE_NAME        = cfg($cfg, 'META_TEMPLATE_NAME');
+  $TEMPLATE_NAME        = cfg($cfg, 'META_TEMPLATE_RECOBRANCA');
   if ($TEMPLATE_NAME === '') {
-    $TEMPLATE_NAME = 'fatura22';
+    $TEMPLATE_NAME = cfg($cfg, 'META_TEMPLATE_REMINDER_NAME');
+  }
+  if ($TEMPLATE_NAME === '') {
+    $TEMPLATE_NAME = 'recobranca';
   }
   $TEMPLATE_LANG        = cfg($cfg, 'META_TEMPLATE_LANG', 'pt_BR');
   $VINDI_API_KEY        = cfg($cfg, 'VINDI_API_KEY');

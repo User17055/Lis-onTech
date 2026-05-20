@@ -993,7 +993,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         title:'Reenviar cobranca',
         subtitle:state.activeThread?.display_name || phone,
         message:'Deseja reenviar a ultima mensagem de cobranca desta conversa?',
-        note:lastCharge.body || 'A mesma cobranca sera reenviada pelo template de fatura.',
+        note:lastCharge.body || 'A mesma cobranca sera reenviada pelo template de recobranca.',
         okText:'Reenviar cobranca'
       });
       if (!ok) return;

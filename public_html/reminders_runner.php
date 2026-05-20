@@ -35,15 +35,12 @@ if ($CRON_TOKEN === '' || $token !== $CRON_TOKEN) {
 $META_PHONE_NUMBER_ID = cfg($cfg, 'META_PHONE_NUMBER_ID');
 $META_ACCESS_TOKEN    = cfg($cfg, 'META_ACCESS_TOKEN');
 
-$TEMPLATE_NAME = cfg($cfg, 'META_TEMPLATE_REMINDER_NAME');
+$TEMPLATE_NAME = cfg($cfg, 'META_TEMPLATE_RECOBRANCA');
 if ($TEMPLATE_NAME === '') {
-  $TEMPLATE_NAME = cfg($cfg, 'META_TEMPLATE_RECOBRANCA');
+  $TEMPLATE_NAME = cfg($cfg, 'META_TEMPLATE_REMINDER_NAME');
 }
 if ($TEMPLATE_NAME === '') {
-  $TEMPLATE_NAME = cfg($cfg, 'META_TEMPLATE_NAME');
-}
-if ($TEMPLATE_NAME === '') {
-  $TEMPLATE_NAME = 'fatura22';
+  $TEMPLATE_NAME = 'recobranca';
 }
 $TEMPLATE_LANG = cfg($cfg, 'META_TEMPLATE_LANG', 'pt_BR');
 

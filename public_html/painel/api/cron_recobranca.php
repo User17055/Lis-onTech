@@ -130,10 +130,7 @@ if ($TEMPLATE_NAME === '') {
   $TEMPLATE_NAME = cfg($cfg, 'META_TEMPLATE_REMINDER_NAME');
 }
 if ($TEMPLATE_NAME === '') {
-  $TEMPLATE_NAME = cfg($cfg, 'META_TEMPLATE_NAME');
-}
-if ($TEMPLATE_NAME === '') {
-  $TEMPLATE_NAME = 'fatura22';
+  $TEMPLATE_NAME = 'recobranca';
 }
 $TEMPLATE_LANG = cfg($cfg, 'META_TEMPLATE_LANG', 'pt_BR');
 
