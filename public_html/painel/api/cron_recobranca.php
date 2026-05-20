@@ -267,6 +267,11 @@ function buildBillItemsText(array $bill): string {
   return waClean(implode(" | ", $linhas));
 }
 
+function formatDueDateBr($value): string {
+  $ts = is_numeric($value) ? (int)$value : strtotime((string)$value);
+  return $ts ? date('d/m/Y', $ts) : 'data nao informada';
+}
+
 function mysqlDateTimeOrNull($value): ?string {
   if ($value === null || trim((string)$value) === '') return null;
   $ts = strtotime((string)$value);
@@ -972,8 +977,8 @@ foreach ($rows as $r) {
 
   $params = [
     ["type" => "text", "text" => waClean($nome)],
+    ["type" => "text", "text" => waClean(formatDueDateBr($dueTs))],
     ["type" => "text", "text" => waClean($url)],
-    ["type" => "text", "text" => waClean($itens)],
   ];
 
   if ($DRY_RUN) {

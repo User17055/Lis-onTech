@@ -237,10 +237,12 @@ try {
   }
 
   $billId = (int)($run['bill_id'] ?? 0);
+  $dueAt = '';
   if ($billId > 0) {
-    $st = $pdo->prepare("SELECT status, last_status FROM bill_reminders WHERE bill_id=? LIMIT 1");
+    $st = $pdo->prepare("SELECT status, last_status, due_at FROM bill_reminders WHERE bill_id=? LIMIT 1");
     $st->execute([$billId]);
     $reminder = $st->fetch(PDO::FETCH_ASSOC) ?: [];
+    $dueAt = (string)($reminder['due_at'] ?? '');
     $localStatus = strtolower(trim((string)($reminder['status'] ?? '')));
     $localLastStatus = strtolower(trim((string)($reminder['last_status'] ?? '')));
     if (in_array($localStatus, ['paid', 'canceled', 'cancelled'], true) || in_array($localLastStatus, ['paid', 'canceled', 'cancelled'], true)) {
@@ -251,6 +253,7 @@ try {
 
     $currentBill = vindiGetBill($billId, $VINDI_API_BASE, $VINDI_API_KEY);
     if ($currentBill) {
+      if (!empty($currentBill['due_at'])) $dueAt = (string)$currentBill['due_at'];
       $currentStatus = strtolower((string)($currentBill['status'] ?? ''));
       if ($currentStatus === 'paid') {
         $pdo->prepare("UPDATE bill_reminders SET status='paid', active=0, blocked=0, next_reminder_at=NULL, last_status=?, last_status_check_at=NOW() WHERE bill_id=?")
@@ -285,6 +288,7 @@ try {
         $itens_texto = buildBillItemsText($bill);
         // fallback link/nome
         if ($link === '' && !empty($bill['url'])) $link = (string)$bill['url'];
+        if ($dueAt === '' && !empty($bill['due_at'])) $dueAt = (string)$bill['due_at'];
         $cust = $bill['customer'] ?? [];
         if (($nome === '' || $nome === 'Cliente') && is_array($cust) && !empty($cust['name'])) {
           $nome = (string)$cust['name'];
@@ -301,8 +305,8 @@ try {
 
   $variaveis = [
     ["type" => "text", "text" => waClean($nome)],
+    ["type" => "text", "text" => waClean(formatDueDateBr($dueAt))],
     ["type" => "text", "text" => waClean($link)],
-    ["type" => "text", "text" => waClean($itens_texto)],
   ];
 
   $tag = ($mode === 'same') ? 'same_resend' : 'manual_resend';
@@ -435,6 +439,11 @@ function buildBillItemsText(array $bill): string {
     else $linhas[] = "{$nomeItem}";
   }
   return waClean(implode(" | ", $linhas));
+}
+
+function formatDueDateBr($value): string {
+  $ts = is_numeric($value) ? (int)$value : strtotime((string)$value);
+  return $ts ? date('d/m/Y', $ts) : 'data nao informada';
 }
 
 function curlGetJson(string $url, string $apiKey): ?array {

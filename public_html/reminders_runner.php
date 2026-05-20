@@ -22,6 +22,11 @@ function waClean(string $s): string {
   return trim($s);
 }
 
+function formatDueDateBr($value): string {
+  $ts = is_numeric($value) ? (int)$value : strtotime((string)$value);
+  return $ts ? date('d/m/Y', $ts) : 'data nao informada';
+}
+
 /* 🔒 SEGURANÇA */
 $CRON_TOKEN = cfg($cfg, 'CRON_TOKEN', '');
 $token = $_GET['token'] ?? '';
@@ -121,7 +126,7 @@ if (empty($lock['l'])) {
 
 try {
   $st = $pdo->prepare("
-    SELECT bill_id, customer_name, phone, bill_url, items_text
+    SELECT bill_id, customer_name, phone, bill_url, items_text, due_at
     FROM bill_reminders
     WHERE active=1
       AND blocked=0
@@ -149,6 +154,7 @@ try {
     $phone  = (string)($r['phone'] ?? '');
     $link   = (string)($r['bill_url'] ?? '');
     $itens  = (string)($r['items_text'] ?? 'Sem itens informados');
+    $dueAt  = (string)($r['due_at'] ?? '');
 
     if (trim($phone) === '') {
       $pdo->prepare("UPDATE bill_reminders SET active=0 WHERE bill_id=?")->execute([$billId]);
@@ -157,8 +163,8 @@ try {
 
     $vars = [
       ["type"=>"text","text"=>waClean($nome)],
+      ["type"=>"text","text"=>waClean(formatDueDateBr($dueAt))],
       ["type"=>"text","text"=>waClean($link)],
-      ["type"=>"text","text"=>waClean($itens)],
     ];
 
     logCron("Enviando lembrete bill_id={$billId} para {$phone}");
