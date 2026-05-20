@@ -188,8 +188,16 @@ function sortReminderRows(array &$rows, string $sort): void {
 function nextReminderInfo($nextReminderAt, $dueAt, int $firstDelayDays, $lastSentAt = null, int $intervalDays = 7): array {
   $lastSentTs = !empty($lastSentAt) ? strtotime((string)$lastSentAt) : false;
   $storedTs = !empty($nextReminderAt) ? strtotime((string)$nextReminderAt) : false;
-  if ($lastSentTs && (!$storedTs || $storedTs <= $lastSentTs)) {
-    $nextTs = $lastSentTs + (max(1, $intervalDays) * 86400);
+  if ($lastSentTs) {
+    $nextTs = $lastSentTs + (max(7, $intervalDays) * 86400);
+    if ($storedTs && $storedTs >= $nextTs) {
+      return [
+        'at' => (string)$nextReminderAt,
+        'label' => 'Agendada',
+        'source' => 'stored',
+        'ready' => $storedTs <= time(),
+      ];
+    }
     return [
       'at' => date('Y-m-d H:i:s', $nextTs),
       'label' => 'Agendada',

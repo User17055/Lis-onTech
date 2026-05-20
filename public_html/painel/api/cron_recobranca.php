@@ -776,6 +776,10 @@ $whereSql = "
   AND (last_status IS NULL OR last_status = '' OR last_status NOT IN ('paid', 'canceled', 'cancelled'))
   AND (due_at IS NULL OR due_at <= DATE_SUB(NOW(), INTERVAL {$FIRST_DELAY_DAYS} DAY))
   AND (next_reminder_at IS NULL OR next_reminder_at <= NOW())
+  AND (
+    COALESCE(last_overdue_sent_at, last_reminder_sent_at) IS NULL
+    OR COALESCE(last_overdue_sent_at, last_reminder_sent_at) <= DATE_SUB(NOW(), INTERVAL {$INTERVAL_DAYS} DAY)
+  )
   AND (overdue_sent_count IS NULL OR overdue_sent_count < :max_overdue)
 ";
 
@@ -835,6 +839,10 @@ foreach ($rows as $r) {
       AND (last_status IS NULL OR last_status = '' OR last_status NOT IN ('paid', 'canceled', 'cancelled'))
       AND (due_at IS NULL OR due_at <= DATE_SUB(NOW(), INTERVAL {$FIRST_DELAY_DAYS} DAY))
       AND (next_reminder_at IS NULL OR next_reminder_at <= NOW())
+      AND (
+        COALESCE(last_overdue_sent_at, last_reminder_sent_at) IS NULL
+        OR COALESCE(last_overdue_sent_at, last_reminder_sent_at) <= DATE_SUB(NOW(), INTERVAL {$INTERVAL_DAYS} DAY)
+      )
       ") . "
   ");
   $claim->execute([$billId]);

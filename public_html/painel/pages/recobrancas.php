@@ -556,7 +556,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
           const d = x.days_until_due === null || x.days_until_due === undefined ? null : Number(x.days_until_due);
           return d !== null && d >= 0 && d <= 7;
         }).length);
-        document.getElementById('mReady').textContent = String(rows.filter(x => normalizeStatus(x.status, x.blocked)==='unpaid' && Number(x.days_overdue || 0) >= 7).length);
+        document.getElementById('mReady').textContent = String(rows.filter(x => normalizeStatus(x.status, x.blocked)==='unpaid' && Number(x.days_overdue || 0) >= 7 && Number(x.next_reminder_ready || 0) === 1).length);
         document.getElementById('mSent').textContent = String(rows.reduce((acc,x) => acc + Number(x.overdue_sent_count || 0), 0));
 
         if (!j.ok || rows.length === 0){
@@ -579,7 +579,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
           const billId = row.bill_id;
           const normalized = normalizeStatus(row.status, row.blocked);
           const days = Number(row.days_overdue || 0);
-          const ready = normalized === 'unpaid' && days >= 7;
+          const ready = normalized === 'unpaid' && days >= 7 && Number(row.next_reminder_ready || 0) === 1;
           const blocked = Number(row.blocked || 0) === 1;
           const settled = normalized === 'paid' || normalized === 'canceled';
           const billUrl = String(row.bill_url || '');
