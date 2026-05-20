@@ -329,7 +329,7 @@ try {
     if ($action === 'pause') {
       $nextReminderAt = null;
     } elseif ($action === 'send_now') {
-      $nextReminderAt = keepValidNextReminder($existing['next_reminder_at'] ?? null, $merged['due_at'], $FIRST_DELAY_DAYS);
+      $nextReminderAt = date('Y-m-d H:i:s');
     } else {
       $nextReminderAt = nextReminderFromDue($merged['due_at'], $FIRST_DELAY_DAYS);
     }
@@ -365,7 +365,7 @@ try {
   } else {
     $nextReminderAt = $action === 'pause'
       ? null
-      : ($action === 'send_now' ? null : nextReminderFromDue($seed['due_at'], $FIRST_DELAY_DAYS));
+      : ($action === 'send_now' ? date('Y-m-d H:i:s') : nextReminderFromDue($seed['due_at'], $FIRST_DELAY_DAYS));
 
     $st = $pdo->prepare("
       INSERT INTO bill_reminders (

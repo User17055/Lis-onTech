@@ -137,6 +137,8 @@ $TEMPLATE_LANG = cfg($cfg, 'META_TEMPLATE_LANG', 'pt_BR');
 $DRY_RUN = (isset($_GET['dry_run']) && $_GET['dry_run'] === '1');
 $LIMIT   = isset($_GET['limit']) ? max(1, (int)$_GET['limit']) : 50;
 $ONLY_BILL_ID = isset($_GET['bill_id']) ? max(0, (int)$_GET['bill_id']) : 0;
+$MANUAL_SEND = $ONLY_BILL_ID > 0;
+$RETRY_NEXT_SQL = $MANUAL_SEND ? 'NOW()' : 'DATE_ADD(NOW(), INTERVAL 1 DAY)';
 $BACKFILL = (isset($_GET['backfill']) && $_GET['backfill'] === '1');
 $BACKFILL_PAGE = isset($_GET['backfill_page']) ? max(1, (int)$_GET['backfill_page']) : 1;
 $BACKFILL_PAGES = isset($_GET['backfill_pages']) ? max(1, min(20, (int)$_GET['backfill_pages'])) : 1;
@@ -146,7 +148,7 @@ $BACKFILL_AFTER_RAW = trim((string)($_GET['backfill_after'] ?? ''));
 $BACKFILL_FORCE_READY = (isset($_GET['backfill_force_ready']) && $_GET['backfill_force_ready'] === '1');
 $BACKFILL_RESET_COUNT = (isset($_GET['backfill_reset_count']) && $_GET['backfill_reset_count'] === '1');
 
-$INTERVAL_DAYS = max(1, (int) cfg($cfg, 'RECOBRANCA_INTERVAL_DAYS', cfg($cfg, 'REMINDERS_INTERVAL_DAYS', '7')));
+$INTERVAL_DAYS = max(7, (int) cfg($cfg, 'RECOBRANCA_INTERVAL_DAYS', cfg($cfg, 'REMINDERS_INTERVAL_DAYS', '7')));
 $FIRST_DELAY_DAYS = max(7, (int) cfg($cfg, 'RECOBRANCA_FIRST_DELAY_DAYS', '7'));
 $MAX_OVERDUE   = max(1, (int) cfg($cfg, 'RECOBRANCA_MAX_OVERDUE', 12));
 
@@ -844,7 +846,7 @@ foreach ($rows as $r) {
     $pdo->prepare("
       UPDATE bill_reminders
       SET reminder_attempts = COALESCE(reminder_attempts,0) + 1,
-          next_reminder_at = DATE_ADD(NOW(), INTERVAL 1 DAY),
+          next_reminder_at = {$RETRY_NEXT_SQL},
           last_status = 'vindi_error',
           last_status_check_at = NOW()
       WHERE bill_id = ?
@@ -927,7 +929,7 @@ foreach ($rows as $r) {
     $pdo->prepare("
       UPDATE bill_reminders
       SET reminder_attempts = COALESCE(reminder_attempts,0) + 1,
-          next_reminder_at = DATE_ADD(NOW(), INTERVAL 1 DAY),
+          next_reminder_at = {$RETRY_NEXT_SQL},
           last_status = 'no_phone',
           last_status_check_at = NOW()
       WHERE bill_id = ?
@@ -1062,7 +1064,7 @@ foreach ($rows as $r) {
       UPDATE bill_reminders
       SET reminder_attempts = COALESCE(reminder_attempts,0) + 1,
           last_reminder_at = NOW(),
-          next_reminder_at = DATE_ADD(NOW(), INTERVAL 1 DAY),
+          next_reminder_at = {$RETRY_NEXT_SQL},
           last_status = ?,
           last_status_check_at = NOW()
       WHERE bill_id = ?

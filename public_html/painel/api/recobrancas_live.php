@@ -241,7 +241,7 @@ try {
   $VINDI_API_KEY  = cfg($cfg, 'VINDI_API_KEY');
   $VINDI_API_BASE = cfg($cfg, 'VINDI_API_BASE', 'https://app.vindi.com.br/api/v1');
   $FIRST_DELAY_DAYS = max(7, (int) cfg($cfg, 'RECOBRANCA_FIRST_DELAY_DAYS', '7'));
-  $INTERVAL_DAYS = max(1, (int) cfg($cfg, 'RECOBRANCA_INTERVAL_DAYS', cfg($cfg, 'REMINDERS_INTERVAL_DAYS', '7')));
+  $INTERVAL_DAYS = max(7, (int) cfg($cfg, 'RECOBRANCA_INTERVAL_DAYS', cfg($cfg, 'REMINDERS_INTERVAL_DAYS', '7')));
 
   if (!$VINDI_API_KEY) throw new RuntimeException("VINDI_API_KEY não configurada");
 
