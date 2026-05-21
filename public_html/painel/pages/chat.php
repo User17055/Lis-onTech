@@ -309,6 +309,27 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     }
     .msg-row.out .bubble{background:#eaf8ff;border-color:#bfe8ff;}
     .msg-body{font-size:15px;font-weight:800;line-height:1.5;white-space:pre-wrap;}
+    .msg-body a{color:#12628f;text-decoration:underline;text-underline-offset:2px;overflow-wrap:anywhere;}
+    .media-box{display:grid;gap:8px;margin-bottom:9px;}
+    .media-img,.media-video{max-width:360px;width:100%;border-radius:8px;border:1px solid var(--line);background:#eef2f7;display:block;}
+    .media-audio{width:min(360px,100%);}
+    .media-file{
+      display:inline-flex;
+      align-items:center;
+      gap:9px;
+      width:max-content;
+      max-width:100%;
+      border:1px solid var(--line);
+      border-radius:8px;
+      background:#f8fafc;
+      padding:10px 12px;
+      color:#172033;
+      text-decoration:none;
+      font-size:13px;
+      font-weight:900;
+    }
+    .media-file:hover{border-color:#bfe8ff;color:#12628f;background:#eef8ff;}
+    .media-caption{margin-top:2px;}
     .msg-foot{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:8px;color:#718096;font-size:11px;font-weight:900;}
     .msg-error{margin-top:8px;color:var(--danger);font-size:12px;font-weight:900;}
 
@@ -574,6 +595,31 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       }[m]));
     }
 
+    function attr(value){
+      return esc(value).replace(/`/g, '&#096;');
+    }
+
+    function linkify(value){
+      const text = String(value ?? '');
+      const pattern = /(https?:\/\/[^\s<>"']+|www\.[^\s<>"']+)/gi;
+      let out = '';
+      let last = 0;
+      let match;
+      while ((match = pattern.exec(text)) !== null) {
+        out += esc(text.slice(last, match.index));
+        let raw = match[0];
+        let trailing = '';
+        while (/[.,;:!?)]$/.test(raw)) {
+          trailing = raw.slice(-1) + trailing;
+          raw = raw.slice(0, -1);
+        }
+        const href = raw.toLowerCase().startsWith('www.') ? 'https://' + raw : raw;
+        out += `<a href="${attr(href)}" target="_blank" rel="noopener noreferrer">${esc(raw)}</a>${esc(trailing)}`;
+        last = match.index + match[0].length;
+      }
+      return out + esc(text.slice(last));
+    }
+
     function digits(value){
       let d = String(value ?? '').replace(/\D+/g, '');
       if (d && d.length <= 11) d = '55' + d;
@@ -779,10 +825,13 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       const dir = msg.direction === 'out' ? 'out' : 'in';
       const st = statusLabel(msg.status);
       const error = msg.error_text ? `<div class="msg-error">${esc(msg.error_text)}</div>` : '';
+      const media = mediaHtml(msg);
+      const body = messageBodyHtml(msg);
       return `
         <div class="msg-row ${dir}">
           <div class="bubble">
-            <div class="msg-body">${esc(msg.body || '')}</div>
+            ${media}
+            ${body ? `<div class="msg-body ${media ? 'media-caption' : ''}">${body}</div>` : ''}
             ${error}
             <div class="msg-foot">
               <span>${esc(fmtTime(msg.created_at))}</span>
@@ -791,6 +840,41 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
           </div>
         </div>
       `;
+    }
+
+    function mediaUrl(msg){
+      return `/painel/api/chat_media.php?id=${encodeURIComponent(msg.id)}`;
+    }
+
+    function messageBodyHtml(msg){
+      const type = String(msg.message_type || '').toLowerCase();
+      const body = String(msg.body || '');
+      const placeholders = {
+        image: ['[imagem]'],
+        video: ['[video]'],
+        audio: ['[audio]'],
+        sticker: ['[figurinha]']
+      };
+      if (placeholders[type]?.includes(body.trim().toLowerCase())) return '';
+      return linkify(body);
+    }
+
+    function mediaHtml(msg){
+      const type = String(msg.message_type || '').toLowerCase();
+      const url = mediaUrl(msg);
+      if (type === 'image' || type === 'sticker') {
+        return `<div class="media-box"><a href="${attr(url)}" target="_blank" rel="noopener"><img class="media-img" src="${attr(url)}" loading="lazy" alt="Midia recebida"></a></div>`;
+      }
+      if (type === 'video') {
+        return `<div class="media-box"><video class="media-video" src="${attr(url)}" controls preload="metadata"></video></div>`;
+      }
+      if (type === 'audio') {
+        return `<div class="media-box"><audio class="media-audio" src="${attr(url)}" controls preload="metadata"></audio></div>`;
+      }
+      if (type === 'document') {
+        return `<div class="media-box"><a class="media-file" href="${attr(url)}" target="_blank" rel="noopener"><i class="fa-regular fa-file-lines"></i> Abrir documento</a></div>`;
+      }
+      return '';
     }
 
     function setActiveHeader(thread){
@@ -862,7 +946,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         const data = await fetchJson(url.toString(), {cache:'no-store'});
         const messages = Array.isArray(data.messages) ? data.messages : [];
         state.lastCharge = data.last_charge || null;
-        const hash = JSON.stringify(messages.map(m => [m.id, m.status, m.body, m.error_text]));
+        const hash = JSON.stringify(messages.map(m => [m.id, m.status, m.message_type, m.body, m.error_text]));
         const activeThread = data.thread || state.threads.find(t => t.phone === state.selectedPhone);
         setActiveHeader(activeThread);
 
