@@ -19,8 +19,11 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       --soft-ok:#e4f8ee;
       --soft-warn:#fff4da;
       --soft-danger:#fee9e9;
-      --shadow:0 10px 30px rgba(23,32,51,.07);
-      --shadow-strong:0 24px 70px rgba(23,32,51,.22);
+      --bubble-in:#ffffff;
+      --bubble-out:#e7f6ff;
+      --bubble-out-border:#bfe8ff;
+      --shadow:0 10px 30px rgba(23,32,51,.06);
+      --shadow-strong:0 24px 70px rgba(23,32,51,.18);
       font-family:'Nunito',sans-serif;
       color:var(--text);
       width:100%;
@@ -190,13 +193,13 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       transition:.16s;
       min-height:94px;
     }
-    .thread-item:hover{background:#fff;border-color:var(--line);}
+    .thread-item:hover{background:#fff;border-color:var(--line);box-shadow:0 8px 22px rgba(23,32,51,.045);}
     .thread-item.active{background:#eef8ff;border-color:#bfe8ff;}
     .avatar{
       width:50px;
       height:50px;
       border-radius:8px;
-      background:#172033;
+      background:linear-gradient(135deg,#38b6ff,#7169f6);
       color:#fff;
       display:flex;
       align-items:center;
@@ -282,8 +285,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       flex-direction:column;
       gap:12px;
       background:
-        radial-gradient(circle at top left, rgba(56,182,255,.08), transparent 280px),
-        #f8fafc;
+        radial-gradient(circle at top left, rgba(56,182,255,.11), transparent 260px),
+        linear-gradient(180deg,#f8fbff 0%,#f3f7fc 100%);
     }
 
     .empty-state{
@@ -300,35 +303,60 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .msg-row.out{justify-content:flex-end;}
     .bubble{
       max-width:min(760px,80%);
-      border:1px solid var(--line);
-      border-radius:8px;
-      padding:14px 16px 10px;
-      background:#fff;
-      box-shadow:0 4px 14px rgba(23,32,51,.05);
+      border:1px solid rgba(214,226,238,.95);
+      border-radius:18px;
+      padding:12px 14px 8px;
+      background:var(--bubble-in);
+      box-shadow:0 6px 18px rgba(23,32,51,.045);
       word-break:break-word;
+      position:relative;
     }
-    .msg-row.out .bubble{background:#eaf8ff;border-color:#bfe8ff;}
+    .msg-row.in .bubble{border-top-left-radius:6px;}
+    .msg-row.out .bubble{background:var(--bubble-out);border-color:var(--bubble-out-border);border-top-right-radius:6px;}
     .msg-body{font-size:15px;font-weight:800;line-height:1.5;white-space:pre-wrap;}
     .msg-body a{color:#12628f;text-decoration:underline;text-underline-offset:2px;overflow-wrap:anywhere;}
     .media-box{display:grid;gap:8px;margin-bottom:9px;}
-    .media-img,.media-video{max-width:360px;width:100%;border-radius:8px;border:1px solid var(--line);background:#eef2f7;display:block;}
+    .media-img,.media-video{max-width:360px;width:100%;border-radius:14px;border:1px solid rgba(214,226,238,.95);background:#eef5fb;display:block;}
     .media-audio{width:min(360px,100%);}
     .media-file{
-      display:inline-flex;
+      display:grid;
+      grid-template-columns:44px minmax(0,1fr) 34px;
       align-items:center;
-      gap:9px;
-      width:max-content;
-      max-width:100%;
-      border:1px solid var(--line);
-      border-radius:8px;
-      background:#f8fafc;
-      padding:10px 12px;
+      gap:12px;
+      width:min(360px,100%);
+      border:1px solid rgba(214,226,238,.95);
+      border-radius:14px;
+      background:rgba(255,255,255,.76);
+      padding:10px;
       color:#172033;
       text-decoration:none;
-      font-size:13px;
-      font-weight:900;
+      box-sizing:border-box;
     }
-    .media-file:hover{border-color:#bfe8ff;color:#12628f;background:#eef8ff;}
+    .media-file:hover{border-color:#9bdcff;color:#12628f;background:#fff;}
+    .media-file-icon{
+      width:44px;
+      height:44px;
+      border-radius:12px;
+      background:#3b82f6;
+      color:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:19px;
+      flex:0 0 44px;
+    }
+    .media-file-name{display:block;font-size:13px;font-weight:900;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .media-file-meta{display:block;font-size:11px;font-weight:900;color:#718096;margin-top:3px;text-transform:uppercase;}
+    .media-file-open{
+      width:34px;
+      height:34px;
+      border-radius:999px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:#e6f6ff;
+      color:#12628f;
+    }
     .media-caption{margin-top:2px;}
     .msg-foot{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:8px;color:#718096;font-size:11px;font-weight:900;}
     .msg-error{margin-top:8px;color:var(--danger);font-size:12px;font-weight:900;}
@@ -853,10 +881,26 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         image: ['[imagem]'],
         video: ['[video]'],
         audio: ['[audio]'],
-        sticker: ['[figurinha]']
+        sticker: ['[figurinha]'],
+        document: ['[documento]']
       };
       if (placeholders[type]?.includes(body.trim().toLowerCase())) return '';
       return linkify(body);
+    }
+
+    function mediaFileName(msg){
+      const media = msg.media || {};
+      const fallback = String(msg.body || '').replace(/^\[documento\]\s*/i, '').trim();
+      return media.filename || fallback || 'Documento';
+    }
+
+    function mediaKindLabel(msg){
+      const mime = String(msg.media?.mime_type || '').toLowerCase();
+      if (mime.includes('pdf')) return 'PDF';
+      if (mime.includes('word') || mime.includes('document')) return 'DOC';
+      if (mime.includes('spreadsheet') || mime.includes('excel')) return 'XLS';
+      if (mime.includes('image')) return 'Imagem';
+      return 'Arquivo';
     }
 
     function mediaHtml(msg){
@@ -872,7 +916,20 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         return `<div class="media-box"><audio class="media-audio" src="${attr(url)}" controls preload="metadata"></audio></div>`;
       }
       if (type === 'document') {
-        return `<div class="media-box"><a class="media-file" href="${attr(url)}" target="_blank" rel="noopener"><i class="fa-regular fa-file-lines"></i> Abrir documento</a></div>`;
+        const name = mediaFileName(msg);
+        const kind = mediaKindLabel(msg);
+        return `
+          <div class="media-box">
+            <a class="media-file" href="${attr(url)}" target="_blank" rel="noopener" title="Abrir documento">
+              <span class="media-file-icon"><i class="fa-regular fa-file-lines"></i></span>
+              <span style="min-width:0;">
+                <span class="media-file-name">${esc(name)}</span>
+                <span class="media-file-meta">${esc(kind)} - tocar para abrir</span>
+              </span>
+              <span class="media-file-open"><i class="fa-solid fa-arrow-up-right-from-square"></i></span>
+            </a>
+          </div>
+        `;
       }
       return '';
     }
