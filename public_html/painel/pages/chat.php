@@ -22,8 +22,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       --bubble-in:#ffffff;
       --bubble-out:#e7f6ff;
       --bubble-out-border:#bfe8ff;
-      --shadow:0 10px 30px rgba(23,32,51,.06);
-      --shadow-strong:0 24px 70px rgba(23,32,51,.18);
+      --shadow:0 12px 28px rgba(23,32,51,.05);
+      --shadow-strong:0 22px 54px rgba(23,32,51,.16);
       font-family:'Nunito',sans-serif;
       color:var(--text);
       width:100%;
@@ -58,7 +58,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       flex-direction:column;
       min-width:0;
       min-height:0;
-      background:linear-gradient(180deg,#ffffff 0%,#f8fafc 100%);
+      background:#f8fafc;
     }
 
     .chat-pane-head{
@@ -169,7 +169,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       transition:.16s;
     }
     .filter-tab:hover{background:#fff;color:var(--brand-dark);}
-    .filter-tab.active{background:#fff;color:#172033;box-shadow:0 4px 12px rgba(23,32,51,.07);}
+    .filter-tab.active{background:#fff;color:#172033;box-shadow:0 1px 3px rgba(23,32,51,.06);}
 
     .thread-list{
       overflow:auto;
@@ -193,13 +193,13 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       transition:.16s;
       min-height:94px;
     }
-    .thread-item:hover{background:#fff;border-color:var(--line);box-shadow:0 8px 22px rgba(23,32,51,.045);}
+    .thread-item:hover{background:#fff;border-color:#dce8f3;box-shadow:0 1px 3px rgba(23,32,51,.05);}
     .thread-item.active{background:#eef8ff;border-color:#bfe8ff;}
     .avatar{
       width:50px;
       height:50px;
       border-radius:8px;
-      background:linear-gradient(135deg,#38b6ff,#7169f6);
+      background:#38b6ff;
       color:#fff;
       display:flex;
       align-items:center;
@@ -284,9 +284,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       display:flex;
       flex-direction:column;
       gap:12px;
-      background:
-        radial-gradient(circle at top left, rgba(56,182,255,.11), transparent 260px),
-        linear-gradient(180deg,#f8fbff 0%,#f3f7fc 100%);
+      background:#f5f8fc;
     }
 
     .empty-state{
@@ -304,10 +302,10 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .bubble{
       max-width:min(760px,80%);
       border:1px solid rgba(214,226,238,.95);
-      border-radius:18px;
+      border-radius:16px;
       padding:12px 14px 8px;
       background:var(--bubble-in);
-      box-shadow:0 6px 18px rgba(23,32,51,.045);
+      box-shadow:0 1px 2px rgba(23,32,51,.04);
       word-break:break-word;
       position:relative;
     }
@@ -316,7 +314,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .msg-body{font-size:15px;font-weight:800;line-height:1.5;white-space:pre-wrap;}
     .msg-body a{color:#12628f;text-decoration:underline;text-underline-offset:2px;overflow-wrap:anywhere;}
     .media-box{display:grid;gap:8px;margin-bottom:9px;}
-    .media-img,.media-video{max-width:360px;width:100%;border-radius:14px;border:1px solid rgba(214,226,238,.95);background:#eef5fb;display:block;}
+    .media-img,.media-video{max-width:360px;width:100%;border-radius:12px;border:1px solid rgba(214,226,238,.95);background:#eef5fb;display:block;}
     .media-audio{width:min(360px,100%);}
     .media-file{
       display:grid;
@@ -325,8 +323,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       gap:12px;
       width:min(360px,100%);
       border:1px solid rgba(214,226,238,.95);
-      border-radius:14px;
-      background:rgba(255,255,255,.76);
+      border-radius:12px;
+      background:#fff;
       padding:10px;
       color:#172033;
       text-decoration:none;
@@ -336,7 +334,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .media-file-icon{
       width:44px;
       height:44px;
-      border-radius:12px;
+      border-radius:10px;
       background:#3b82f6;
       color:#fff;
       display:flex;
@@ -354,7 +352,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       display:flex;
       align-items:center;
       justify-content:center;
-      background:#e6f6ff;
+      background:#eef8ff;
       color:#12628f;
     }
     .media-caption{margin-top:2px;}
@@ -423,7 +421,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       align-items:center;
       gap:12px;
       border-bottom:1px solid var(--line);
-      background:linear-gradient(180deg,#ffffff 0%,#f7fbff 100%);
+      background:#f7fbff;
     }
     .confirm-icon{
       width:46px;
