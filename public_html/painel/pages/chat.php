@@ -314,7 +314,28 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .msg-body{font-size:15px;font-weight:800;line-height:1.5;white-space:pre-wrap;}
     .msg-body a{color:#12628f;text-decoration:underline;text-underline-offset:2px;overflow-wrap:anywhere;}
     .media-box{display:grid;gap:8px;margin-bottom:9px;}
-    .media-img,.media-video{max-width:360px;width:100%;border-radius:12px;border:1px solid rgba(214,226,238,.95);background:#eef5fb;display:block;}
+    .media-img{
+      width:168px;
+      height:168px;
+      border-radius:12px;
+      border:1px solid rgba(214,226,238,.95);
+      background:#eef5fb;
+      display:block;
+      object-fit:cover;
+      cursor:pointer;
+    }
+    .media-img:hover{filter:brightness(.96);}
+    .media-image-btn{
+      border:0;
+      padding:0;
+      margin:0;
+      background:transparent;
+      border-radius:12px;
+      cursor:pointer;
+      display:block;
+      line-height:0;
+    }
+    .media-video{max-width:360px;width:100%;border-radius:12px;border:1px solid rgba(214,226,238,.95);background:#eef5fb;display:block;}
     .media-audio{width:min(360px,100%);}
     .media-file{
       display:grid;
@@ -471,6 +492,43 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .confirm-btn.primary:hover{background:var(--brand-dark);border-color:var(--brand-dark);}
     .confirm-btn:hover{background:#f8fafc;}
 
+    .image-viewer{
+      position:fixed;
+      inset:0;
+      z-index:1400;
+      background:rgba(15,23,42,.82);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+    }
+    .image-viewer.show{display:flex;}
+    .image-viewer img{
+      max-width:min(1100px,96vw);
+      max-height:86vh;
+      border-radius:12px;
+      background:#fff;
+      box-shadow:0 18px 60px rgba(0,0,0,.28);
+      object-fit:contain;
+    }
+    .image-viewer-close{
+      position:absolute;
+      top:18px;
+      right:18px;
+      width:44px;
+      height:44px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.3);
+      background:rgba(255,255,255,.14);
+      color:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      font-size:18px;
+    }
+    .image-viewer-close:hover{background:rgba(255,255,255,.24);}
+
     @media(max-width:920px){
       .chat-wrap{height:auto;min-height:calc(100vh - var(--header-height, 70px));overflow:visible;}
       .chat-shell{height:auto;min-height:calc(100vh - var(--header-height, 70px));grid-template-columns:1fr;}
@@ -578,6 +636,12 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
   </div>
 
   <div class="toast" id="toast"></div>
+  <div class="image-viewer" id="imageViewer" aria-hidden="true">
+    <button class="image-viewer-close" id="imageViewerClose" type="button" title="Fechar">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+    <img id="imageViewerImg" alt="Imagem recebida">
+  </div>
   <div class="confirm-backdrop" id="confirmBackdrop" aria-hidden="true">
     <div class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
       <div class="confirm-head">
@@ -905,7 +969,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       const type = String(msg.message_type || '').toLowerCase();
       const url = mediaUrl(msg);
       if (type === 'image' || type === 'sticker') {
-        return `<div class="media-box"><a href="${attr(url)}" target="_blank" rel="noopener"><img class="media-img" src="${attr(url)}" loading="lazy" alt="Midia recebida"></a></div>`;
+        return `<div class="media-box"><button class="media-image-btn" type="button" data-image-url="${attr(url)}" aria-label="Abrir imagem"><img class="media-img" src="${attr(url)}" loading="lazy" alt="Midia recebida"></button></div>`;
       }
       if (type === 'video') {
         return `<div class="media-box"><video class="media-video" src="${attr(url)}" controls preload="metadata"></video></div>`;
@@ -930,6 +994,20 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         `;
       }
       return '';
+    }
+
+    function openImageViewer(url){
+      if (!url) return;
+      el('imageViewerImg').src = url;
+      el('imageViewer').classList.add('show');
+      el('imageViewer').setAttribute('aria-hidden', 'false');
+      el('imageViewerClose').focus();
+    }
+
+    function closeImageViewer(){
+      el('imageViewer').classList.remove('show');
+      el('imageViewer').setAttribute('aria-hidden', 'true');
+      el('imageViewerImg').removeAttribute('src');
     }
 
     function setActiveHeader(thread){
@@ -1170,6 +1248,13 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       openConversation(btn.getAttribute('data-phone'));
     });
 
+    el('messages').addEventListener('click', (event) => {
+      const btn = event.target.closest('button[data-image-url]');
+      if (!btn) return;
+      event.preventDefault();
+      openImageViewer(btn.getAttribute('data-image-url'));
+    });
+
     el('btnNewChat').onclick = () => {
       el('newChatBox').classList.toggle('show');
       if (el('newChatBox').classList.contains('show')) el('newPhone').focus();
@@ -1214,10 +1299,15 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     el('btnResendCharge').onclick = resendLastCharge;
     el('confirmCancel').onclick = () => closeConfirm(false);
     el('confirmOk').onclick = () => closeConfirm(true);
+    el('imageViewerClose').onclick = closeImageViewer;
+    el('imageViewer').addEventListener('click', (event) => {
+      if (event.target === el('imageViewer')) closeImageViewer();
+    });
     el('confirmBackdrop').addEventListener('click', (event) => {
       if (event.target === el('confirmBackdrop')) closeConfirm(false);
     });
     document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && el('imageViewer').classList.contains('show')) closeImageViewer();
       if (event.key === 'Escape' && el('confirmBackdrop').classList.contains('show')) closeConfirm(false);
     });
     el('messageText').addEventListener('keydown', (event) => {
