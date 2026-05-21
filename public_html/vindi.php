@@ -349,6 +349,7 @@ if ($evento === 'bill_paid' || $evento === 'bill_canceled') {
 
     if ($billIdInt > 0) {
         ensureBillReminderColumn($pdo, 'paid_at', 'DATETIME NULL');
+        ensureBillReminderColumn($pdo, 'amount', 'DECIMAL(14,2) NULL');
         // Upsert: se não existir, cria; se existir, desativa
         $statusEvento = $evento === 'bill_paid' ? 'paid' : 'canceled';
         $paidAt = $evento === 'bill_paid'
@@ -356,12 +357,13 @@ if ($evento === 'bill_paid' || $evento === 'bill_canceled') {
                 ?: mysqlDateTimeOrNull(is_array($bill) ? ($bill['paid_at'] ?? $bill['updated_at'] ?? null) : null)
                 ?: date('Y-m-d H:i:s'))
             : null;
+        $paidAmount = is_array($bill) ? billAmountOrNull($bill) : null;
         $st = $pdo->prepare("
-            INSERT INTO bill_reminders (bill_id, active, status, paid_at)
-            VALUES (?, 0, ?, ?)
-            ON DUPLICATE KEY UPDATE active=0, status=VALUES(status), paid_at=COALESCE(VALUES(paid_at), paid_at)
+            INSERT INTO bill_reminders (bill_id, active, status, paid_at, amount)
+            VALUES (?, 0, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE active=0, status=VALUES(status), paid_at=COALESCE(VALUES(paid_at), paid_at), amount=COALESCE(VALUES(amount), amount)
         ");
-        $st->execute([$billIdInt, $statusEvento, $paidAt]);
+        $st->execute([$billIdInt, $statusEvento, $paidAt, $paidAmount]);
 
         logLine($LOG_FILE, "bill_reminders desativado por {$evento} | bill_id={$billIdInt} | status={$statusEvento}");
     } else {
@@ -489,6 +491,7 @@ try {
             if ($billIdInt > 0) {
                 try {
                     ensureBillReminderColumn($pdo, 'paid_at', 'DATETIME NULL');
+                    ensureBillReminderColumn($pdo, 'amount', 'DECIMAL(14,2) NULL');
                     $st = $pdo->prepare("
                         UPDATE bill_reminders
                         SET status='paid',
@@ -496,6 +499,7 @@ try {
                             customer_id = COALESCE(?, customer_id),
                             customer_name = COALESCE(?, customer_name),
                             bill_url = COALESCE(NULLIF(?, ''), bill_url),
+                            amount = COALESCE(?, amount),
                             paid_at = COALESCE(paid_at, NOW()),
                             next_reminder_at = NULL
                         WHERE bill_id = ?
@@ -504,6 +508,7 @@ try {
                         !empty($customerId) ? (int) $customerId : null,
                         $nome !== '' ? $nome : null,
                         $link_fatura,
+                        billAmountOrNull($bill),
                         $billIdInt,
                     ]);
                 } catch (Throwable $e) {

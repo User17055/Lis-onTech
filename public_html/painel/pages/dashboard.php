@@ -253,8 +253,8 @@ $defaultCost = cfg($cfg, 'WHATSAPP_MESSAGE_COST_BRL', cfg($cfg, 'META_MESSAGE_CO
       <div><strong id="mNet">R$ 0,00</strong><span id="mRoi">ROI aguardando custo</span></div>
     </div>
     <div class="metric danger">
-      <div class="top"><div class="label">Em aberto</div><div class="icon"><i class="fa-solid fa-clock"></i></div></div>
-      <div><strong id="mOpen">R$ 0,00</strong><span id="mOpenSub">0 faturas abertas</span></div>
+      <div class="top"><div class="label">Faturas recuperadas</div><div class="icon"><i class="fa-solid fa-receipt"></i></div></div>
+      <div><strong id="mRecoveredCount">0</strong><span>pagas apos modelo</span></div>
     </div>
   </div>
 
@@ -264,8 +264,8 @@ $defaultCost = cfg($cfg, 'WHATSAPP_MESSAGE_COST_BRL', cfg($cfg, 'META_MESSAGE_CO
       <div><strong id="mSent">0</strong><span id="mSentSub">0 com sucesso, 0 falhas</span></div>
     </div>
     <div class="metric">
-      <div class="top"><div class="label">Recobrancas</div><div class="icon"><i class="fa-solid fa-bell"></i></div></div>
-      <div><strong id="mCharges">0</strong><span id="mChargesSub">mensagens de cobranca</span></div>
+      <div class="top"><div class="label">Modelo fatura</div><div class="icon"><i class="fa-solid fa-file-invoice"></i></div></div>
+      <div><strong id="mCharges">0</strong><span id="mChargesSub">modelos enviados</span></div>
     </div>
     <div class="metric">
       <div class="top"><div class="label">Pagamentos</div><div class="icon"><i class="fa-solid fa-circle-check"></i></div></div>
@@ -317,7 +317,7 @@ $defaultCost = cfg($cfg, 'WHATSAPP_MESSAGE_COST_BRL', cfg($cfg, 'META_MESSAGE_CO
         <div class="panel-head">
           <div>
             <h2 class="panel-title">Ultimas recuperadas</h2>
-            <div class="panel-sub">Pagas apos envio de recobranca</div>
+            <div class="panel-sub">Pagas apos envio do modelo fatura</div>
           </div>
         </div>
         <table class="table">
@@ -478,12 +478,12 @@ $defaultCost = cfg($cfg, 'WHATSAPP_MESSAGE_COST_BRL', cfg($cfg, 'META_MESSAGE_CO
         }
 
         const s = data.summary || {};
-        setMetric('mCost', brMoney(s.message_cost_brl), 'mCostSub', `${brNumber(s.sent_messages)} mensagens enviadas`);
+        setMetric('mCost', brMoney(s.message_cost_brl), 'mCostSub', `${brNumber(s.sent_messages)} modelos fatura enviados`);
         setMetric('mRecovered', brMoney(s.recovered_amount_brl), 'mRecoveredSub', `${brNumber(s.recovered_bills)} faturas recuperadas`);
         setMetric('mNet', brMoney(s.net_recovered_brl), 'mRoi', s.roi === null ? 'ROI aguardando custo' : `${Number(s.roi).toFixed(1).replace('.', ',')}x sobre o custo`);
-        setMetric('mOpen', brMoney(s.open_amount_brl), 'mOpenSub', `${brNumber(s.open_bills)} faturas abertas`);
+        setMetric('mRecoveredCount', brNumber(s.recovered_bills));
         setMetric('mSent', brNumber(s.sent_messages), 'mSentSub', `${brNumber(s.successful_messages)} com sucesso, ${brNumber(s.failed_messages)} falhas`);
-        setMetric('mCharges', brNumber(s.recobranca_messages), 'mChargesSub', 'mensagens de cobranca');
+        setMetric('mCharges', brNumber(s.model_invoice_messages ?? s.recobranca_messages), 'mChargesSub', 'modelos de fatura enviados');
         setMetric('mPaid', brMoney(s.paid_amount_brl), 'mPaidSub', `${brNumber(s.paid_bills)} faturas pagas no periodo`);
         setMetric('mReady', brNumber(s.ready_bills));
 

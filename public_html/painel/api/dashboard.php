@@ -82,6 +82,12 @@ function dashMoney($value): float
     return is_numeric($s) ? (float)$s : 0.0;
 }
 
+function dashSqlMoneyExpr(string $expr): string
+{
+    $clean = "REPLACE(REPLACE(COALESCE({$expr}, '0'), 'R$', ''), ' ', '')";
+    return "CAST(CASE WHEN INSTR({$clean}, ',') > 0 THEN REPLACE(REPLACE({$clean}, '.', ''), ',', '.') ELSE {$clean} END AS DECIMAL(14,2))";
+}
+
 function dashDateRange(): array
 {
     $month = trim((string)($_GET['month'] ?? ''));
@@ -200,6 +206,39 @@ try {
         ", $params)[0] ?? $runStats;
     }
 
+    $modelSentTotal = 0;
+    $modelSentPredicate = '0=1';
+    if ($hasRuns) {
+        $sentBits = [];
+        if (dashColumnExists($pdo, 'automation_runs', 'step_whatsapp')) {
+            $sentBits[] = 'COALESCE(ar.step_whatsapp, 0) = 1';
+        }
+        if (dashColumnExists($pdo, 'automation_runs', 'status')) {
+            $sentBits[] = "ar.status IN ('processed','success','ok')";
+        }
+        if (dashColumnExists($pdo, 'automation_runs', 'whatsapp_response')) {
+            $sentBits[] = "(ar.whatsapp_response IS NOT NULL AND CAST(ar.whatsapp_response AS CHAR) <> '')";
+        }
+        $eventFilter = dashColumnExists($pdo, 'automation_runs', 'event_type') ? "ar.event_type = 'bill_created'" : '1=1';
+        $modelSentPredicate = $eventFilter . ' AND (' . ($sentBits ? implode(' OR ', $sentBits) : '0=1') . ')';
+
+        $modelSentTotal = (int)dashScalar($pdo, "
+            SELECT COUNT(*)
+            FROM automation_runs ar
+            WHERE {$modelSentPredicate}
+              AND ar.created_at >= :start AND ar.created_at < :end
+        ", $params, 0);
+
+        $seriesRows = dashRows($pdo, "
+            SELECT DATE(ar.created_at) AS label, COUNT(*) AS sent
+            FROM automation_runs ar
+            WHERE {$modelSentPredicate}
+              AND ar.created_at >= :start AND ar.created_at < :end
+            GROUP BY DATE(ar.created_at)
+            ORDER BY label ASC
+        ", $params);
+    }
+
     $recovered = [
         'recovered_bills' => 0,
         'recovered_amount' => 0,
@@ -212,52 +251,75 @@ try {
     $recentRecoveries = [];
     $topCustomers = [];
 
-    if ($hasReminders) {
-        $amountExpr = dashColumnExists($pdo, 'bill_reminders', 'amount') ? 'amount' : '0';
-        $updatedExpr = dashColumnExists($pdo, 'bill_reminders', 'updated_at') ? 'updated_at' : 'NOW()';
-        $paidAtExpr = dashColumnExists($pdo, 'bill_reminders', 'paid_at') ? 'COALESCE(paid_at, ' . $updatedExpr . ')' : $updatedExpr;
-        $sentExprs = [];
-        foreach (['last_overdue_sent_at', 'last_reminder_sent_at', 'created_sent_at'] as $col) {
-            if (dashColumnExists($pdo, 'bill_reminders', $col)) $sentExprs[] = $col;
-        }
-        $sentExpr = $sentExprs ? 'COALESCE(' . implode(',', $sentExprs) . ')' : 'NULL';
-        $customerExpr = dashColumnExists($pdo, 'bill_reminders', 'customer_name') ? 'customer_name' : "'Cliente'";
-        $phoneExpr = dashColumnExists($pdo, 'bill_reminders', 'phone') ? 'phone' : "''";
-        $nextExpr = dashColumnExists($pdo, 'bill_reminders', 'next_reminder_at') ? 'next_reminder_at' : 'NULL';
-        $blockedExpr = dashColumnExists($pdo, 'bill_reminders', 'blocked') ? 'blocked' : '0';
+    if ($hasReminders && $hasRuns) {
+        $amountRawExpr = dashColumnExists($pdo, 'bill_reminders', 'amount') ? 'br.amount' : '0';
+        $amountExpr = dashSqlMoneyExpr($amountRawExpr);
+        $runJsonAmountExpr = dashColumnExists($pdo, 'automation_runs', 'vindi_input')
+            ? "COALESCE(
+                JSON_UNQUOTE(JSON_EXTRACT(ar.vindi_input, '$.event.data.bill.amount')),
+                JSON_UNQUOTE(JSON_EXTRACT(ar.vindi_input, '$.event.data.bill.total')),
+                JSON_UNQUOTE(JSON_EXTRACT(ar.vindi_input, '$.event.data.bill.value')),
+                '0'
+            )"
+            : "'0'";
+        $runAmountExpr = dashSqlMoneyExpr('ms.run_amount');
+        $effectiveAmountExpr = "CASE WHEN {$amountExpr} > 0 THEN {$amountExpr} ELSE {$runAmountExpr} END";
+        $updatedExpr = dashColumnExists($pdo, 'bill_reminders', 'updated_at') ? 'br.updated_at' : 'NOW()';
+        $paidAtExpr = dashColumnExists($pdo, 'bill_reminders', 'paid_at') ? 'COALESCE(br.paid_at, ' . $updatedExpr . ')' : $updatedExpr;
+        $customerExpr = dashColumnExists($pdo, 'bill_reminders', 'customer_name') ? 'br.customer_name' : 'COALESCE(ms.customer_name, \'Cliente\')';
+        $phoneExpr = dashColumnExists($pdo, 'bill_reminders', 'phone') ? 'br.phone' : "''";
+        $nextExpr = dashColumnExists($pdo, 'bill_reminders', 'next_reminder_at') ? 'br.next_reminder_at' : 'NULL';
+        $blockedExpr = dashColumnExists($pdo, 'bill_reminders', 'blocked') ? 'br.blocked' : '0';
+        $modelSentSub = "
+            SELECT ar.bill_id, MIN(ar.created_at) AS sent_at, MAX(ar.customer_name) AS customer_name, MAX({$runJsonAmountExpr}) AS run_amount
+            FROM automation_runs ar
+            WHERE {$modelSentPredicate}
+              AND ar.bill_id IS NOT NULL
+              AND ar.created_at >= :start AND ar.created_at < :end
+            GROUP BY ar.bill_id
+        ";
 
         $recovered = dashRows($pdo, "
             SELECT
-                COUNT(CASE WHEN status = 'paid' AND {$paidAtExpr} >= :start AND {$paidAtExpr} < :end THEN 1 END) AS paid_bills,
-                COALESCE(SUM(CASE WHEN status = 'paid' AND {$paidAtExpr} >= :start AND {$paidAtExpr} < :end THEN {$amountExpr} ELSE 0 END), 0) AS paid_amount,
-                COUNT(CASE WHEN status = 'paid' AND {$sentExpr} IS NOT NULL AND {$paidAtExpr} >= :start AND {$paidAtExpr} < :end THEN 1 END) AS recovered_bills,
-                COALESCE(SUM(CASE WHEN status = 'paid' AND {$sentExpr} IS NOT NULL AND {$paidAtExpr} >= :start AND {$paidAtExpr} < :end THEN {$amountExpr} ELSE 0 END), 0) AS recovered_amount,
-                COUNT(CASE WHEN COALESCE(NULLIF(status, ''), 'unpaid') IN ('unpaid','pending','overdue') THEN 1 END) AS open_bills,
-                COALESCE(SUM(CASE WHEN COALESCE(NULLIF(status, ''), 'unpaid') IN ('unpaid','pending','overdue') THEN {$amountExpr} ELSE 0 END), 0) AS open_amount,
-                COUNT(CASE WHEN COALESCE(NULLIF(status, ''), 'unpaid') IN ('unpaid','pending','overdue') AND {$blockedExpr} = 0 AND ({$nextExpr} IS NULL OR {$nextExpr} <= NOW()) THEN 1 END) AS ready_bills
-            FROM bill_reminders
+                COUNT(CASE WHEN br.status = 'paid' AND {$paidAtExpr} >= ms.sent_at THEN 1 END) AS paid_bills,
+                COALESCE(SUM(CASE WHEN br.status = 'paid' AND {$paidAtExpr} >= ms.sent_at THEN {$effectiveAmountExpr} ELSE 0 END), 0) AS paid_amount,
+                COUNT(CASE WHEN br.status = 'paid' AND {$paidAtExpr} >= ms.sent_at THEN 1 END) AS recovered_bills,
+                COALESCE(SUM(CASE WHEN br.status = 'paid' AND {$paidAtExpr} >= ms.sent_at THEN {$effectiveAmountExpr} ELSE 0 END), 0) AS recovered_amount,
+                0 AS open_bills,
+                0 AS open_amount,
+                COUNT(CASE WHEN COALESCE(NULLIF(br.status, ''), 'unpaid') IN ('unpaid','pending','overdue') AND {$blockedExpr} = 0 AND ({$nextExpr} IS NULL OR {$nextExpr} <= NOW()) THEN 1 END) AS ready_bills
+            FROM ({$modelSentSub}) ms
+            INNER JOIN bill_reminders br ON br.bill_id = ms.bill_id
         ", $params)[0] ?? $recovered;
 
         $recentRecoveries = dashRows($pdo, "
-            SELECT bill_id, {$customerExpr} AS customer_name, {$phoneExpr} AS phone, {$amountExpr} AS amount, {$sentExpr} AS sent_at, {$paidAtExpr} AS paid_at
-            FROM bill_reminders
-            WHERE status = 'paid'
-              AND {$sentExpr} IS NOT NULL
-              AND {$paidAtExpr} >= :start AND {$paidAtExpr} < :end
+            SELECT br.bill_id, {$customerExpr} AS customer_name, {$phoneExpr} AS phone, {$effectiveAmountExpr} AS amount, ms.sent_at, {$paidAtExpr} AS paid_at
+            FROM ({$modelSentSub}) ms
+            INNER JOIN bill_reminders br ON br.bill_id = ms.bill_id
+            WHERE br.status = 'paid'
+              AND {$paidAtExpr} >= ms.sent_at
             ORDER BY {$paidAtExpr} DESC
             LIMIT 10
         ", $params);
+        foreach ($recentRecoveries as &$row) {
+            $row['amount'] = dashMoney($row['amount'] ?? 0);
+        }
+        unset($row);
 
         $topCustomers = dashRows($pdo, "
-            SELECT {$customerExpr} AS customer_name, COUNT(*) AS recovered_bills, COALESCE(SUM({$amountExpr}), 0) AS recovered_amount
-            FROM bill_reminders
-            WHERE status = 'paid'
-              AND {$sentExpr} IS NOT NULL
-              AND {$paidAtExpr} >= :start AND {$paidAtExpr} < :end
+            SELECT {$customerExpr} AS customer_name, COUNT(*) AS recovered_bills, COALESCE(SUM({$effectiveAmountExpr}), 0) AS recovered_amount
+            FROM ({$modelSentSub}) ms
+            INNER JOIN bill_reminders br ON br.bill_id = ms.bill_id
+            WHERE br.status = 'paid'
+              AND {$paidAtExpr} >= ms.sent_at
             GROUP BY {$customerExpr}
             ORDER BY recovered_amount DESC
             LIMIT 8
         ", $params);
+        foreach ($topCustomers as &$row) {
+            $row['recovered_amount'] = dashMoney($row['recovered_amount'] ?? 0);
+        }
+        unset($row);
     }
 
     if ($hasReminderLogs) {
@@ -275,7 +337,7 @@ try {
         $messageStats['reminder_logs_ok'] = $logsOk;
     }
 
-    $sentTotal = (int)($messageStats['sent_total'] ?? 0);
+    $sentTotal = $modelSentTotal > 0 ? $modelSentTotal : (int)($messageStats['sent_total'] ?? 0);
     $cost = $sentTotal * $unitCost;
     $recoveredAmount = dashMoney($recovered['recovered_amount'] ?? 0);
     $paidAmount = dashMoney($recovered['paid_amount'] ?? 0);
@@ -298,10 +360,11 @@ try {
         ],
         'summary' => [
             'sent_messages' => $sentTotal,
-            'successful_messages' => (int)($messageStats['sent_success'] ?? 0),
-            'failed_messages' => (int)($messageStats['sent_failed'] ?? 0),
+            'successful_messages' => $modelSentTotal > 0 ? $modelSentTotal : (int)($messageStats['sent_success'] ?? 0),
+            'failed_messages' => $modelSentTotal > 0 ? 0 : (int)($messageStats['sent_failed'] ?? 0),
             'inbound_messages' => (int)($messageStats['inbound_total'] ?? 0),
-            'recobranca_messages' => (int)($messageStats['recobranca_total'] ?? 0),
+            'recobranca_messages' => $modelSentTotal,
+            'model_invoice_messages' => $modelSentTotal,
             'manual_messages' => (int)($messageStats['manual_total'] ?? 0),
             'auto_reply_messages' => (int)($messageStats['auto_reply_total'] ?? 0),
             'message_cost_brl' => $cost,
@@ -331,8 +394,8 @@ try {
             'reminder_logs' => $hasReminderLogs,
         ],
         'notes' => [
-            'cost' => 'Custo calculado por mensagem enviada: mensagens saidas x custo unitario informado/configurado.',
-            'recovered' => 'Cobranca recuperada usa bill_reminders.status=paid com envio de recobranca registrado antes do pagamento; updated_at e usado como data de pagamento quando nao existe paid_at.',
+            'cost' => 'Custo calculado pelo modelo de fatura enviado: automation_runs bill_created com WhatsApp aceito x custo unitario.',
+            'recovered' => 'Fatura recuperada usa a mesma bill_id do modelo de fatura enviado e status=paid depois do envio.',
         ],
     ]);
 } catch (Throwable $e) {
