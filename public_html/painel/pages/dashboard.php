@@ -478,7 +478,7 @@ $defaultCost = cfg($cfg, 'WHATSAPP_MESSAGE_COST_BRL', cfg($cfg, 'META_MESSAGE_CO
         }
 
         const s = data.summary || {};
-        setMetric('mCost', brMoney(s.message_cost_brl), 'mCostSub', `${brNumber(s.sent_messages)} modelos fatura enviados`);
+        setMetric('mCost', brMoney(s.message_cost_brl), 'mCostSub', `${brNumber(s.sent_messages)} mensagens cobraveis`);
         setMetric('mRecovered', brMoney(s.recovered_amount_brl), 'mRecoveredSub', `${brNumber(s.recovered_bills)} faturas recuperadas`);
         setMetric('mNet', brMoney(s.net_recovered_brl), 'mRoi', s.roi === null ? 'ROI aguardando custo' : `${Number(s.roi).toFixed(1).replace('.', ',')}x sobre o custo`);
         setMetric('mRecoveredCount', brNumber(s.recovered_bills));

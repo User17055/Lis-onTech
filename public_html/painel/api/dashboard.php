@@ -152,7 +152,7 @@ try {
                 COUNT(CASE WHEN direction = 'out' AND status NOT IN ('failed') THEN 1 END) AS sent_success,
                 COUNT(CASE WHEN direction = 'out' AND status = 'failed' THEN 1 END) AS sent_failed,
                 COUNT(CASE WHEN direction = 'in' THEN 1 END) AS inbound_total,
-                COUNT(CASE WHEN direction = 'out' AND ({$sourceExpr} IN ('automation','automation_backfill','same_resend','manual_resend') OR {$sourceRefExpr} <> '') THEN 1 END) AS recobranca_total,
+                COUNT(CASE WHEN direction = 'out' AND ({$sourceExpr} IN ('automation','automation_backfill','same_resend','manual_resend','recobranca_cron','reminders_runner') OR {$sourceRefExpr} <> '') THEN 1 END) AS recobranca_total,
                 COUNT(CASE WHEN direction = 'out' AND {$sourceExpr} = 'manual' THEN 1 END) AS manual_total,
                 COUNT(CASE WHEN direction = 'out' AND {$sourceExpr} = 'auto_reply' THEN 1 END) AS auto_reply_total
             FROM chat_messages
@@ -229,14 +229,16 @@ try {
               AND ar.created_at >= :start AND ar.created_at < :end
         ", $params, 0);
 
-        $seriesRows = dashRows($pdo, "
+        if (!$hasChat) {
+            $seriesRows = dashRows($pdo, "
             SELECT DATE(ar.created_at) AS label, COUNT(*) AS sent
             FROM automation_runs ar
             WHERE {$modelSentPredicate}
               AND ar.created_at >= :start AND ar.created_at < :end
             GROUP BY DATE(ar.created_at)
             ORDER BY label ASC
-        ", $params);
+            ", $params);
+        }
     }
 
     $recovered = [
@@ -335,9 +337,25 @@ try {
         ", $params, 0);
         $messageStats['reminder_logs_total'] = $logsSent;
         $messageStats['reminder_logs_ok'] = $logsOk;
+
+        if (!$hasChat && !$seriesRows) {
+            $seriesRows = dashRows($pdo, "
+                SELECT DATE(created_at) AS label, COUNT(*) AS sent
+                FROM reminder_logs
+                WHERE ok = 1
+                  AND created_at >= :start AND created_at < :end
+                GROUP BY DATE(created_at)
+                ORDER BY label ASC
+            ", $params);
+        }
     }
 
-    $sentTotal = $modelSentTotal > 0 ? $modelSentTotal : (int)($messageStats['sent_total'] ?? 0);
+    $chatSuccess = (int)($messageStats['sent_success'] ?? 0);
+    $logsOk = !$hasChat ? (int)($messageStats['reminder_logs_ok'] ?? 0) : 0;
+    $sentTotal = $hasChat ? $chatSuccess : ($modelSentTotal + $logsOk);
+    $failedTotal = $hasChat
+        ? (int)($messageStats['sent_failed'] ?? 0)
+        : max(0, (int)($messageStats['reminder_logs_total'] ?? 0) - (int)($messageStats['reminder_logs_ok'] ?? 0));
     $cost = $sentTotal * $unitCost;
     $recoveredAmount = dashMoney($recovered['recovered_amount'] ?? 0);
     $paidAmount = dashMoney($recovered['paid_amount'] ?? 0);
@@ -360,10 +378,10 @@ try {
         ],
         'summary' => [
             'sent_messages' => $sentTotal,
-            'successful_messages' => $modelSentTotal > 0 ? $modelSentTotal : (int)($messageStats['sent_success'] ?? 0),
-            'failed_messages' => $modelSentTotal > 0 ? 0 : (int)($messageStats['sent_failed'] ?? 0),
+            'successful_messages' => $sentTotal,
+            'failed_messages' => $failedTotal,
             'inbound_messages' => (int)($messageStats['inbound_total'] ?? 0),
-            'recobranca_messages' => $modelSentTotal,
+            'recobranca_messages' => (int)($messageStats['recobranca_total'] ?? 0),
             'model_invoice_messages' => $modelSentTotal,
             'manual_messages' => (int)($messageStats['manual_total'] ?? 0),
             'auto_reply_messages' => (int)($messageStats['auto_reply_total'] ?? 0),
@@ -394,7 +412,7 @@ try {
             'reminder_logs' => $hasReminderLogs,
         ],
         'notes' => [
-            'cost' => 'Custo calculado pelo modelo de fatura enviado: automation_runs bill_created com WhatsApp aceito x custo unitario.',
+            'cost' => 'Custo calculado por mensagens de saida aceitas no WhatsApp dentro do periodo x custo unitario.',
             'recovered' => 'Fatura recuperada usa a mesma bill_id do modelo de fatura enviado e status=paid depois do envio.',
         ],
     ]);
