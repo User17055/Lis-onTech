@@ -13,37 +13,6 @@ function chatMessagesOut(array $payload, int $status = 200): void
     exit;
 }
 
-function chatMessageMediaInfo(array $message): ?array
-{
-    $type = strtolower((string)($message['message_type'] ?? ''));
-    if (!in_array($type, ['image', 'video', 'audio', 'document', 'sticker'], true)) {
-        return null;
-    }
-
-    $payload = json_decode((string)($message['payload_json'] ?? ''), true);
-    if (!is_array($payload)) {
-        return ['type' => $type];
-    }
-
-    $media = $payload[$type] ?? null;
-    if (!is_array($media)) {
-        return ['type' => $type];
-    }
-
-    $filename = (string)($media['filename'] ?? '');
-    if ($filename === '' && $type === 'document') {
-        $body = trim((string)($message['body'] ?? ''));
-        $filename = preg_replace('/^\[documento\]\s*/i', '', $body) ?? '';
-    }
-
-    return [
-        'type' => $type,
-        'filename' => $filename,
-        'mime_type' => (string)($media['mime_type'] ?? ''),
-        'caption' => (string)($media['caption'] ?? ''),
-    ];
-}
-
 try {
     require_once __DIR__ . '/../../config.php';
     require_once __DIR__ . '/../../db.php';
@@ -82,7 +51,7 @@ try {
             SELECT
                 id, phone, direction, message_type, body, meta_message_id,
                 status, status_at, sent_at, delivered_at, read_at, failed_at,
-                error_text, http_code, source, source_ref, payload_json, created_at
+                error_text, http_code, source, source_ref, created_at
             FROM chat_messages
             WHERE phone = ?
             ORDER BY created_at DESC, id DESC
@@ -92,11 +61,6 @@ try {
     ");
     $stmt->execute([$phone]);
     $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    foreach ($messages as &$message) {
-        $message['media'] = chatMessageMediaInfo($message);
-        unset($message['payload_json']);
-    }
-    unset($message);
 
     $chargeStmt = $pdo->prepare("
         SELECT source_ref, body, created_at
