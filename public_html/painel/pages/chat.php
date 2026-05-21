@@ -350,6 +350,9 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       color:#172033;
       text-decoration:none;
       box-sizing:border-box;
+      cursor:pointer;
+      font-family:'Nunito',sans-serif;
+      text-align:left;
     }
     .media-file:hover{border-color:#9bdcff;color:#12628f;background:#fff;}
     .media-file-icon{
@@ -511,6 +514,28 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       box-shadow:0 18px 60px rgba(0,0,0,.28);
       object-fit:contain;
     }
+    .image-viewer-frame{
+      width:min(1100px,96vw);
+      height:86vh;
+      border:0;
+      border-radius:12px;
+      background:#fff;
+      box-shadow:0 18px 60px rgba(0,0,0,.28);
+      display:none;
+    }
+    .image-viewer-title{
+      position:absolute;
+      top:20px;
+      left:24px;
+      right:76px;
+      color:#fff;
+      font-size:14px;
+      font-weight:900;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      pointer-events:none;
+    }
     .image-viewer-close{
       position:absolute;
       top:18px;
@@ -637,10 +662,12 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
 
   <div class="toast" id="toast"></div>
   <div class="image-viewer" id="imageViewer" aria-hidden="true">
+    <div class="image-viewer-title" id="imageViewerTitle"></div>
     <button class="image-viewer-close" id="imageViewerClose" type="button" title="Fechar">
       <i class="fa-solid fa-xmark"></i>
     </button>
     <img id="imageViewerImg" alt="Imagem recebida">
+    <iframe class="image-viewer-frame" id="imageViewerFrame" title="Documento recebido"></iframe>
   </div>
   <div class="confirm-backdrop" id="confirmBackdrop" aria-hidden="true">
     <div class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
@@ -982,23 +1009,39 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         const kind = mediaKindLabel(msg);
         return `
           <div class="media-box">
-            <a class="media-file" href="${attr(url)}" target="_blank" rel="noopener" title="Abrir documento">
+            <button class="media-file" type="button" data-doc-url="${attr(url)}" data-doc-title="${attr(name)}" title="Abrir documento">
               <span class="media-file-icon"><i class="fa-regular fa-file-lines"></i></span>
               <span style="min-width:0;">
                 <span class="media-file-name">${esc(name)}</span>
-                <span class="media-file-meta">${esc(kind)} - tocar para abrir</span>
+                <span class="media-file-meta">${esc(kind)} - tocar para visualizar</span>
               </span>
-              <span class="media-file-open"><i class="fa-solid fa-arrow-up-right-from-square"></i></span>
-            </a>
+              <span class="media-file-open"><i class="fa-solid fa-up-right-and-down-left-from-center"></i></span>
+            </button>
           </div>
         `;
       }
       return '';
     }
 
-    function openImageViewer(url){
+    function openImageViewer(url, title='Imagem recebida'){
       if (!url) return;
+      el('imageViewerFrame').removeAttribute('src');
+      el('imageViewerFrame').style.display = 'none';
       el('imageViewerImg').src = url;
+      el('imageViewerImg').style.display = 'block';
+      el('imageViewerTitle').textContent = title;
+      el('imageViewer').classList.add('show');
+      el('imageViewer').setAttribute('aria-hidden', 'false');
+      el('imageViewerClose').focus();
+    }
+
+    function openDocumentViewer(url, title='Documento recebido'){
+      if (!url) return;
+      el('imageViewerImg').removeAttribute('src');
+      el('imageViewerImg').style.display = 'none';
+      el('imageViewerFrame').src = url;
+      el('imageViewerFrame').style.display = 'block';
+      el('imageViewerTitle').textContent = title;
       el('imageViewer').classList.add('show');
       el('imageViewer').setAttribute('aria-hidden', 'false');
       el('imageViewerClose').focus();
@@ -1008,6 +1051,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       el('imageViewer').classList.remove('show');
       el('imageViewer').setAttribute('aria-hidden', 'true');
       el('imageViewerImg').removeAttribute('src');
+      el('imageViewerFrame').removeAttribute('src');
+      el('imageViewerTitle').textContent = '';
     }
 
     function setActiveHeader(thread){
@@ -1249,9 +1294,13 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     });
 
     el('messages').addEventListener('click', (event) => {
-      const btn = event.target.closest('button[data-image-url]');
+      const btn = event.target.closest('button[data-image-url], button[data-doc-url]');
       if (!btn) return;
       event.preventDefault();
+      if (btn.hasAttribute('data-doc-url')) {
+        openDocumentViewer(btn.getAttribute('data-doc-url'), btn.getAttribute('data-doc-title') || 'Documento recebido');
+        return;
+      }
       openImageViewer(btn.getAttribute('data-image-url'));
     });
 
