@@ -6,21 +6,24 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
 <div class="chat-wrap">
   <style>
     .chat-wrap{
-      --bg:#f6f8fb;
+      --bg:#f7fbf8;
       --panel:#ffffff;
-      --line:#e6edf5;
-      --text:#172033;
-      --muted:#66758a;
-      --brand:#38b6ff;
-      --brand-dark:#1677a8;
+      --line:#e5eee9;
+      --text:#1d2b2a;
+      --muted:#6e7d79;
+      --brand:#36c4a4;
+      --brand-dark:#188f77;
       --ok:#0f9f6e;
       --warn:#b7791f;
       --danger:#c24141;
-      --soft-ok:#e4f8ee;
+      --soft-ok:#e7f8ef;
       --soft-warn:#fff4da;
       --soft-danger:#fee9e9;
-      --shadow:0 10px 30px rgba(23,32,51,.07);
-      --shadow-strong:0 24px 70px rgba(23,32,51,.22);
+      --bubble-in:#ffffff;
+      --bubble-out:#dcf8e9;
+      --bubble-out-border:#c4ecd7;
+      --shadow:0 10px 30px rgba(29,43,42,.06);
+      --shadow-strong:0 24px 70px rgba(29,43,42,.18);
       font-family:'Nunito',sans-serif;
       color:var(--text);
       width:100%;
@@ -47,7 +50,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       flex-direction:column;
       min-width:0;
       min-height:0;
-      background:#fbfcfe;
+      background:#fbfdfb;
     }
 
     .chat-main-pane{
@@ -55,7 +58,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       flex-direction:column;
       min-width:0;
       min-height:0;
-      background:linear-gradient(180deg,#ffffff 0%,#f8fafc 100%);
+      background:linear-gradient(180deg,#ffffff 0%,#f7fbf8 100%);
     }
 
     .chat-pane-head{
@@ -71,7 +74,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     }
 
     .chat-title{display:flex;align-items:center;gap:10px;min-width:0;}
-    .chat-title i{color:var(--brand);font-size:26px;}
+    .chat-title i{color:var(--brand-dark);font-size:26px;}
     .chat-title strong{display:block;font-size:21px;font-weight:900;line-height:1.1;}
     .chat-title span{display:block;color:var(--muted);font-size:13px;font-weight:800;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
@@ -90,7 +93,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       flex:0 0 48px;
       font-size:16px;
     }
-    .icon-btn:hover{border-color:#bfe8ff;color:var(--brand-dark);background:#f5fbff;}
+    .icon-btn:hover{border-color:#bdebdc;color:var(--brand-dark);background:#f4fcf8;}
     .icon-btn.primary{background:var(--brand);border-color:var(--brand);color:#fff;}
     .icon-btn.primary:hover{background:var(--brand-dark);border-color:var(--brand-dark);color:#fff;}
     .icon-btn:disabled{opacity:.45;cursor:not-allowed;}
@@ -119,7 +122,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     }
     .chat-input{height:48px;padding:0 13px 0 38px;font-size:14px;}
     .chat-input.plain{padding-left:12px;}
-    .chat-input:focus,.chat-textarea:focus{border-color:#9bdcff;background:#fff;box-shadow:0 0 0 3px rgba(56,182,255,.14);}
+    .chat-input:focus,.chat-textarea:focus{border-color:#9de4cf;background:#fff;box-shadow:0 0 0 3px rgba(54,196,164,.13);}
 
     .new-chat-box{
       display:none;
@@ -147,7 +150,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       padding:4px;
       border:1px solid var(--line);
       border-radius:8px;
-      background:#f2f6fb;
+      background:#f1f7f4;
     }
     .filter-tab{
       height:36px;
@@ -190,13 +193,13 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       transition:.16s;
       min-height:94px;
     }
-    .thread-item:hover{background:#fff;border-color:var(--line);}
-    .thread-item.active{background:#eef8ff;border-color:#bfe8ff;}
+    .thread-item:hover{background:#fff;border-color:var(--line);box-shadow:0 8px 22px rgba(29,43,42,.04);}
+    .thread-item.active{background:#effbf6;border-color:#bdebdc;}
     .avatar{
       width:50px;
       height:50px;
       border-radius:8px;
-      background:#172033;
+      background:linear-gradient(135deg,#36c4a4,#7cc7ff);
       color:#fff;
       display:flex;
       align-items:center;
@@ -227,7 +230,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       background:#eef2f7;
       color:#526174;
     }
-    .status-pill.read{background:#e6f6ff;color:#12628f;}
+    .status-pill.read{background:#e8f8ff;color:#12628f;}
     .status-pill.delivered,.status-pill.sent,.status-pill.accepted{background:var(--soft-ok);color:#08734d;}
     .status-pill.failed{background:var(--soft-danger);color:var(--danger);}
     .status-pill.received{background:#f0f4f8;color:#405064;}
@@ -235,10 +238,10 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .chat-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;}
     .charge-btn{
       height:48px;
-      border:1px solid #bfe8ff;
+      border:1px solid #bdebdc;
       border-radius:8px;
-      background:#eef8ff;
-      color:#12628f;
+      background:#effbf6;
+      color:#147865;
       display:inline-flex;
       align-items:center;
       justify-content:center;
@@ -251,7 +254,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       font-weight:900;
       white-space:nowrap;
     }
-    .charge-btn:hover{background:#dff3ff;border-color:#8bd5ff;}
+    .charge-btn:hover{background:#e0f8ee;border-color:#92ddc7;}
     .charge-btn:disabled{opacity:.45;cursor:not-allowed;background:#f3f7fb;border-color:var(--line);color:#7d8da1;}
 
     .window-panel{
@@ -282,8 +285,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       flex-direction:column;
       gap:12px;
       background:
-        radial-gradient(circle at top left, rgba(56,182,255,.08), transparent 280px),
-        #f8fafc;
+        radial-gradient(circle at top left, rgba(54,196,164,.11), transparent 260px),
+        linear-gradient(180deg,#f7fbf8 0%,#f2f8f4 100%);
     }
 
     .empty-state{
@@ -300,35 +303,60 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .msg-row.out{justify-content:flex-end;}
     .bubble{
       max-width:min(760px,80%);
-      border:1px solid var(--line);
-      border-radius:8px;
-      padding:14px 16px 10px;
-      background:#fff;
-      box-shadow:0 4px 14px rgba(23,32,51,.05);
+      border:1px solid rgba(214,226,220,.9);
+      border-radius:18px;
+      padding:12px 14px 8px;
+      background:var(--bubble-in);
+      box-shadow:0 6px 18px rgba(29,43,42,.045);
       word-break:break-word;
+      position:relative;
     }
-    .msg-row.out .bubble{background:#eaf8ff;border-color:#bfe8ff;}
+    .msg-row.in .bubble{border-top-left-radius:6px;}
+    .msg-row.out .bubble{background:var(--bubble-out);border-color:var(--bubble-out-border);border-top-right-radius:6px;}
     .msg-body{font-size:15px;font-weight:800;line-height:1.5;white-space:pre-wrap;}
-    .msg-body a{color:#12628f;text-decoration:underline;text-underline-offset:2px;overflow-wrap:anywhere;}
+    .msg-body a{color:#117e6b;text-decoration:underline;text-underline-offset:2px;overflow-wrap:anywhere;}
     .media-box{display:grid;gap:8px;margin-bottom:9px;}
-    .media-img,.media-video{max-width:360px;width:100%;border-radius:8px;border:1px solid var(--line);background:#eef2f7;display:block;}
+    .media-img,.media-video{max-width:360px;width:100%;border-radius:14px;border:1px solid rgba(214,226,220,.9);background:#eef5f1;display:block;}
     .media-audio{width:min(360px,100%);}
     .media-file{
-      display:inline-flex;
+      display:grid;
+      grid-template-columns:44px minmax(0,1fr) 34px;
       align-items:center;
-      gap:9px;
-      width:max-content;
-      max-width:100%;
-      border:1px solid var(--line);
-      border-radius:8px;
-      background:#f8fafc;
-      padding:10px 12px;
+      gap:12px;
+      width:min(360px,100%);
+      border:1px solid rgba(214,226,220,.95);
+      border-radius:14px;
+      background:rgba(255,255,255,.72);
+      padding:10px;
       color:#172033;
       text-decoration:none;
-      font-size:13px;
-      font-weight:900;
+      box-sizing:border-box;
     }
-    .media-file:hover{border-color:#bfe8ff;color:#12628f;background:#eef8ff;}
+    .media-file:hover{border-color:#9de4cf;color:#117e6b;background:#fff;}
+    .media-file-icon{
+      width:44px;
+      height:44px;
+      border-radius:12px;
+      background:#e7515f;
+      color:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:19px;
+      flex:0 0 44px;
+    }
+    .media-file-name{display:block;font-size:13px;font-weight:900;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .media-file-meta{display:block;font-size:11px;font-weight:900;color:#71827d;margin-top:3px;text-transform:uppercase;}
+    .media-file-open{
+      width:34px;
+      height:34px;
+      border-radius:999px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:#edf7f2;
+      color:#147865;
+    }
     .media-caption{margin-top:2px;}
     .msg-foot{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:8px;color:#718096;font-size:11px;font-weight:900;}
     .msg-error{margin-top:8px;color:var(--danger);font-size:12px;font-weight:900;}
@@ -853,10 +881,26 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         image: ['[imagem]'],
         video: ['[video]'],
         audio: ['[audio]'],
-        sticker: ['[figurinha]']
+        sticker: ['[figurinha]'],
+        document: ['[documento]']
       };
       if (placeholders[type]?.includes(body.trim().toLowerCase())) return '';
       return linkify(body);
+    }
+
+    function mediaFileName(msg){
+      const media = msg.media || {};
+      const fallback = String(msg.body || '').replace(/^\[documento\]\s*/i, '').trim();
+      return media.filename || fallback || 'Documento';
+    }
+
+    function mediaKindLabel(msg){
+      const mime = String(msg.media?.mime_type || '').toLowerCase();
+      if (mime.includes('pdf')) return 'PDF';
+      if (mime.includes('word') || mime.includes('document')) return 'DOC';
+      if (mime.includes('spreadsheet') || mime.includes('excel')) return 'XLS';
+      if (mime.includes('image')) return 'Imagem';
+      return 'Arquivo';
     }
 
     function mediaHtml(msg){
@@ -872,7 +916,20 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         return `<div class="media-box"><audio class="media-audio" src="${attr(url)}" controls preload="metadata"></audio></div>`;
       }
       if (type === 'document') {
-        return `<div class="media-box"><a class="media-file" href="${attr(url)}" target="_blank" rel="noopener"><i class="fa-regular fa-file-lines"></i> Abrir documento</a></div>`;
+        const name = mediaFileName(msg);
+        const kind = mediaKindLabel(msg);
+        return `
+          <div class="media-box">
+            <a class="media-file" href="${attr(url)}" target="_blank" rel="noopener" title="Abrir documento">
+              <span class="media-file-icon"><i class="fa-regular fa-file-lines"></i></span>
+              <span style="min-width:0;">
+                <span class="media-file-name">${esc(name)}</span>
+                <span class="media-file-meta">${esc(kind)} - tocar para abrir</span>
+              </span>
+              <span class="media-file-open"><i class="fa-solid fa-arrow-up-right-from-square"></i></span>
+            </a>
+          </div>
+        `;
       }
       return '';
     }
@@ -946,7 +1003,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         const data = await fetchJson(url.toString(), {cache:'no-store'});
         const messages = Array.isArray(data.messages) ? data.messages : [];
         state.lastCharge = data.last_charge || null;
-        const hash = JSON.stringify(messages.map(m => [m.id, m.status, m.message_type, m.body, m.error_text]));
+        const hash = JSON.stringify(messages.map(m => [m.id, m.status, m.message_type, m.body, m.error_text, m.media?.filename, m.media?.mime_type]));
         const activeThread = data.thread || state.threads.find(t => t.phone === state.selectedPhone);
         setActiveHeader(activeThread);
 
