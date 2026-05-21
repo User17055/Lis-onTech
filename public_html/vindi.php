@@ -169,6 +169,29 @@ function mysqlDateTimeOrNull($value): ?string
     return $ts ? date('Y-m-d H:i:s', $ts) : null;
 }
 
+function ensureBillReminderColumn(PDO $pdo, string $column, string $definition): void
+{
+    if (!preg_match('/^[a-zA-Z0-9_]+$/', $column)) {
+        return;
+    }
+
+    try {
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'bill_reminders'
+              AND COLUMN_NAME = ?
+        ");
+        $stmt->execute([$column]);
+        if ((int)$stmt->fetchColumn() === 0) {
+            $pdo->exec("ALTER TABLE bill_reminders ADD COLUMN {$column} {$definition}");
+        }
+    } catch (Throwable $e) {
+        bootlog("ERRO ao garantir coluna bill_reminders.{$column}: " . $e->getMessage());
+    }
+}
+
 function billAmountOrNull(array $bill): ?string
 {
     foreach (['amount', 'total', 'value'] as $key) {
@@ -325,14 +348,20 @@ if ($evento === 'bill_paid' || $evento === 'bill_canceled') {
     $billIdInt = (int) (is_array($bill) ? ($bill['id'] ?? 0) : 0);
 
     if ($billIdInt > 0) {
+        ensureBillReminderColumn($pdo, 'paid_at', 'DATETIME NULL');
         // Upsert: se não existir, cria; se existir, desativa
         $statusEvento = $evento === 'bill_paid' ? 'paid' : 'canceled';
+        $paidAt = $evento === 'bill_paid'
+            ? (mysqlDateTimeOrNull($dados['event']['created_at'] ?? null)
+                ?: mysqlDateTimeOrNull(is_array($bill) ? ($bill['paid_at'] ?? $bill['updated_at'] ?? null) : null)
+                ?: date('Y-m-d H:i:s'))
+            : null;
         $st = $pdo->prepare("
-            INSERT INTO bill_reminders (bill_id, active, status)
-            VALUES (?, 0, ?)
-            ON DUPLICATE KEY UPDATE active=0, status=VALUES(status)
+            INSERT INTO bill_reminders (bill_id, active, status, paid_at)
+            VALUES (?, 0, ?, ?)
+            ON DUPLICATE KEY UPDATE active=0, status=VALUES(status), paid_at=COALESCE(VALUES(paid_at), paid_at)
         ");
-        $st->execute([$billIdInt, $statusEvento]);
+        $st->execute([$billIdInt, $statusEvento, $paidAt]);
 
         logLine($LOG_FILE, "bill_reminders desativado por {$evento} | bill_id={$billIdInt} | status={$statusEvento}");
     } else {
@@ -459,6 +488,7 @@ try {
 
             if ($billIdInt > 0) {
                 try {
+                    ensureBillReminderColumn($pdo, 'paid_at', 'DATETIME NULL');
                     $st = $pdo->prepare("
                         UPDATE bill_reminders
                         SET status='paid',
@@ -466,6 +496,7 @@ try {
                             customer_id = COALESCE(?, customer_id),
                             customer_name = COALESCE(?, customer_name),
                             bill_url = COALESCE(NULLIF(?, ''), bill_url),
+                            paid_at = COALESCE(paid_at, NOW()),
                             next_reminder_at = NULL
                         WHERE bill_id = ?
                     ");
