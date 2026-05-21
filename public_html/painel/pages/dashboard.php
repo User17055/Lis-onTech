@@ -8,115 +8,197 @@ $defaultCost = cfg($cfg, 'WHATSAPP_MESSAGE_COST_BRL', cfg($cfg, 'META_MESSAGE_CO
 <div class="dash-wrap">
   <style>
     .dash-wrap{
-      --bg:#f7f9fc;
-      --panel:#ffffff;
-      --line:#e6edf5;
-      --text:#172033;
-      --muted:#66758a;
-      --brand:#38b6ff;
-      --brand-dark:#1677a8;
-      --ok:#0f9f6e;
-      --warn:#b7791f;
-      --danger:#c24141;
-      --soft-ok:#e4f8ee;
-      --soft-warn:#fff4da;
-      --soft-danger:#fee9e9;
-      --soft-blue:#e6f6ff;
-      --shadow:0 12px 28px rgba(23,32,51,.06);
+      --bg-body:#ffffff;
+      --bg-panel:#f4f7fa;
+      --primary:#38b6ff;
+      --primary-hover:rgb(39, 121, 169);
+      --text-main:#1e293b;
+      --text-muted:#64748b;
+      --border-color:#eef2f6;
+      --green-bg:#d1fae5;
+      --green-text:#065f46;
+      --red-bg:#fee2e2;
+      --red-text:#991b1b;
+      --blue-bg:#dbeafe;
+      --blue-text:#1e40af;
+      --yellow-bg:#fef3c7;
+      --yellow-text:#92400e;
+      --radius-pill:50px;
+      --radius-card:20px;
+      --shadow-soft:0 4px 6px -1px rgba(0,0,0,.05),0 2px 4px -1px rgba(0,0,0,.03);
+      --shadow-hover:0 10px 15px -3px rgba(59,130,246,.15);
       font-family:'Nunito',sans-serif;
-      color:var(--text);
+      color:var(--text-main);
     }
     .dash-head{
+      background:#ffffff;
+      border-bottom:2px solid var(--border-color);
+      padding:0 40px;
+      height:70px;
       display:flex;
-      align-items:center;
       justify-content:space-between;
-      gap:18px;
-      margin-bottom:22px;
+      align-items:center;
+      position:sticky;
+      top:0;
+      z-index:50;
+      border-radius:16px;
+      box-shadow:var(--shadow-soft);
+      margin-bottom:25px;
     }
     .dash-title{display:flex;align-items:center;gap:12px;min-width:0;}
     .dash-title i{
-      width:48px;height:48px;border-radius:8px;background:var(--soft-blue);
-      color:var(--brand-dark);display:flex;align-items:center;justify-content:center;font-size:21px;
+      color:var(--primary);
+      font-size:24px;
+      width:auto;
+      height:auto;
+      background:transparent;
     }
-    .dash-title h1{font-size:28px;line-height:1.1;margin:0;font-weight:900;letter-spacing:0;}
-    .dash-title p{margin:5px 0 0;color:var(--muted);font-size:13px;font-weight:800;}
+    .dash-title h1{font-size:22px;line-height:1.1;margin:0;font-weight:800;letter-spacing:0;}
+    .dash-title p{margin:4px 0 0;color:var(--text-muted);font-size:12px;font-weight:700;}
     .status-pill{
-      display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;
-      background:#fff;padding:10px 12px;color:var(--muted);font-size:12px;font-weight:900;white-space:nowrap;
+      font-size:13px;
+      color:var(--text-main);
+      background:var(--bg-panel);
+      padding:8px 20px;
+      border-radius:var(--radius-pill);
+      font-weight:700;
+      border:2px solid var(--border-color);
+      display:flex;
+      align-items:center;
+      gap:8px;
+      transition:all .5s ease;
+      white-space:nowrap;
     }
-    .status-dot{width:8px;height:8px;border-radius:50%;background:var(--brand);}
+    .status-dot{width:8px;height:8px;border-radius:50%;background:var(--primary);display:inline-block;animation:pulse-dot 1.5s infinite;}
+    .dash-container{max-width:1100px;margin:0 auto;padding:0 25px;}
 
     .filters{
-      background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);
-      padding:14px;display:grid;grid-template-columns:170px 170px 170px 170px 48px;gap:10px;align-items:end;margin-bottom:18px;
+      background:#ffffff;
+      border:2px solid var(--border-color);
+      border-radius:var(--radius-pill);
+      padding:12px 20px;
+      display:flex;
+      gap:12px;
+      align-items:center;
+      box-shadow:var(--shadow-soft);
+      margin-bottom:28px;
+      flex-wrap:wrap;
+      transition:box-shadow .3s;
     }
-    .field{display:grid;gap:6px;min-width:0;}
-    .field label{font-size:11px;text-transform:uppercase;color:var(--muted);font-weight:900;}
+    .filters:hover{box-shadow:var(--shadow-hover);}
+    .field{display:grid;gap:6px;min-width:150px;flex:1;}
+    .field label{font-size:11px;text-transform:uppercase;color:var(--text-muted);font-weight:900;padding-left:12px;}
     .field input{
-      height:44px;border:1px solid var(--line);border-radius:8px;background:#f8fafc;color:var(--text);
-      padding:0 12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;outline:none;box-sizing:border-box;
+      height:45px;
+      border:2px solid transparent;
+      border-radius:var(--radius-pill);
+      background:var(--bg-panel);
+      color:var(--text-main);
+      padding:0 18px;
+      font-family:'Nunito',sans-serif;
+      font-size:15px;
+      font-weight:700;
+      outline:none;
+      box-sizing:border-box;
+      min-width:0;
     }
-    .field input:focus{border-color:#9bdcff;background:#fff;box-shadow:0 0 0 3px rgba(56,182,255,.14);}
+    .field input:focus{background:#fff;border-color:var(--primary);box-shadow:0 0 0 4px rgba(59,130,246,.1);}
     .icon-btn{
-      width:48px;height:44px;border:1px solid var(--brand);border-radius:8px;background:var(--brand);
-      color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;
+      height:45px;
+      border:0;
+      border-radius:var(--radius-pill);
+      background:var(--primary);
+      color:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      padding:0 22px;
+      cursor:pointer;
+      font-size:15px;
+      font-weight:700;
+      font-family:'Nunito',sans-serif;
+      box-shadow:0 4px 6px rgba(59,130,246,.2);
+      transition:all .2s cubic-bezier(.4,0,.2,1);
     }
-    .icon-btn:hover{background:var(--brand-dark);border-color:var(--brand-dark);}
+    .icon-btn:hover{transform:translateY(-2px);background:var(--primary-hover);}
+    .icon-btn:active{transform:translateY(1px) scale(.95);box-shadow:none;}
 
     .metric-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px;}
     .metric{
-      background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);
-      padding:16px;min-height:126px;box-sizing:border-box;display:grid;align-content:space-between;gap:10px;
+      background:#ffffff;
+      border:2px solid var(--border-color);
+      border-radius:var(--radius-card);
+      box-shadow:var(--shadow-soft);
+      padding:18px 20px;
+      min-height:132px;
+      box-sizing:border-box;
+      display:grid;
+      align-content:space-between;
+      gap:12px;
+      transition:all .2s ease;
     }
+    .metric:hover{transform:translateY(-3px) scale(1.005);box-shadow:var(--shadow-hover);border-color:#dbeafe;}
     .metric .top{display:flex;align-items:center;justify-content:space-between;gap:10px;}
-    .metric .label{font-size:12px;color:var(--muted);font-weight:900;text-transform:uppercase;}
+    .metric .label{font-size:12px;color:var(--text-muted);font-weight:900;text-transform:uppercase;}
     .metric .icon{
-      width:38px;height:38px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--soft-blue);color:var(--brand-dark);
+      width:38px;height:38px;border-radius:999px;display:flex;align-items:center;justify-content:center;background:#eff6ff;color:var(--primary);
     }
-    .metric.ok .icon{background:var(--soft-ok);color:var(--ok);}
-    .metric.warn .icon{background:var(--soft-warn);color:var(--warn);}
-    .metric.danger .icon{background:var(--soft-danger);color:var(--danger);}
+    .metric.ok .icon{background:var(--green-bg);color:var(--green-text);}
+    .metric.warn .icon{background:var(--yellow-bg);color:var(--yellow-text);}
+    .metric.danger .icon{background:var(--red-bg);color:var(--red-text);}
     .metric strong{display:block;font-size:26px;line-height:1;font-weight:900;letter-spacing:0;}
-    .metric span{font-size:12px;color:var(--muted);font-weight:800;}
+    .metric span{font-size:12px;color:var(--text-muted);font-weight:800;}
 
     .dash-layout{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(360px,.8fr);gap:14px;}
     .panel{
-      background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);
-      padding:16px;min-width:0;box-sizing:border-box;
+      background:#ffffff;
+      border:2px solid var(--border-color);
+      border-radius:var(--radius-card);
+      box-shadow:var(--shadow-soft);
+      padding:20px;
+      min-width:0;
+      box-sizing:border-box;
+      transition:box-shadow .2s ease,border-color .2s ease;
     }
+    .panel:hover{box-shadow:var(--shadow-hover);border-color:#dbeafe;}
     .panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;}
     .panel-title{font-size:16px;font-weight:900;margin:0;}
-    .panel-sub{font-size:12px;color:var(--muted);font-weight:800;}
+    .panel-sub{font-size:12px;color:var(--text-muted);font-weight:800;}
     .bar-chart{display:grid;gap:9px;}
-    .bar-row{display:grid;grid-template-columns:92px minmax(0,1fr) 70px;gap:10px;align-items:center;font-size:12px;font-weight:900;color:var(--muted);}
-    .bar-track{height:12px;background:#edf3f8;border-radius:999px;overflow:hidden;}
-    .bar-fill{height:100%;min-width:2px;background:linear-gradient(90deg,#38b6ff,#0f9f6e);border-radius:999px;}
+    .bar-row{display:grid;grid-template-columns:92px minmax(0,1fr) 70px;gap:10px;align-items:center;font-size:12px;font-weight:900;color:var(--text-muted);}
+    .bar-track{height:13px;background:var(--bg-panel);border-radius:999px;overflow:hidden;border:1px solid var(--border-color);}
+    .bar-fill{height:100%;min-width:2px;background:var(--primary);border-radius:999px;}
     .split-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;}
     .mini-list{display:grid;gap:10px;}
     .mini-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #eef2f6;}
     .mini-row:last-child{border-bottom:0;}
     .mini-main{min-width:0;}
     .mini-main strong{display:block;font-size:13px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    .mini-main span{display:block;font-size:11px;color:var(--muted);font-weight:800;margin-top:2px;}
+    .mini-main span{display:block;font-size:11px;color:var(--text-muted);font-weight:800;margin-top:2px;}
     .mini-value{text-align:right;font-size:13px;font-weight:900;white-space:nowrap;}
-    .empty{color:var(--muted);font-size:13px;font-weight:800;text-align:center;padding:28px 12px;background:#f8fafc;border-radius:8px;}
+    .empty{color:var(--text-muted);font-size:13px;font-weight:800;text-align:center;padding:28px 12px;background:var(--bg-panel);border-radius:16px;}
     .note{
-      margin-top:14px;border:1px solid #dbeafe;background:#f7fbff;border-radius:8px;padding:12px;
-      color:#526174;font-size:12px;line-height:1.45;font-weight:800;
+      margin-top:14px;border:2px solid var(--border-color);background:#ffffff;border-radius:var(--radius-card);padding:14px 16px;
+      color:var(--text-muted);font-size:12px;line-height:1.45;font-weight:800;box-shadow:var(--shadow-soft);
     }
-    .table{width:100%;border-collapse:collapse;}
-    .table th{text-align:left;color:var(--muted);font-size:11px;text-transform:uppercase;padding:0 0 9px;font-weight:900;}
-    .table td{border-top:1px solid #eef2f6;padding:10px 0;font-size:13px;font-weight:800;vertical-align:middle;}
+    .table{width:100%;border-collapse:separate;border-spacing:0 9px;}
+    .table th{text-align:left;color:var(--text-muted);font-size:12px;text-transform:uppercase;padding:0 12px;font-weight:900;}
+    .table td{background:#ffffff;border-top:2px solid var(--border-color);border-bottom:2px solid var(--border-color);padding:12px;font-size:13px;font-weight:800;vertical-align:middle;}
+    .table td:first-child{border-left:2px solid var(--border-color);border-top-left-radius:16px;border-bottom-left-radius:16px;}
+    .table td:last-child{border-right:2px solid var(--border-color);border-top-right-radius:16px;border-bottom-right-radius:16px;}
     .table td:last-child,.table th:last-child{text-align:right;}
+    @keyframes pulse-dot{0%{opacity:.5;transform:scale(1);}50%{opacity:1;transform:scale(1.3);}100%{opacity:.5;transform:scale(1);}}
 
     @media(max-width:1120px){
-      .filters{grid-template-columns:repeat(2,minmax(0,1fr)) 48px;}
       .metric-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
       .dash-layout{grid-template-columns:1fr;}
     }
     @media(max-width:680px){
-      .dash-head{align-items:flex-start;flex-direction:column;}
-      .filters{grid-template-columns:1fr;}
+      .dash-head{align-items:flex-start;flex-direction:column;height:auto;padding:18px 20px;}
+      .dash-container{padding:0 8px;}
+      .filters{border-radius:24px;align-items:stretch;}
+      .field{min-width:100%;flex-basis:100%;}
       .icon-btn{width:100%;}
       .metric-grid,.split-grid{grid-template-columns:1fr;}
       .bar-row{grid-template-columns:72px minmax(0,1fr) 54px;}
@@ -134,6 +216,7 @@ $defaultCost = cfg($cfg, 'WHATSAPP_MESSAGE_COST_BRL', cfg($cfg, 'META_MESSAGE_CO
     <div class="status-pill"><span class="status-dot" id="dashDot"></span><span id="dashStatus">Aguardando...</span></div>
   </div>
 
+  <div class="dash-container">
   <div class="filters">
     <div class="field">
       <label for="month">Mes</label>
@@ -152,7 +235,7 @@ $defaultCost = cfg($cfg, 'WHATSAPP_MESSAGE_COST_BRL', cfg($cfg, 'META_MESSAGE_CO
       <input id="unitCost" inputmode="decimal" value="<?= htmlspecialchars($defaultCost, ENT_QUOTES, 'UTF-8') ?>" placeholder="0,00">
     </div>
     <button class="icon-btn" id="btnLoadDash" type="button" title="Atualizar dashboard">
-      <i class="fa-solid fa-rotate"></i>
+      Atualizar <i class="fa-solid fa-rotate"></i>
     </button>
   </div>
 
@@ -258,6 +341,7 @@ $defaultCost = cfg($cfg, 'WHATSAPP_MESSAGE_COST_BRL', cfg($cfg, 'META_MESSAGE_CO
       </div>
     </div>
   </div>
+  </div>
 
   <script>
     const dashEl = (id) => document.getElementById(id);
@@ -347,7 +431,7 @@ $defaultCost = cfg($cfg, 'WHATSAPP_MESSAGE_COST_BRL', cfg($cfg, 'META_MESSAGE_CO
           <td>
             <div class="mini-main">
               <strong>${esc(row.customer_name || 'Cliente')}</strong>
-              <span>Bill ${esc(row.bill_id)} · pago em ${esc(brDate(row.paid_at))}</span>
+              <span>Bill ${esc(row.bill_id)} - pago em ${esc(brDate(row.paid_at))}</span>
             </div>
           </td>
           <td>${brMoney(row.amount)}</td>
