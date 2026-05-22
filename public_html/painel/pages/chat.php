@@ -377,12 +377,12 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       align-items:center;
       gap:12px;
       width:min(390px,100%);
-      border:1px solid #bfe8ff;
+      border:1px solid rgba(191,232,255,.95);
       border-radius:14px;
-      background:#eef8ff;
+      background:#fff;
       padding:12px;
       box-sizing:border-box;
-      box-shadow:0 2px 6px rgba(18,98,143,.06);
+      box-shadow:0 4px 14px rgba(23,32,51,.06);
     }
     .media-audio-icon{
       width:50px;
@@ -394,7 +394,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       align-items:center;
       justify-content:center;
       font-size:20px;
-      box-shadow:inset 0 -10px 18px rgba(22,119,168,.16);
+      box-shadow:inset 0 -10px 18px rgba(22,119,168,.16),0 4px 10px rgba(56,182,255,.18);
     }
     .media-audio-info{min-width:0;display:grid;gap:8px;}
     .media-audio-title{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0;}
@@ -406,18 +406,18 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       min-width:0;
       height:40px;
       border-radius:999px;
-      background:#dceefa;
-      border:1px solid rgba(191,232,255,.9);
+      background:#f1f7fc;
+      border:1px solid #e0edf7;
       padding:0 8px;
       box-sizing:border-box;
     }
     .media-audio{width:100%;height:32px;display:block;filter:sepia(8%) saturate(120%) hue-rotate(165deg);}
     .media-audio::-webkit-media-controls-enclosure{
       border-radius:999px;
-      background:#dceefa;
+      background:#f1f7fc;
     }
     .media-audio::-webkit-media-controls-panel{
-      background:#dceefa;
+      background:#f1f7fc;
     }
     .media-download{
       width:42px;
@@ -426,14 +426,14 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       display:flex;
       align-items:center;
       justify-content:center;
-      background:#dff3ff;
+      background:#eef8ff;
       color:#12628f;
       text-decoration:none;
       border:1px solid #bfe8ff;
       font-size:16px;
       box-shadow:0 1px 3px rgba(18,98,143,.08);
     }
-    .media-download:hover{background:#cdeeff;border-color:#8bd5ff;color:#0f5f89;}
+    .media-download:hover{background:#dff3ff;border-color:#8bd5ff;color:#0f5f89;}
     .media-file{
       display:grid;
       grid-template-columns:44px minmax(0,1fr) 34px;
