@@ -311,9 +311,44 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     }
     .msg-row.in .bubble{border-top-left-radius:6px;}
     .msg-row.out .bubble{background:var(--bubble-out);border-color:var(--bubble-out-border);border-top-right-radius:6px;}
+    .bubble.media-bubble{
+      background:transparent;
+      border:0;
+      box-shadow:none;
+      padding:0;
+      max-width:min(460px,86%);
+    }
+    .msg-row.out .bubble.media-bubble{background:transparent;border-color:transparent;}
+    .bubble.media-bubble .msg-body{
+      display:inline-block;
+      max-width:100%;
+      border:1px solid rgba(214,226,238,.95);
+      border-radius:12px;
+      background:#fff;
+      padding:9px 11px;
+      box-sizing:border-box;
+    }
+    .msg-row.out .bubble.media-bubble .msg-body{
+      background:var(--bubble-out);
+      border-color:var(--bubble-out-border);
+    }
+    .bubble.media-bubble .msg-foot{
+      justify-content:flex-start;
+      width:max-content;
+      max-width:100%;
+      margin-top:6px;
+      padding:4px 7px;
+      border-radius:999px;
+      background:rgba(255,255,255,.82);
+      border:1px solid rgba(214,226,238,.85);
+      backdrop-filter:blur(4px);
+    }
+    .msg-row.out .bubble.media-bubble .msg-foot{margin-left:auto;}
     .msg-body{font-size:15px;font-weight:800;line-height:1.5;white-space:pre-wrap;}
     .msg-body a{color:#12628f;text-decoration:underline;text-underline-offset:2px;overflow-wrap:anywhere;}
     .media-box{display:grid;gap:8px;margin-bottom:9px;}
+    .bubble.media-bubble .media-box{margin-bottom:0;}
+    .bubble.media-bubble .msg-body.media-caption{margin-top:8px;}
     .media-img{
       width:168px;
       height:168px;
@@ -1114,9 +1149,10 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       const error = msg.error_text ? `<div class="msg-error">${esc(msg.error_text)}</div>` : '';
       const media = mediaHtml(msg);
       const body = messageBodyHtml(msg);
+      const bubbleClass = media ? 'bubble media-bubble' : 'bubble';
       return `
         <div class="msg-row ${dir}">
-          <div class="bubble">
+          <div class="${bubbleClass}">
             ${media}
             ${body ? `<div class="msg-body ${media ? 'media-caption' : ''}">${body}</div>` : ''}
             ${error}
@@ -1136,7 +1172,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
 
     function messageBodyHtml(msg){
       const type = String(msg.message_type || '').toLowerCase();
-      const body = String(msg.body || '');
+      let body = String(msg.body || '');
       const placeholders = {
         image: ['[imagem]'],
         video: ['[video]'],
@@ -1145,6 +1181,13 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         document: ['[documento]']
       };
       if (placeholders[type]?.includes(body.trim().toLowerCase())) return '';
+      if (type === 'image') body = body.replace(/^\[imagem\]\s*/i, '');
+      if (type === 'video') body = body.replace(/^\[video\]\s*/i, '');
+      if (type === 'audio') body = body.replace(/^\[audio\]\s*/i, '');
+      if (type === 'document') body = body.replace(/^\[documento\]\s*/i, '');
+      if (type === 'sticker') body = body.replace(/^\[figurinha\]\s*/i, '');
+      body = body.trim();
+      if (body === '') return '';
       return linkify(body);
     }
 
