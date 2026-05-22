@@ -373,45 +373,67 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .media-video{max-width:360px;width:100%;border-radius:12px;border:1px solid rgba(214,226,238,.95);background:#eef5fb;display:block;}
     .media-audio-card{
       display:grid;
-      grid-template-columns:44px minmax(0,1fr) 38px;
+      grid-template-columns:50px minmax(0,1fr) 42px;
       align-items:center;
       gap:12px;
-      width:min(420px,100%);
-      border:1px solid rgba(214,226,238,.95);
-      border-radius:12px;
-      background:#fff;
-      padding:10px;
+      width:min(390px,100%);
+      border:1px solid #bfe8ff;
+      border-radius:14px;
+      background:#eef8ff;
+      padding:12px;
       box-sizing:border-box;
+      box-shadow:0 2px 6px rgba(18,98,143,.06);
     }
     .media-audio-icon{
-      width:44px;
-      height:44px;
-      border-radius:10px;
-      background:#0f9f6e;
+      width:50px;
+      height:50px;
+      border-radius:11px;
+      background:#38b6ff;
       color:#fff;
       display:flex;
       align-items:center;
       justify-content:center;
-      font-size:18px;
+      font-size:20px;
+      box-shadow:inset 0 -10px 18px rgba(22,119,168,.16);
     }
-    .media-audio-info{min-width:0;display:grid;gap:7px;}
+    .media-audio-info{min-width:0;display:grid;gap:8px;}
     .media-audio-title{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0;}
-    .media-audio-title strong{font-size:13px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    .media-audio-title span{font-size:11px;font-weight:900;color:#718096;text-transform:uppercase;white-space:nowrap;}
-    .media-audio{width:100%;height:38px;display:block;}
+    .media-audio-title strong{font-size:13px;font-weight:900;color:#172033;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .media-audio-title span{font-size:11px;font-weight:900;color:#526e95;text-transform:uppercase;white-space:nowrap;}
+    .media-audio-shell{
+      display:flex;
+      align-items:center;
+      min-width:0;
+      height:40px;
+      border-radius:999px;
+      background:#dceefa;
+      border:1px solid rgba(191,232,255,.9);
+      padding:0 8px;
+      box-sizing:border-box;
+    }
+    .media-audio{width:100%;height:32px;display:block;filter:sepia(8%) saturate(120%) hue-rotate(165deg);}
+    .media-audio::-webkit-media-controls-enclosure{
+      border-radius:999px;
+      background:#dceefa;
+    }
+    .media-audio::-webkit-media-controls-panel{
+      background:#dceefa;
+    }
     .media-download{
-      width:38px;
-      height:38px;
+      width:42px;
+      height:42px;
       border-radius:999px;
       display:flex;
       align-items:center;
       justify-content:center;
-      background:#eef8ff;
+      background:#dff3ff;
       color:#12628f;
       text-decoration:none;
-      border:1px solid #d9edf8;
+      border:1px solid #bfe8ff;
+      font-size:16px;
+      box-shadow:0 1px 3px rgba(18,98,143,.08);
     }
-    .media-download:hover{background:#dff3ff;border-color:#9bdcff;color:#0f5f89;}
+    .media-download:hover{background:#cdeeff;border-color:#8bd5ff;color:#0f5f89;}
     .media-file{
       display:grid;
       grid-template-columns:44px minmax(0,1fr) 34px;
@@ -1236,9 +1258,11 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
                   <strong>${esc(name)}</strong>
                   <span>${esc(kind)}</span>
                 </span>
-                <audio class="media-audio" src="${attr(url)}" controls preload="metadata">
-                  Seu navegador nao conseguiu tocar este audio.
-                </audio>
+                <span class="media-audio-shell">
+                  <audio class="media-audio" src="${attr(url)}" controls preload="metadata">
+                    Seu navegador nao conseguiu tocar este audio.
+                  </audio>
+                </span>
               </span>
               <a class="media-download" href="${attr(downloadUrl)}" download="${attr(name)}" title="Baixar audio">
                 <i class="fa-solid fa-download"></i>
