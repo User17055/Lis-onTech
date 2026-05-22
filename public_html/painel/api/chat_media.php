@@ -18,6 +18,39 @@ function mediaHeaderValue(string $value, string $fallback): string
     return $value !== '' ? $value : $fallback;
 }
 
+function mediaExtensionFromMime(string $mime, string $type): string
+{
+    $mime = strtolower($mime);
+    if (str_contains($mime, 'ogg') || str_contains($mime, 'opus')) return 'ogg';
+    if (str_contains($mime, 'mpeg') || str_contains($mime, 'mp3')) return 'mp3';
+    if (str_contains($mime, 'mp4') || str_contains($mime, 'aac')) return $type === 'video' ? 'mp4' : 'm4a';
+    if (str_contains($mime, 'webm')) return 'webm';
+    if (str_contains($mime, 'jpeg')) return 'jpg';
+    if (str_contains($mime, 'png')) return 'png';
+    if (str_contains($mime, 'webp')) return 'webp';
+    if (str_contains($mime, 'pdf')) return 'pdf';
+    return $type === 'audio' ? 'ogg' : $type;
+}
+
+function mediaEnsureFilenameExtension(string $filename, string $mime, string $type): string
+{
+    $filename = trim($filename);
+    if ($filename === '') {
+        $filename = $type;
+    }
+
+    $base = basename(str_replace('\\', '/', $filename));
+    if ($base === '' || $base === '.' || $base === '..') {
+        $base = $type;
+    }
+
+    if (!preg_match('/\.[A-Za-z0-9]{2,5}$/', $base)) {
+        $base .= '.' . mediaExtensionFromMime($mime, $type);
+    }
+
+    return $base;
+}
+
 try {
     require_once __DIR__ . '/../../config.php';
     require_once __DIR__ . '/../../db.php';
@@ -111,10 +144,12 @@ try {
     if ($contentType !== '') {
         $mime = mediaHeaderValue(explode(';', $contentType)[0], $mime);
     }
+    $filename = mediaEnsureFilenameExtension($filename, $mime, $type);
+    $disposition = (string)($_GET['download'] ?? '0') === '1' ? 'attachment' : 'inline';
 
     header('Content-Type: ' . $mime);
     header('Content-Length: ' . strlen((string)$binary));
-    header('Content-Disposition: inline; filename="' . $filename . '"');
+    header('Content-Disposition: ' . $disposition . '; filename="' . $filename . '"');
     header('Cache-Control: private, max-age=300');
     echo $binary;
 } catch (Throwable $e) {

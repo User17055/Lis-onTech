@@ -336,7 +336,47 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       line-height:0;
     }
     .media-video{max-width:360px;width:100%;border-radius:12px;border:1px solid rgba(214,226,238,.95);background:#eef5fb;display:block;}
-    .media-audio{width:min(360px,100%);}
+    .media-audio-card{
+      display:grid;
+      grid-template-columns:44px minmax(0,1fr) 38px;
+      align-items:center;
+      gap:12px;
+      width:min(420px,100%);
+      border:1px solid rgba(214,226,238,.95);
+      border-radius:12px;
+      background:#fff;
+      padding:10px;
+      box-sizing:border-box;
+    }
+    .media-audio-icon{
+      width:44px;
+      height:44px;
+      border-radius:10px;
+      background:#0f9f6e;
+      color:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:18px;
+    }
+    .media-audio-info{min-width:0;display:grid;gap:7px;}
+    .media-audio-title{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0;}
+    .media-audio-title strong{font-size:13px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .media-audio-title span{font-size:11px;font-weight:900;color:#718096;text-transform:uppercase;white-space:nowrap;}
+    .media-audio{width:100%;height:38px;display:block;}
+    .media-download{
+      width:38px;
+      height:38px;
+      border-radius:999px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:#eef8ff;
+      color:#12628f;
+      text-decoration:none;
+      border:1px solid #d9edf8;
+    }
+    .media-download:hover{background:#dff3ff;border-color:#9bdcff;color:#0f5f89;}
     .media-file{
       display:grid;
       grid-template-columns:44px minmax(0,1fr) 34px;
@@ -574,9 +614,14 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
             <span id="threadCount">Carregando...</span>
           </div>
         </div>
-        <button class="icon-btn" id="btnNewChat" type="button" title="Abrir conversa por numero">
-          <i class="fa-solid fa-plus"></i>
-        </button>
+        <div class="chat-actions">
+          <button class="icon-btn" id="btnNotify" type="button" title="Ativar notificacoes">
+            <i class="fa-regular fa-bell"></i>
+          </button>
+          <button class="icon-btn" id="btnNewChat" type="button" title="Abrir conversa por numero">
+            <i class="fa-solid fa-plus"></i>
+          </button>
+        </div>
       </div>
 
       <div class="chat-search">
@@ -701,7 +746,13 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       confirmResolve: null,
       backfillDone: false,
       threadTimer: null,
-      messageTimer: null
+      messageTimer: null,
+      notificationsReady: false,
+      notificationSnapshot: new Map(),
+      notificationBaselineDone: false,
+      originalTitle: document.title,
+      titleTimer: null,
+      audioContext: null
     };
 
     const el = (id) => document.getElementById(id);
@@ -821,6 +872,124 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       setTimeout(() => box.classList.remove('show'), 3200);
     }
 
+    function updateNotifyButton(){
+      const btn = el('btnNotify');
+      if (!btn) return;
+      const supported = 'Notification' in window;
+      const granted = supported && Notification.permission === 'granted';
+      state.notificationsReady = granted;
+      btn.classList.toggle('primary', granted);
+      btn.title = !supported
+        ? 'Navegador sem notificacoes'
+        : (granted ? 'Notificacoes ativas' : 'Ativar notificacoes');
+      btn.innerHTML = granted
+        ? '<i class="fa-solid fa-bell"></i>'
+        : '<i class="fa-regular fa-bell"></i>';
+    }
+
+    async function enableNotifications(){
+      if (!('Notification' in window)) {
+        toast('Este navegador nao suporta notificacoes.', 'error');
+        return;
+      }
+      try {
+        if (Notification.permission === 'default') {
+          await Notification.requestPermission();
+        }
+        unlockNotifySound();
+        updateNotifyButton();
+        toast(Notification.permission === 'granted' ? 'Notificacoes ativadas' : 'Permissao de notificacao bloqueada', Notification.permission === 'granted' ? 'ok' : 'error');
+      } catch (e) {
+        toast('Nao foi possivel ativar notificacoes', 'error');
+      }
+    }
+
+    function unlockNotifySound(){
+      try {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!Ctx) return;
+        if (!state.audioContext) state.audioContext = new Ctx();
+        if (state.audioContext.state === 'suspended') state.audioContext.resume();
+      } catch (e) {}
+    }
+
+    function playNotifySound(){
+      try {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        const ctx = state.audioContext || (Ctx ? new Ctx() : null);
+        if (!ctx) return;
+        state.audioContext = ctx;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = 880;
+        gain.gain.setValueAtTime(0.001, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.12, ctx.currentTime + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.28);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.3);
+      } catch (e) {}
+    }
+
+    function flashTitle(count){
+      if (state.titleTimer) clearTimeout(state.titleTimer);
+      document.title = count > 0 ? `(${count}) Nova mensagem - Chat` : state.originalTitle;
+      state.titleTimer = setTimeout(() => {
+        document.title = state.originalTitle;
+        state.titleTimer = null;
+      }, 6000);
+    }
+
+    function handleThreadNotifications(rows){
+      const incomingRows = rows.filter(row => Number(row.unread_count || 0) > 0 && row.last_direction === 'in');
+      const nextSnapshot = new Map();
+      incomingRows.forEach(row => {
+        nextSnapshot.set(row.phone, {
+          unread:Number(row.unread_count || 0),
+          at:String(row.last_message_at || ''),
+          preview:String(row.last_message_preview || '')
+        });
+      });
+
+      if (!state.notificationBaselineDone) {
+        state.notificationSnapshot = nextSnapshot;
+        state.notificationBaselineDone = true;
+        return;
+      }
+
+      incomingRows.forEach(row => {
+        const phone = String(row.phone || '');
+        const prev = state.notificationSnapshot.get(phone);
+        const unread = Number(row.unread_count || 0);
+        const at = String(row.last_message_at || '');
+        const isNew = !prev || unread > Number(prev.unread || 0) || (at && at !== prev.at);
+        if (!isNew) return;
+
+        const name = row.display_name || phone || 'Cliente';
+        const preview = row.last_message_preview || 'Nova mensagem recebida';
+        const totalUnread = rows.reduce((sum, item) => sum + Number(item.unread_count || 0), 0);
+        toast(`${name}: ${preview}`);
+        flashTitle(totalUnread);
+        playNotifySound();
+
+        if (state.notificationsReady && document.visibilityState !== 'visible') {
+          const notification = new Notification('Nova mensagem no chat', {
+            body: `${name}: ${preview}`,
+            tag: `chat-${phone}`,
+            renotify: true
+          });
+          notification.onclick = () => {
+            window.focus();
+            openConversation(phone);
+            notification.close();
+          };
+        }
+      });
+
+      state.notificationSnapshot = nextSnapshot;
+    }
+
     function syncFilterUi(){
       const labels = {
         all:'Todas as conversas',
@@ -929,6 +1098,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
           updateWindowPanel();
         }
         renderThreads();
+        handleThreadNotifications(state.threads);
         if (!state.selectedPhone && state.threads[0]?.phone) {
           openConversation(state.threads[0].phone, false);
         }
@@ -959,8 +1129,9 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       `;
     }
 
-    function mediaUrl(msg){
-      return `/painel/api/chat_media.php?id=${encodeURIComponent(msg.id)}`;
+    function mediaUrl(msg, download=false){
+      const suffix = download ? '&download=1' : '';
+      return `/painel/api/chat_media.php?id=${encodeURIComponent(msg.id)}${suffix}`;
     }
 
     function messageBodyHtml(msg){
@@ -989,7 +1160,15 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       if (mime.includes('word') || mime.includes('document')) return 'DOC';
       if (mime.includes('spreadsheet') || mime.includes('excel')) return 'XLS';
       if (mime.includes('image')) return 'Imagem';
+      if (mime.includes('audio/ogg') || mime.includes('opus')) return 'Audio OGG';
+      if (mime.includes('audio/mpeg') || mime.includes('mp3')) return 'Audio MP3';
+      if (mime.includes('audio')) return 'Audio';
       return 'Arquivo';
+    }
+
+    function mediaAudioName(msg){
+      const media = msg.media || {};
+      return media.filename || `audio-${msg.id}.ogg`;
     }
 
     function mediaHtml(msg){
@@ -1002,7 +1181,28 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         return `<div class="media-box"><video class="media-video" src="${attr(url)}" controls preload="metadata"></video></div>`;
       }
       if (type === 'audio') {
-        return `<div class="media-box"><audio class="media-audio" src="${attr(url)}" controls preload="metadata"></audio></div>`;
+        const name = mediaAudioName(msg);
+        const kind = mediaKindLabel(msg);
+        const downloadUrl = mediaUrl(msg, true);
+        return `
+          <div class="media-box">
+            <div class="media-audio-card">
+              <span class="media-audio-icon"><i class="fa-solid fa-microphone-lines"></i></span>
+              <span class="media-audio-info">
+                <span class="media-audio-title">
+                  <strong>${esc(name)}</strong>
+                  <span>${esc(kind)}</span>
+                </span>
+                <audio class="media-audio" src="${attr(url)}" controls preload="metadata">
+                  Seu navegador nao conseguiu tocar este audio.
+                </audio>
+              </span>
+              <a class="media-download" href="${attr(downloadUrl)}" download="${attr(name)}" title="Baixar audio">
+                <i class="fa-solid fa-download"></i>
+              </a>
+            </div>
+          </div>
+        `;
       }
       if (type === 'document') {
         const name = mediaFileName(msg);
@@ -1308,6 +1508,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       el('newChatBox').classList.toggle('show');
       if (el('newChatBox').classList.contains('show')) el('newPhone').focus();
     };
+    el('btnNotify').onclick = enableNotifications;
 
     el('btnOpenPhone').onclick = () => {
       const phone = digits(el('newPhone').value);
@@ -1367,6 +1568,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     });
 
     const initialPhone = state.selectedPhone;
+    updateNotifyButton();
     syncFilterUi();
     loadThreads(true).then(() => {
       if (initialPhone) openConversation(initialPhone);
