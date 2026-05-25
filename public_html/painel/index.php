@@ -104,81 +104,74 @@ if (file_exists($pathPages)) {
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
   <style>
-    .lt-page-loader {
+    .lt-content-loader {
       position: fixed;
-      inset: 0;
-      z-index: 20000;
+      top: var(--header-height, 70px);
+      right: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 850;
       display: grid;
       place-items: center;
-      background: #05070b;
-      color: #fff;
-      font-family: 'Nunito', sans-serif;
-      opacity: 1;
-      visibility: visible;
-      transition: opacity .28s ease, visibility .28s ease;
-    }
-
-    .lt-page-loader.is-hidden {
+      background: rgba(247, 249, 252, .86);
       opacity: 0;
       visibility: hidden;
       pointer-events: none;
+      transition: opacity .2s ease, visibility .2s ease;
     }
 
-    .lt-loader-core {
-      position: relative;
-      width: 120px;
-      height: 96px;
+    .main-content.shift > .lt-content-loader {
+      left: var(--sidebar-width, 260px);
     }
 
-    .lt-loader-dot {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      position: absolute;
-      left: 50%;
-      bottom: 50%;
-      will-change: transform;
+    .lt-content-loader.show {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
     }
 
-    <?php for ($i = 1; $i <= 50; $i++): ?>
-    .lt-loader-dot:nth-child(<?= $i ?>) {
-      background: hsl(200, 100%, <?= min(96, $i * 2) ?>%);
-      box-shadow: 0 0 20px 20px hsla(200, 100%, <?= min(96, $i + 25) ?>%, .03);
-    }
-    <?php endfor; ?>
-
-    .lt-loader-label {
-      margin-top: 22px;
-      font-size: 14px;
-      font-weight: 800;
-      letter-spacing: 0;
+    .lt-content-loader-box {
+      min-width: 220px;
+      padding: 34px 42px;
+      border: 1px solid #eef2f6;
+      border-radius: 16px;
+      background: #ffffff;
+      box-shadow: 0 12px 34px rgba(15, 23, 42, .08);
+      color: #0f172a;
+      font-family: 'Nunito', sans-serif;
       text-align: center;
     }
 
-    @media (prefers-reduced-motion: reduce) {
-      .lt-loader-dot {
-        animation: lt-loader-pulse 1s ease-in-out infinite;
-      }
+    .lt-content-spinner {
+      width: 30px;
+      height: 30px;
+      border: 4px solid #e2e8f0;
+      border-top-color: #38b6ff;
+      border-radius: 50%;
+      animation: ltSpin .8s linear infinite;
+      margin: 0 auto;
+    }
 
-      @keyframes lt-loader-pulse {
-        50% { opacity: .35; }
+    .lt-content-loader-text {
+      margin-top: 15px;
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    @keyframes ltSpin {
+      to { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 768px) {
+      .main-content.shift > .lt-content-loader {
+        left: 0;
       }
     }
   </style>
 </head>
 
 <body class="page-<?= htmlspecialchars($pagina, ENT_QUOTES, 'UTF-8') ?>">
-
-  <div class="lt-page-loader" id="pageLoader" role="status" aria-live="polite" aria-label="Carregando">
-    <div>
-      <div class="lt-loader-core" id="pageLoaderDots">
-        <?php for ($i = 0; $i < 50; $i++): ?>
-          <span class="lt-loader-dot"></span>
-        <?php endfor; ?>
-      </div>
-      <div class="lt-loader-label">Carregando...</div>
-    </div>
-  </div>
 
   <?php if ($pagina === 'chat'): ?>
     <style>
@@ -213,6 +206,13 @@ if (file_exists($pathPages)) {
 
   <!-- ✅ Conteúdo das páginas -->
   <main class="main-content" id="content">
+    <div class="lt-content-loader" id="pageLoader" role="status" aria-live="polite" aria-label="Carregando">
+      <div class="lt-content-loader-box">
+        <div class="lt-content-spinner"></div>
+        <div class="lt-content-loader-text">Carregando dados...</div>
+      </div>
+    </div>
+
     <?php
     if ($caminhoArquivo) {
       include $caminhoArquivo;
@@ -229,49 +229,16 @@ if (file_exists($pathPages)) {
   <script>
     (function () {
       const loader = document.getElementById('pageLoader');
-      const dots = Array.from(document.querySelectorAll('#pageLoaderDots .lt-loader-dot'));
-      let rotate = 600;
-      const rotation = 720;
-      const add = 4;
-      let lastFrame = 0;
-
-      function rotateCircle(cx, cy, x, y, angle) {
-        const radians = (Math.PI / 180) * angle;
-        const cos = Math.cos(radians);
-        const sin = Math.sin(radians);
-        return {
-          x: cos * (x - cx) + sin * (y - cy) + cx,
-          y: cos * (y - cy) - sin * (x - cx) + cy
-        };
-      }
-
-      function frame(now) {
-        if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches && now - lastFrame > 16) {
-          lastFrame = now;
-          rotate = rotation <= rotate + add ? 0 : rotate + add;
-          dots.forEach((dot, index) => {
-            const offset = add * index;
-            const current = rotate + offset >= rotation ? rotate + offset - rotation : rotate + offset;
-            const point = Math.floor(current / 360) >= 1
-              ? rotateCircle(0, 0, -20, 0, current % 360)
-              : rotateCircle(0, 0, 20, 0, -(current % 360));
-            const x = Math.floor(current / 360) >= 1 ? point.x : point.x - 40;
-            dot.style.transform = `translate(${x}px, ${point.y}px)`;
-          });
-        }
-        requestAnimationFrame(frame);
-      }
 
       function hideLoader() {
-        if (loader) loader.classList.add('is-hidden');
+        if (loader) loader.classList.remove('show');
       }
 
       function showLoader() {
-        if (loader) loader.classList.remove('is-hidden');
+        if (loader) loader.classList.add('show');
       }
 
-      requestAnimationFrame(frame);
-      window.addEventListener('load', () => setTimeout(hideLoader, 120));
+      window.addEventListener('load', hideLoader);
       window.addEventListener('pageshow', hideLoader);
 
       document.addEventListener('click', (event) => {

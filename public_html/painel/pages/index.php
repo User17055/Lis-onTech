@@ -734,7 +734,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
             <td style="text-align:right;">
               <div style="display:flex; align-items:center; justify-content:flex-end; gap:15px;">
                 <span style="font-size:13px; color:var(--text-muted); font-weight:600;">${quando}</span>
-                <a href="${linkDestino}" class="btn-icon" onclick="event.stopPropagation()">
+                <a href="${linkDestino}" class="btn-icon" onclick="event.stopPropagation(); window.LisOnPageLoader?.show();">
                   <i class="fa-solid fa-chevron-right"></i>
                 </a>
               </div>
