@@ -130,13 +130,7 @@ if (file_exists($pathPages)) {
       pointer-events: auto;
     }
 
-    .lt-content-loader-box {
-      min-width: 220px;
-      padding: 34px 42px;
-      border: 1px solid #eef2f6;
-      border-radius: 16px;
-      background: #ffffff;
-      box-shadow: 0 12px 34px rgba(15, 23, 42, .08);
+    .lt-content-loader-inner {
       color: #0f172a;
       font-family: 'Nunito', sans-serif;
       text-align: center;
@@ -207,7 +201,7 @@ if (file_exists($pathPages)) {
   <!-- ✅ Conteúdo das páginas -->
   <main class="main-content" id="content">
     <div class="lt-content-loader" id="pageLoader" role="status" aria-live="polite" aria-label="Carregando">
-      <div class="lt-content-loader-box">
+      <div class="lt-content-loader-inner">
         <div class="lt-content-spinner"></div>
         <div class="lt-content-loader-text">Carregando dados...</div>
       </div>
