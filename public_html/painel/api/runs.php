@@ -12,6 +12,7 @@ $page   = isset($_GET['page'])  ? max(1, (int)$_GET['page']) : 1;
 
 $status = isset($_GET['status']) ? trim((string)$_GET['status']) : '';
 $q      = isset($_GET['q']) ? trim((string)$_GET['q']) : '';
+$knownSignature = isset($_GET['signature']) ? trim((string)$_GET['signature']) : '';
 
 $where = "WHERE 1=1";
 $params = [];
@@ -35,16 +36,46 @@ if ($q !== '') {
   $params[':q_event_type'] = $qLike;
 }
 
-/* 1) total */
-$countSql = "SELECT COUNT(*) FROM automation_runs $where";
-$stmt = $pdo->prepare($countSql);
+/* 1) resumo leve para total, paginacao e polling sem baixar a lista inteira */
+$summarySql = "
+  SELECT
+    COUNT(*) AS total,
+    MAX(updated_at) AS max_updated_at,
+    MAX(created_at) AS max_created_at
+  FROM automation_runs
+  $where
+";
+$stmt = $pdo->prepare($summarySql);
 $stmt->execute($params);
-$total = (int)$stmt->fetchColumn();
+$summary = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+$total = (int)($summary['total'] ?? 0);
 
 $totalPages = max(1, (int)ceil($total / $limit));
 if ($page > $totalPages) $page = $totalPages;
 
 $offset = ($page - 1) * $limit;
+$signature = hash('sha256', implode('|', [
+  $page,
+  $limit,
+  $status,
+  $q,
+  $total,
+  (string)($summary['max_updated_at'] ?? ''),
+  (string)($summary['max_created_at'] ?? ''),
+]));
+
+if ($knownSignature !== '' && hash_equals($signature, $knownSignature)) {
+  echo json_encode([
+    'ok' => true,
+    'not_modified' => true,
+    'page' => $page,
+    'limit' => $limit,
+    'total' => $total,
+    'total_pages' => $totalPages,
+    'signature' => $signature,
+  ], JSON_UNESCAPED_UNICODE);
+  exit;
+}
 
 /* 2) dados */
 $dataSql = "
@@ -81,5 +112,6 @@ echo json_encode([
   'page' => $page,
   'limit' => $limit,
   'total' => $total,
-  'total_pages' => $totalPages
+  'total_pages' => $totalPages,
+  'signature' => $signature
 ], JSON_UNESCAPED_UNICODE);

@@ -576,8 +576,11 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
   const initialPage = parseInt(initialParams.get('page') || '1', 10);
 
   let previousDataHash = null;
+  let previousSignature = null;
+  let activeRunsController = null;
   let currentPage = Number.isFinite(initialPage) && initialPage > 0 ? initialPage : 1;
   const limit = 50;
+  const autoRefreshMs = 6000;
 
   document.getElementById("q").value = initialParams.get("q") || "";
   document.getElementById("status").value = initialParams.get("status") || "";
@@ -619,6 +622,11 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
   }
 
   async function loadRuns(isManual = false) {
+    if (activeRunsController) {
+      activeRunsController.abort();
+    }
+    activeRunsController = new AbortController();
+
     const q = document.getElementById("q").value.trim();
     const status = document.getElementById("status").value;
     syncListUrl();
@@ -628,6 +636,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     url.searchParams.set("page", currentPage);
     if (q) url.searchParams.set("q", q);
     if (status) url.searchParams.set("status", status);
+    if (!isManual && previousSignature) url.searchParams.set("signature", previousSignature);
 
     if (isManual || previousDataHash === null) showLoading();
 
@@ -635,7 +644,11 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     const statusBar = document.getElementById("statusBar");
 
     try {
-      const r = await fetch(url.toString(), { cache: "no-store", credentials: "same-origin" });
+      const r = await fetch(url.toString(), {
+        cache: "no-store",
+        credentials: "same-origin",
+        signal: activeRunsController.signal
+      });
       const text = await r.text();
       let j = null;
       try { j = JSON.parse(text); } catch (e) {}
@@ -655,6 +668,15 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
 
       if (j.ok === false) {
         throw new Error(j.error || "Falha na requisicao");
+      }
+
+      if (j.signature) {
+        previousSignature = j.signature;
+      }
+
+      if (j.not_modified) {
+        statusText.textContent = "Verificado em " + new Date().toLocaleString('pt-BR');
+        return;
       }
 
       const currentDataHash = JSON.stringify({
@@ -699,7 +721,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         const dotBg = (row.status === 'error') ? 'var(--red-bg)' : 'var(--blue-bg)';
 
         return `
-          <tr onclick="window.location.href='${linkDestino}'" title="Clique para ver detalhes">
+          <tr onclick="window.LisOnPageLoader?.show(); window.location.href='${linkDestino}'" title="Clique para ver detalhes">
             <td style="text-align:center;">
               <div style="width:10px; height:10px; background:${dotColor}; border-radius:50%;
                           box-shadow: 0 0 0 3px ${dotBg};"></div>
@@ -722,6 +744,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       }).join("");
 
     } catch (e) {
+      if (e.name === 'AbortError') return;
       console.error(e);
       document.getElementById("tbody").innerHTML = `
         <tr>
@@ -738,6 +761,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
   document.getElementById("status").onchange = () => {
     currentPage = 1;
     previousDataHash = null;
+    previousSignature = null;
     loadRuns(true);
   };
 
@@ -745,6 +769,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     if (e.key === 'Enter') {
       currentPage = 1;
       previousDataHash = null;
+      previousSignature = null;
       loadRuns(true);
     }
   };
@@ -760,6 +785,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
 
       currentPage = p;
       previousDataHash = null;
+      previousSignature = null;
       loadRuns(true);
     };
   }
@@ -769,7 +795,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     const indicator = document.getElementById("liveIndicator");
 
     if (this.checked) {
-      autoInterval = setInterval(() => loadRuns(false), 3000);
+      autoInterval = setInterval(() => loadRuns(false), autoRefreshMs);
       indicator.style.display = "inline-block";
       document.getElementById("statusText").textContent = "Monitorando...";
     } else {
@@ -779,7 +805,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     }
   };
 
-  autoInterval = setInterval(() => loadRuns(false), 3000);
+  autoInterval = setInterval(() => loadRuns(false), autoRefreshMs);
   loadRuns(true);
 </script>
 
