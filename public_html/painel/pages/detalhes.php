@@ -902,7 +902,7 @@ $run_id = (string) $_GET['id'];
         function pillForStatus(status) {
             const st = String(status || '').toLowerCase();
             if (st === 'paid') {
-                return `<span class="det-pill info"><i class="fa-solid fa-circle-check"></i> JÃ¡ pago</span>`;
+                return `<span class="det-pill info"><i class="fa-solid fa-circle-check"></i> J&aacute; pago</span>`;
             }
             if (st === 'processed' || st === 'success' || st === 'ok') {
                 return `<span class="det-pill ok"><i class="fa-solid fa-check"></i> ${esc(st)}</span>`;

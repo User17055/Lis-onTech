@@ -453,7 +453,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         <option value="processed">Sucesso</option>
         <option value="processing">Processando</option>
         <option value="error">Erros</option>
-        <option value="paid">JÃ¡ pago</option>
+        <option value="paid">J&aacute; pago</option>
         <option value="not_sent">Não Enviado</option>
       </select>
 
@@ -498,7 +498,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     const map = {
       processed:  { label: 'Sucesso',   cls: 'b-success', icon: 'circle-check' },
       processing: { label: 'Gerando',   cls: 'b-process', icon: 'spinner fa-spin' },
-      paid:       { label: 'JÃ¡ pago',   cls: 'b-paid',    icon: 'circle-check' },
+      paid:       { label: 'J&aacute; pago', cls: 'b-paid',    icon: 'circle-check' },
       error:      { label: 'Falhou',    cls: 'b-error',   icon: 'circle-xmark' },
       not_sent:   { label: 'Pendente',  cls: 'b-pending', icon: 'clock' }
     };
