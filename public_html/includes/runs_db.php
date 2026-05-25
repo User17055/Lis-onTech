@@ -39,6 +39,15 @@ function runMarkNotSent(PDO $pdo, string $runId, string $msg): void {
     $stmt->execute([$msg, $runId]);
 }
 
+function runMarkPaidNoSend(PDO $pdo, string $runId, string $msg): void {
+    $stmt = $pdo->prepare("
+      UPDATE automation_runs
+      SET status='paid', step_whatsapp=0, error_message=?
+      WHERE run_id=?
+    ");
+    $stmt->execute([$msg, $runId]);
+}
+
 function runMarkProcessed(PDO $pdo, string $runId, string $phone, array $req, array $resp, int $http): void {
     $stmt = $pdo->prepare("
       UPDATE automation_runs

@@ -486,7 +486,7 @@ try {
         if ($billJaPaga) {
             $msg = "Cobranca ja paga no recebimento do bill_created, WhatsApp nao enviado.";
             runLog($pdo, $runId, 'info', $msg);
-            runMarkNotSent($pdo, $runId, $msg);
+            runMarkPaidNoSend($pdo, $runId, $msg);
 
             if ($billIdInt > 0) {
                 try {

@@ -24,6 +24,17 @@ if (!$run) {
   exit;
 }
 
+$rawStatus = strtolower((string)($run['status'] ?? ''));
+$errorMessage = strtolower((string)($run['error_message'] ?? ''));
+if ($rawStatus === 'not_sent' && (
+  str_contains($errorMessage, 'ja paga') ||
+  str_contains($errorMessage, 'já paga') ||
+  str_contains($errorMessage, 'ja esta paga') ||
+  str_contains($errorMessage, 'já está paga')
+)) {
+  $run['status'] = 'paid';
+}
+
 /**
  * Logs: tenta ler colunas step/context_json se existirem.
  * Se não existirem, cai no fallback (sem step/context).

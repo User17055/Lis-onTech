@@ -257,6 +257,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .b-success { background: var(--green-bg); color: var(--green-text); }
     .b-error   { background: var(--red-bg); color: var(--red-text); }
     .b-process { background: var(--blue-bg); color: var(--blue-text); }
+    .b-paid    { background: var(--blue-bg); color: var(--blue-text); }
     .b-pending { background: var(--yellow-bg); color: var(--yellow-text); }
 
     .btn-icon {
@@ -452,6 +453,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         <option value="processed">Sucesso</option>
         <option value="processing">Processando</option>
         <option value="error">Erros</option>
+        <option value="paid">JÃ¡ pago</option>
         <option value="not_sent">Não Enviado</option>
       </select>
 
@@ -496,6 +498,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     const map = {
       processed:  { label: 'Sucesso',   cls: 'b-success', icon: 'circle-check' },
       processing: { label: 'Gerando',   cls: 'b-process', icon: 'spinner fa-spin' },
+      paid:       { label: 'JÃ¡ pago',   cls: 'b-paid',    icon: 'circle-check' },
       error:      { label: 'Falhou',    cls: 'b-error',   icon: 'circle-xmark' },
       not_sent:   { label: 'Pendente',  cls: 'b-pending', icon: 'clock' }
     };

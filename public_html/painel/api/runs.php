@@ -16,10 +16,29 @@ $knownSignature = isset($_GET['signature']) ? trim((string)$_GET['signature']) :
 
 $where = "WHERE 1=1";
 $params = [];
+$paidNoSendExpr = "(
+  status = 'paid'
+  OR (
+    status = 'not_sent'
+    AND (
+      LOWER(COALESCE(error_message, '')) LIKE '%ja paga%'
+      OR LOWER(COALESCE(error_message, '')) LIKE '%já paga%'
+      OR LOWER(COALESCE(error_message, '')) LIKE '%ja esta paga%'
+      OR LOWER(COALESCE(error_message, '')) LIKE '%já está paga%'
+    )
+  )
+)";
 
 if ($status !== '') {
-  $where .= " AND status = :status ";
-  $params[':status'] = $status;
+  if ($status === 'paid') {
+    $where .= " AND $paidNoSendExpr ";
+  } elseif ($status === 'not_sent') {
+    $where .= " AND status = :status AND NOT ($paidNoSendExpr) ";
+    $params[':status'] = $status;
+  } else {
+    $where .= " AND status = :status ";
+    $params[':status'] = $status;
+  }
 }
 
 if ($q !== '') {
@@ -84,7 +103,7 @@ $dataSql = "
     created_at,
     updated_at,
     event_type,
-    status,
+    CASE WHEN $paidNoSendExpr THEN 'paid' ELSE status END AS status,
     customer_name,
     bill_id,
     bill_url,
