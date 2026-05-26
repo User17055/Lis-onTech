@@ -65,6 +65,7 @@ require_once $ROOT . '/includes/auth.php';
 
 $CRON_TOKENS = array_values(array_unique(array_filter([
   cfg($cfg, 'CRON_TOKEN', ''),
+  cfg($cfg, 'RECOBRANCA_CRON_TOKEN', ''),
   cfg($cfg, 'DUE_TODAY_CRON_TOKEN', ''),
 ], static fn($v) => trim((string)$v) !== '')));
 $REQ_TOKEN = (string)($_GET['token'] ?? '');
@@ -443,6 +444,19 @@ try {
       ")->execute([$vindiDueAt, $vindiStatus ?: 'unpaid', $billId]);
       logLine("bill_id={$billId} vencimento_nao_e_hoje");
       $issues[] = "bill_id={$billId} vencimento_nao_e_hoje";
+      $skipped++;
+      continue;
+    }
+
+    if (!empty($r['created_sent_at']) && date('Y-m-d', strtotime((string)$r['created_sent_at'])) === date('Y-m-d')) {
+      $pdo->prepare("
+        UPDATE bill_reminders
+        SET last_status = 'due_today_skip_created',
+            last_status_check_at = NOW()
+        WHERE bill_id = ?
+      ")->execute([$billId]);
+      logLine("bill_id={$billId} skip_emissao_enviada_hoje");
+      $issues[] = "bill_id={$billId} emissao_hoje";
       $skipped++;
       continue;
     }

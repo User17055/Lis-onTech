@@ -60,12 +60,14 @@ jobs:
           PAINEL_ADMIN_USER: ${{ secrets.PAINEL_ADMIN_USER }}
           PAINEL_ADMIN_PASS: ${{ secrets.PAINEL_ADMIN_PASS }}
           PAINEL_LOGIN_URL: ${{ secrets.PAINEL_LOGIN_URL }}
+          DUE_TODAY_CRON_URL: ${{ secrets.DUE_TODAY_CRON_URL }}
         run: |
           RECOBRANCA_CRON_URL="$(printf '%s' "$RECOBRANCA_CRON_URL" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
           RECOBRANCA_CRON_TOKEN="$(printf '%s' "$RECOBRANCA_CRON_TOKEN" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
           PAINEL_ADMIN_USER="$(printf '%s' "$PAINEL_ADMIN_USER" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
           PAINEL_ADMIN_PASS="$(printf '%s' "$PAINEL_ADMIN_PASS" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
           PAINEL_LOGIN_URL="$(printf '%s' "$PAINEL_LOGIN_URL" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+          DUE_TODAY_CRON_URL="$(printf '%s' "$DUE_TODAY_CRON_URL" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
 
           separator="?"
           case "$RECOBRANCA_CRON_URL" in
@@ -136,5 +138,53 @@ jobs:
 
           if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
             echo "::error::Cron retornou HTTP $http_code."
+            exit 1
+          fi
+
+          if [ -z "$DUE_TODAY_CRON_URL" ]; then
+            recobranca_base="${RECOBRANCA_CRON_URL%%\?*}"
+            DUE_TODAY_CRON_URL="$(printf '%s' "$recobranca_base" | sed 's#cron_recobranca\.php$#reminders_due_today_cron.php#')"
+          fi
+
+          if [ "$DUE_TODAY_CRON_URL" = "$RECOBRANCA_CRON_URL" ]; then
+            echo "::warning::Nao consegui derivar a URL do cron vencimento_hoje a partir de RECOBRANCA_CRON_URL."
+            exit 0
+          fi
+
+          separator="?"
+          case "$DUE_TODAY_CRON_URL" in
+            *\?*) separator="&" ;;
+          esac
+          due_today_url="${DUE_TODAY_CRON_URL}${separator}token=${RECOBRANCA_CRON_TOKEN}"
+          echo "::add-mask::$due_today_url"
+          echo "Chamando cron de vencimento hoje..."
+
+          if [ -f /tmp/painel_cookies.txt ]; then
+            due_today_http_code="$(
+              curl --show-error --silent --max-time 60 \
+                --cookie /tmp/painel_cookies.txt \
+                --header "X-Cron-Token: ${RECOBRANCA_CRON_TOKEN}" \
+                --header "Authorization: Bearer ${RECOBRANCA_CRON_TOKEN}" \
+                --output /tmp/due_today_cron_response.txt \
+                --write-out "%{http_code}" \
+                "$due_today_url"
+            )"
+          else
+            due_today_http_code="$(
+              curl --show-error --silent --max-time 60 \
+                --header "X-Cron-Token: ${RECOBRANCA_CRON_TOKEN}" \
+                --header "Authorization: Bearer ${RECOBRANCA_CRON_TOKEN}" \
+                --output /tmp/due_today_cron_response.txt \
+                --write-out "%{http_code}" \
+                "$due_today_url"
+            )"
+          fi
+
+          echo "HTTP status vencimento hoje: $due_today_http_code"
+          echo "Resposta vencimento hoje:"
+          sed -n '1,20p' /tmp/due_today_cron_response.txt
+
+          if [ "$due_today_http_code" -lt 200 ] || [ "$due_today_http_code" -ge 300 ]; then
+            echo "::error::Cron vencimento hoje retornou HTTP $due_today_http_code."
             exit 1
           fi
