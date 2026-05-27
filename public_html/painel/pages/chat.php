@@ -142,6 +142,21 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     }
     .switch-line label{display:inline-flex;align-items:center;gap:8px;cursor:pointer;}
     .switch-line input{accent-color:var(--brand);}
+    .filter-toggle{
+      border:0;
+      background:transparent;
+      color:var(--brand-dark);
+      font-family:'Nunito',sans-serif;
+      font-size:12px;
+      font-weight:900;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:6px 0;
+      white-space:nowrap;
+    }
+    .filter-toggle:hover{text-decoration:underline;text-underline-offset:3px;}
 
     .filter-tabs{
       display:grid;
@@ -170,6 +185,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     }
     .filter-tab:hover{background:#fff;color:var(--brand-dark);}
     .filter-tab.active{background:#fff;color:#172033;box-shadow:0 1px 3px rgba(23,32,51,.06);}
+    .chat-search.filters-hidden .filter-tabs{display:none;}
 
     .thread-list{
       overflow:auto;
@@ -678,15 +694,17 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .image-viewer-close:hover{background:rgba(255,255,255,.24);}
 
     @media(max-width:920px){
-      .chat-wrap{height:auto;min-height:calc(100vh - var(--header-height, 70px));overflow:visible;}
-      .chat-shell{height:auto;min-height:calc(100vh - var(--header-height, 70px));grid-template-columns:1fr;}
-      .chat-list-pane{height:calc(100vh - var(--header-height, 70px));min-height:560px;border-right:none;border-bottom:0;}
-      .chat-main-pane{display:none;min-height:calc(100vh - var(--header-height, 70px));}
+      .chat-wrap{height:calc(100dvh - var(--header-height, 70px));min-height:0;overflow:hidden;}
+      .chat-shell{height:100%;min-height:0;grid-template-columns:1fr;}
+      .chat-list-pane{height:100%;min-height:0;border-right:none;border-bottom:0;}
+      .chat-main-pane{display:none;height:100%;min-height:0;}
       .chat-shell.conversation-open .chat-list-pane{display:none;}
       .chat-shell.conversation-open .chat-main-pane{display:flex;}
       .mobile-chat-back{display:inline-flex;}
       .messages{padding:16px;}
       .bubble{max-width:90%;}
+      .chat-search{padding:12px;}
+      .chat-search.filters-hidden{gap:8px;}
     }
     @media(max-width:620px){
       .chat-pane-head{
@@ -705,8 +723,9 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         flex-basis:42px;
       }
       .filter-tabs{
-        grid-template-columns:1fr;
+        grid-template-columns:repeat(3,minmax(0,1fr));
       }
+      .filter-tab{font-size:11px;gap:4px;}
       .thread-item{
         grid-template-columns:42px minmax(0,1fr) auto;
         padding:12px;
@@ -797,6 +816,10 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         <div class="switch-line">
           <input type="checkbox" id="onlyUnread" hidden>
           <span id="filterHint">Todas as conversas</span>
+          <button class="filter-toggle" id="btnToggleFilters" type="button">
+            <i class="fa-solid fa-sliders"></i>
+            <span id="filterToggleText">Ocultar filtros</span>
+          </button>
           <span id="listStatus">online</span>
         </div>
       </div>
@@ -904,7 +927,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       notificationBaselineDone: false,
       originalTitle: document.title,
       titleTimer: null,
-      audioContext: null
+      audioContext: null,
+      filtersHidden: localStorage.getItem('chatFiltersHidden') === 'true'
     };
 
     const el = (id) => document.getElementById(id);
@@ -1189,6 +1213,13 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       document.querySelectorAll('.filter-tab').forEach(tab => {
         tab.classList.toggle('active', tab.dataset.filter === state.threadFilter);
       });
+    }
+
+    function syncFilterVisibility(){
+      const search = document.querySelector('.chat-search');
+      if (!search) return;
+      search.classList.toggle('filters-hidden', state.filtersHidden);
+      el('filterToggleText').textContent = state.filtersHidden ? 'Mostrar filtros' : 'Ocultar filtros';
     }
 
     function askConfirm({title, subtitle, message, note, okText='Enviar'}){
@@ -1773,6 +1804,11 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       syncFilterUi();
       loadThreads(true);
     });
+    el('btnToggleFilters').onclick = () => {
+      state.filtersHidden = !state.filtersHidden;
+      localStorage.setItem('chatFiltersHidden', state.filtersHidden ? 'true' : 'false');
+      syncFilterVisibility();
+    };
     el('onlyUnread').onchange = () => {
       state.threadFilter = el('onlyUnread').checked ? 'unread' : 'all';
       syncFilterUi();
@@ -1807,6 +1843,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     const initialPhone = state.selectedPhone;
     updateNotifyButton();
     syncFilterUi();
+    syncFilterVisibility();
     loadThreads(true).then(() => {
       if (initialPhone) openConversation(initialPhone);
     });

@@ -182,14 +182,14 @@ if (file_exists($pathPages)) {
 
       @media (max-width: 920px) {
         body.page-chat {
-          overflow: auto;
+          overflow: hidden;
         }
 
         body.page-chat .main-content {
-          height: auto;
-          min-height: calc(100vh - var(--header-height, 70px));
+          height: calc(100dvh - var(--header-height, 70px));
+          min-height: 0;
           padding: 0;
-          overflow: visible;
+          overflow: hidden;
         }
       }
     </style>
