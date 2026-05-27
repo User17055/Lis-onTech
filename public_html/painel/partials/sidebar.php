@@ -502,7 +502,8 @@ if (!function_exists('isActive')) {
             audioContext: null,
             timer: null,
             titleTimer: null,
-            originalTitle: document.title
+            originalTitle: document.title,
+            swRegistration: null
         };
 
         const btn = document.getElementById('globalNotifyBtn');
@@ -526,6 +527,17 @@ if (!function_exists('isActive')) {
             btn.title = !supported
                 ? 'Navegador sem notificacoes'
                 : (granted ? 'Notificacoes do chat ativas' : 'Ativar notificacoes do chat');
+        }
+
+        async function registerServiceWorker() {
+            if (!('serviceWorker' in navigator) || !window.isSecureContext) return null;
+            if (state.swRegistration) return state.swRegistration;
+            try {
+                state.swRegistration = await navigator.serviceWorker.register('/sw.js', {scope: '/'});
+                return state.swRegistration;
+            } catch (e) {
+                return null;
+            }
         }
 
         function showToast(message) {
@@ -580,6 +592,36 @@ if (!function_exists('isActive')) {
             location.href = url.toString();
         }
 
+        async function showBrowserNotification(title, body, phone, tag) {
+            if (!state.ready) return false;
+            const options = {
+                body,
+                tag: tag || `chat-${phone || 'global'}`,
+                renotify: true,
+                data: {phone: phone || ''},
+                icon: '/assets/favicon.svg',
+                badge: '/assets/favicon.svg'
+            };
+
+            try {
+                const reg = await registerServiceWorker();
+                if (reg && reg.showNotification) {
+                    await reg.showNotification(title, options);
+                    return true;
+                }
+
+                const notification = new Notification(title, options);
+                notification.onclick = () => {
+                    window.focus();
+                    openChat(phone);
+                    notification.close();
+                };
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
         function notify(row, totalUnread) {
             const phone = String(row.phone || '');
             const name = row.display_name || phone || 'Cliente';
@@ -591,18 +633,7 @@ if (!function_exists('isActive')) {
             flashTitle(totalUnread);
 
             if (state.ready && (document.hidden || !document.hasFocus())) {
-                try {
-                    const notification = new Notification('Nova mensagem no chat', {
-                        body,
-                        tag: `chat-${phone}`,
-                        renotify: true
-                    });
-                    notification.onclick = () => {
-                        window.focus();
-                        openChat(phone);
-                        notification.close();
-                    };
-                } catch (e) {}
+                showBrowserNotification('Nova mensagem no chat', body, phone, `chat-${phone}`);
             }
         }
 
@@ -655,11 +686,24 @@ if (!function_exists('isActive')) {
 
         async function enable() {
             unlockSound();
+            await registerServiceWorker();
             if ('Notification' in window && Notification.permission === 'default') {
                 try { await Notification.requestPermission(); } catch (e) {}
             }
             updateButton();
-            showToast(state.ready ? 'Notificacoes do chat ativadas' : 'Som do chat ativado neste navegador');
+            if (state.ready) {
+                showToast('Notificacoes do chat ativadas');
+                showBrowserNotification(
+                    'Notificacoes ativadas',
+                    'O Chrome vai avisar novas mensagens enquanto o painel estiver aberto.',
+                    '',
+                    'chat-test'
+                );
+            } else if (!window.isSecureContext) {
+                showToast('Notificacoes exigem HTTPS no Chrome');
+            } else {
+                showToast('Som do chat ativado neste navegador');
+            }
             pollThreads();
         }
 
@@ -669,6 +713,7 @@ if (!function_exists('isActive')) {
         });
 
         updateButton();
+        registerServiceWorker();
         pollThreads();
         state.timer = window.setInterval(pollThreads, 10000);
         window.LisOnGlobalNotify = { poll: pollThreads, enable, playSound };
