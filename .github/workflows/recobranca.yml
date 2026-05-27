@@ -2,7 +2,7 @@ name: Recobranca automatica
 
 on:
   schedule:
-    - cron: "0 * * * *"
+    - cron: "0 12,15,18,21 * * *"
   workflow_dispatch:
 
 jobs:
@@ -74,7 +74,7 @@ jobs:
             *\?*) separator="&" ;;
           esac
 
-          cron_url="${RECOBRANCA_CRON_URL}${separator}limit=10"
+          cron_url="${RECOBRANCA_CRON_URL}${separator}limit=100"
           separator="&"
           cron_url="${cron_url}${separator}token=${RECOBRANCA_CRON_TOKEN}"
           echo "::add-mask::$RECOBRANCA_CRON_TOKEN"
@@ -84,7 +84,7 @@ jobs:
           echo "Chamando cron de recobranca..."
 
           if ! http_code="$(
-            curl --show-error --silent --connect-timeout 15 --max-time 180 \
+            curl --show-error --silent --connect-timeout 15 --max-time 540 \
               --header "X-Cron-Token: ${RECOBRANCA_CRON_TOKEN}" \
               --header "Authorization: Bearer ${RECOBRANCA_CRON_TOKEN}" \
               --output /tmp/recobranca_cron_response.txt \
@@ -101,7 +101,7 @@ jobs:
               PAINEL_LOGIN_URL="$(printf '%s' "$RECOBRANCA_CRON_URL" | sed -E 's#/painel/api/.*#/painel/#')"
             fi
 
-            curl --show-error --silent --connect-timeout 15 --max-time 180 \
+            curl --show-error --silent --connect-timeout 15 --max-time 540 \
               --cookie-jar /tmp/painel_cookies.txt \
               --output /tmp/painel_login_page.html \
               "$PAINEL_LOGIN_URL"
@@ -116,7 +116,7 @@ jobs:
               exit 1
             fi
 
-            curl --show-error --silent --connect-timeout 15 --max-time 180 \
+            curl --show-error --silent --connect-timeout 15 --max-time 540 \
               --cookie /tmp/painel_cookies.txt \
               --cookie-jar /tmp/painel_cookies.txt \
               --location \
@@ -128,7 +128,7 @@ jobs:
               "$PAINEL_LOGIN_URL"
 
             if ! http_code="$(
-              curl --show-error --silent --connect-timeout 15 --max-time 180 \
+              curl --show-error --silent --connect-timeout 15 --max-time 540 \
                 --cookie /tmp/painel_cookies.txt \
                 --output /tmp/recobranca_cron_response.txt \
                 --write-out "%{http_code}" \
@@ -161,13 +161,14 @@ jobs:
           case "$DUE_TODAY_CRON_URL" in
             *\?*) separator="&" ;;
           esac
-          due_today_url="${DUE_TODAY_CRON_URL}${separator}token=${RECOBRANCA_CRON_TOKEN}"
+          due_today_url="${DUE_TODAY_CRON_URL}${separator}limit=100"
+          due_today_url="${due_today_url}&token=${RECOBRANCA_CRON_TOKEN}"
           echo "::add-mask::$due_today_url"
           echo "Chamando cron de vencimento hoje..."
 
           if [ -f /tmp/painel_cookies.txt ]; then
             if ! due_today_http_code="$(
-              curl --show-error --silent --connect-timeout 15 --max-time 180 \
+              curl --show-error --silent --connect-timeout 15 --max-time 540 \
                 --cookie /tmp/painel_cookies.txt \
                 --header "X-Cron-Token: ${RECOBRANCA_CRON_TOKEN}" \
                 --header "Authorization: Bearer ${RECOBRANCA_CRON_TOKEN}" \
@@ -179,7 +180,7 @@ jobs:
             fi
           else
             if ! due_today_http_code="$(
-              curl --show-error --silent --connect-timeout 15 --max-time 180 \
+              curl --show-error --silent --connect-timeout 15 --max-time 540 \
                 --header "X-Cron-Token: ${RECOBRANCA_CRON_TOKEN}" \
                 --header "Authorization: Bearer ${RECOBRANCA_CRON_TOKEN}" \
                 --output /tmp/due_today_cron_response.txt \
