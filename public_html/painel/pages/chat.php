@@ -236,6 +236,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .status-pill.received{background:#f0f4f8;color:#405064;}
 
     .chat-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;}
+    .mobile-chat-back{display:none;}
     .charge-btn{
       height:48px;
       border:1px solid #bfe8ff;
@@ -679,8 +680,11 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     @media(max-width:920px){
       .chat-wrap{height:auto;min-height:calc(100vh - var(--header-height, 70px));overflow:visible;}
       .chat-shell{height:auto;min-height:calc(100vh - var(--header-height, 70px));grid-template-columns:1fr;}
-      .chat-list-pane{height:360px;border-right:none;border-bottom:1px solid var(--line);}
-      .chat-main-pane{min-height:560px;}
+      .chat-list-pane{height:calc(100vh - var(--header-height, 70px));min-height:560px;border-right:none;border-bottom:0;}
+      .chat-main-pane{display:none;min-height:calc(100vh - var(--header-height, 70px));}
+      .chat-shell.conversation-open .chat-list-pane{display:none;}
+      .chat-shell.conversation-open .chat-main-pane{display:flex;}
+      .mobile-chat-back{display:inline-flex;}
       .messages{padding:16px;}
       .bubble{max-width:90%;}
     }
@@ -723,8 +727,12 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       .chat-main-pane > .chat-pane-head .chat-actions{
         width:100%;
         display:grid;
-        grid-template-columns:minmax(0,1fr) 42px auto;
+        grid-template-columns:42px minmax(0,1fr) 42px;
         align-items:center;
+      }
+      .chat-main-pane > .chat-pane-head .chat-actions .status-pill{
+        grid-column:1 / -1;
+        justify-self:start;
       }
       .window-panel{
         align-items:flex-start;
@@ -806,6 +814,9 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
           </div>
         </div>
         <div class="chat-actions">
+          <button class="icon-btn mobile-chat-back" id="btnCloseMobileChat" type="button" title="Voltar para conversas">
+            <i class="fa-solid fa-arrow-left"></i>
+          </button>
           <button class="charge-btn" id="btnResendCharge" type="button" disabled>
             <i class="fa-solid fa-repeat"></i> Reenviar cobranca
           </button>
@@ -996,6 +1007,15 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         expires,
         left
       };
+    }
+
+    function isMobileChat(){
+      return window.matchMedia('(max-width: 920px)').matches;
+    }
+
+    function setConversationOpen(open){
+      const shell = document.querySelector('.chat-shell');
+      if (shell) shell.classList.toggle('conversation-open', Boolean(open));
     }
 
     function initials(name, phone){
@@ -1267,7 +1287,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         }
         renderThreads();
         handleThreadNotifications(state.threads);
-        if (!state.selectedPhone && state.threads[0]?.phone) {
+        if (!state.selectedPhone && state.threads[0]?.phone && !isMobileChat()) {
           openConversation(state.threads[0].phone, false);
         }
       } catch (e) {
@@ -1542,6 +1562,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       state.selectedPhone = digits(phone);
       state.lastMessageHash = '';
       state.lastCharge = null;
+      setConversationOpen(true);
       const url = new URL(location.href);
       url.searchParams.set('pagina', 'chat');
       url.searchParams.set('phone', state.selectedPhone);
@@ -1549,6 +1570,27 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       renderThreads();
       setActiveHeader(state.threads.find(t => t.phone === state.selectedPhone));
       loadMessages(markRead);
+    }
+
+    function closeMobileChat(){
+      setConversationOpen(false);
+      if (!isMobileChat()) return;
+      state.selectedPhone = '';
+      state.activeThread = null;
+      state.lastMessageHash = '';
+      state.lastCharge = null;
+      const url = new URL(location.href);
+      url.searchParams.set('pagina', 'chat');
+      url.searchParams.delete('phone');
+      history.replaceState(null, '', url.toString());
+      renderThreads();
+      setActiveHeader(null);
+      el('messages').innerHTML = `
+        <div class="empty-state">
+          <i class="fa-regular fa-message"></i>
+          Abra uma conversa para ver o historico.
+        </div>
+      `;
     }
 
     async function sendMessage(){
@@ -1737,6 +1779,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       loadThreads(true);
     };
     el('btnReloadThreads').onclick = () => loadThreads(true);
+    el('btnCloseMobileChat').onclick = closeMobileChat;
     el('btnSend').onclick = sendMessage;
     el('btnSendTemplate').onclick = sendTemplate;
     el('btnSendTemplateBottom').onclick = sendTemplate;

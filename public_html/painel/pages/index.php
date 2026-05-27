@@ -428,6 +428,166 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
   animation: toastBar 6s linear forwards;
 }
 
+@media (max-width: 760px) {
+  .pa-wrap .pa-header {
+    height: auto;
+    min-height: 62px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .pa-wrap .brand {
+    font-size: 19px;
+  }
+
+  .pa-wrap .status-bar {
+    width: 100%;
+    justify-content: center;
+    box-sizing: border-box;
+    padding: 8px 12px;
+  }
+
+  .pa-wrap .container {
+    width: 100%;
+    max-width: 100%;
+    padding: 0;
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+
+  .pa-wrap .toolbar {
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 18px;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .pa-wrap .toolbar > div,
+  .pa-wrap .toolbar select,
+  .pa-wrap .toolbar button {
+    width: 100%;
+    max-width: 100% !important;
+    box-sizing: border-box;
+  }
+
+  .pa-wrap .toggle-wrapper {
+    justify-content: space-between;
+    min-height: 42px;
+    padding: 0;
+    margin: 0;
+    border-right: 0;
+  }
+
+  .pa-wrap .btn-primary {
+    justify-content: center;
+  }
+
+  .pa-wrap table {
+    min-width: 720px;
+  }
+
+  .pa-wrap .container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .pa-wrap thead th {
+    padding: 0 16px;
+  }
+
+  .pa-wrap tbody td {
+    padding: 14px 16px;
+  }
+
+  .pa-wrap tbody tr:hover {
+    transform: none;
+  }
+
+  .pa-toast {
+    right: 12px;
+    bottom: 12px;
+    min-width: auto;
+    width: calc(100vw - 24px);
+    border-radius: 12px;
+  }
+}
+
+@media (max-width: 620px) {
+  .pa-wrap .container {
+    overflow-x: visible;
+  }
+
+  .pa-wrap table,
+  .pa-wrap thead,
+  .pa-wrap tbody,
+  .pa-wrap tr,
+  .pa-wrap td {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .pa-wrap table {
+    border-spacing: 0;
+  }
+
+  .pa-wrap thead {
+    display: none;
+  }
+
+  .pa-wrap tbody tr {
+    margin-bottom: 12px;
+    padding: 14px;
+    border: 2px solid var(--border-color);
+    border-radius: 14px;
+  }
+
+  .pa-wrap tbody td,
+  .pa-wrap tbody td:first-child,
+  .pa-wrap tbody td:last-child {
+    border: 0;
+    padding: 7px 0;
+    border-radius: 0;
+  }
+
+  .pa-wrap tbody td:first-child {
+    display: none;
+  }
+
+  .pa-wrap tbody td:nth-child(3)::before,
+  .pa-wrap tbody td:nth-child(4)::before {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .pa-wrap tbody td:nth-child(3)::before {
+    content: "Status";
+  }
+
+  .pa-wrap tbody td:nth-child(4)::before {
+    content: "Detalhes";
+  }
+
+  .pa-wrap tbody td:last-child {
+    text-align: left !important;
+  }
+
+  .pa-wrap tbody td:last-child > div {
+    justify-content: space-between !important;
+    gap: 10px !important;
+  }
+}
+
   </style>
 
   <div class="pa-header">
