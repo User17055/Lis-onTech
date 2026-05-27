@@ -169,6 +169,8 @@ function waClean(string $s): string {
 function curlGetJson(string $url, string $apiKey): ?array {
   $ch = curl_init($url);
   curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+  curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+  curl_setopt($ch, CURLOPT_TIMEOUT, 25);
   curl_setopt($ch, CURLOPT_HTTPHEADER, [
     'Accept: application/json',
     'Authorization: Basic ' . base64_encode($apiKey . ':'),
@@ -533,6 +535,8 @@ function enviarTemplateWhatsApp(
   $ch = curl_init($url);
   curl_setopt($ch, CURLOPT_POST, 1);
   curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload, JSON_UNESCAPED_UNICODE));
+  curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+  curl_setopt($ch, CURLOPT_TIMEOUT, 25);
   curl_setopt($ch, CURLOPT_HTTPHEADER, [
     'Content-Type: application/json',
     'Authorization: Bearer ' . $token
