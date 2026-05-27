@@ -684,6 +684,68 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       .messages{padding:16px;}
       .bubble{max-width:90%;}
     }
+    @media(max-width:620px){
+      .chat-pane-head{
+        min-height:auto;
+        padding:14px;
+        align-items:flex-start;
+      }
+      .chat-title strong{font-size:17px;}
+      .chat-title span{font-size:12px;max-width:58vw;}
+      .chat-actions{
+        gap:6px;
+      }
+      .icon-btn{
+        width:42px;
+        height:42px;
+        flex-basis:42px;
+      }
+      .filter-tabs{
+        grid-template-columns:1fr;
+      }
+      .thread-item{
+        grid-template-columns:42px minmax(0,1fr) auto;
+        padding:12px;
+      }
+      .avatar{
+        width:42px;
+        height:42px;
+      }
+      .charge-btn{
+        width:100%;
+        justify-content:center;
+        min-height:42px;
+        white-space:normal;
+      }
+      .chat-main-pane > .chat-pane-head{
+        flex-direction:column;
+      }
+      .chat-main-pane > .chat-pane-head .chat-actions{
+        width:100%;
+        display:grid;
+        grid-template-columns:minmax(0,1fr) 42px auto;
+        align-items:center;
+      }
+      .window-panel{
+        align-items:flex-start;
+        flex-direction:column;
+        padding:12px 14px;
+      }
+      .composer{
+        grid-template-columns:42px minmax(0,1fr) 42px;
+        padding:10px;
+        gap:8px;
+      }
+      .chat-textarea{
+        min-height:44px;
+        max-height:120px;
+        padding:11px 12px;
+      }
+      .media-video,
+      .media-img{
+        max-width:calc(100vw - 52px);
+      }
+    }
   </style>
 
   <div class="chat-shell">
@@ -697,9 +759,6 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
           </div>
         </div>
         <div class="chat-actions">
-          <button class="icon-btn" id="btnNotify" type="button" title="Ativar notificacoes">
-            <i class="fa-regular fa-bell"></i>
-          </button>
           <button class="icon-btn" id="btnNewChat" type="button" title="Abrir conversa por numero">
             <i class="fa-solid fa-plus"></i>
           </button>
@@ -1050,6 +1109,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     }
 
     function handleThreadNotifications(rows){
+      if (window.LisOnGlobalNotify) return;
       const incomingRows = rows.filter(row => Number(row.unread_count || 0) > 0 && row.last_direction === 'in');
       const nextSnapshot = new Map();
       incomingRows.forEach(row => {
@@ -1642,7 +1702,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       el('newChatBox').classList.toggle('show');
       if (el('newChatBox').classList.contains('show')) el('newPhone').focus();
     };
-    el('btnNotify').onclick = enableNotifications;
+    if (el('btnNotify')) el('btnNotify').onclick = enableNotifications;
 
     el('btnOpenPhone').onclick = () => {
       const phone = digits(el('newPhone').value);
