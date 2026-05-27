@@ -48,6 +48,8 @@ if ($loginError !== '') {
       background: linear-gradient(180deg, #E8EEFF 0%, #F6F9FF 100%);
       color: var(--ink);
       font-family: "Poppins", Arial, sans-serif;
+      min-height: 100vh;
+      min-height: 100dvh;
     }
 
     button,
@@ -60,12 +62,13 @@ if ($loginError !== '') {
       display: grid;
       grid-template-columns: 1fr 1fr;
       min-height: 100vh;
+      min-height: 100dvh;
       overflow: hidden;
     }
 
     .login-panel {
       align-items: center;
-      background: #EAF2FF;
+      background: #F7FAFF;
       display: flex;
       justify-content: center;
       padding: 48px 32px;
@@ -73,35 +76,54 @@ if ($loginError !== '') {
 
     .login-content {
       margin-top: -2px;
-      width: min(100%, 314px);
+      width: min(100%, 380px);
+    }
+
+    .brand-line {
+      align-items: center;
+      display: inline-flex;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+
+    .brand-line img {
+      display: block;
+      height: 34px;
+      width: auto;
+    }
+
+    .brand-line span {
+      color: var(--label);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
     }
 
     .headline {
-      margin-bottom: 34px;
+      margin-bottom: 28px;
     }
 
     .headline h1 {
       color: var(--ink);
-      font-size: 34px;
+      font-size: 32px;
       font-weight: 500;
-      letter-spacing: 1.02px;
+      letter-spacing: 0;
       line-height: 1.2;
-      margin: 0 0 3px;
-      text-transform: uppercase;
+      margin: 0 0 8px;
     }
 
     .headline p {
       color: var(--body);
       font-size: 14px;
       font-weight: 400;
-      letter-spacing: 0.42px;
+      letter-spacing: 0;
       line-height: 1.55;
       margin: 0;
     }
 
     .login-form {
       display: grid;
-      gap: 18px;
+      gap: 16px;
     }
 
     .field {
@@ -109,23 +131,21 @@ if ($loginError !== '') {
       gap: 8px;
     }
 
-    .field span,
-    .remember,
-    .form-options a {
+    .field > span:first-child {
       color: var(--label);
       font-size: 14px;
       font-weight: 500;
-      letter-spacing: 0.42px;
+      letter-spacing: 0;
       line-height: 1.35;
     }
 
     .field input {
-      background: rgba(196, 196, 196, 0);
+      background: #ffffff;
       border: 1px solid var(--border);
       border-radius: 12px;
       box-shadow: var(--shadow);
       color: var(--body);
-      height: 41px;
+      height: 48px;
       outline: none;
       padding: 0 15px;
       transition: border-color 160ms ease, box-shadow 160ms ease;
@@ -148,36 +168,28 @@ if ($loginError !== '') {
       box-shadow: 0 0 0 3px rgba(45, 106, 255, 0.16), var(--shadow);
     }
 
-    .form-options {
-      align-items: center;
-      display: flex;
-      justify-content: space-between;
-      margin-top: -2px;
+    .password-box {
+      display: block;
+      position: relative;
     }
 
-    .remember {
-      align-items: center;
-      display: inline-flex;
-      gap: 8px;
+    .password-box input {
+      display: block;
+      padding-right: 92px;
     }
 
-    .remember input {
-      accent-color: var(--accent);
-      height: 14px;
-      margin: 0;
-      width: 14px;
-    }
-
-    .form-options a,
-    .signup a {
-      color: var(--label);
-      text-decoration: none;
-      transition: color 160ms ease;
-    }
-
-    .form-options a:hover,
-    .signup a:hover {
+    .password-toggle {
+      background: transparent;
+      border: 0;
       color: var(--accent);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      height: 34px;
+      padding: 0 10px;
+      position: absolute;
+      right: 7px;
+      top: 7px;
     }
 
     .button {
@@ -187,9 +199,9 @@ if ($loginError !== '') {
       display: inline-flex;
       font-size: 14px;
       font-weight: 600;
-      height: 41px;
+      height: 48px;
       justify-content: center;
-      letter-spacing: 0.42px;
+      letter-spacing: 0;
       line-height: 1;
       transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
       width: 100%;
@@ -204,7 +216,7 @@ if ($loginError !== '') {
       border: 1px solid var(--accent);
       box-shadow: 0 4px 12px rgba(45, 106, 255, 0.22);
       color: #ffffff;
-      margin-top: -3px;
+      margin-top: 2px;
     }
 
     .button-primary:hover:not(:disabled) {
@@ -212,31 +224,13 @@ if ($loginError !== '') {
       box-shadow: 0 7px 18px rgba(45, 106, 255, 0.27);
     }
 
-    .button-google {
-      background: rgba(196, 196, 196, 0);
-      border: 1px solid var(--border);
-      box-shadow: var(--shadow);
-      color: #181818;
-      gap: 10px;
-      margin-top: -6px;
-    }
-
-    .button-google:hover {
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.16);
-    }
-
-    .signup {
-      color: var(--label);
-      font-size: 10px;
+    .login-note {
+      color: rgba(50, 66, 117, 0.82);
+      font-size: 12px;
       font-weight: 500;
-      letter-spacing: 0.3px;
-      line-height: 1.5;
-      margin: 15px 0 0;
+      line-height: 1.45;
+      margin: 2px 0 0;
       text-align: center;
-    }
-
-    .signup a {
-      color: var(--accent);
     }
 
     .alert {
@@ -373,36 +367,58 @@ if ($loginError !== '') {
 
     @media (max-width: 760px) {
       .login-page {
-        grid-template-columns: 1fr;
+        display: flex;
+        flex-direction: column;
+        overflow: auto;
       }
 
       .art-panel {
-        min-height: 280px;
+        background-size: min(76vw, 320px) auto;
+        flex: 0 0 132px;
+        min-height: 132px;
         order: -1;
       }
 
       .login-panel {
-        padding: 42px 24px 48px;
+        align-items: flex-start;
+        flex: 1 1 auto;
+        padding: 26px 22px max(26px, env(safe-area-inset-bottom));
+      }
+
+      .login-content {
+        margin: 0 auto;
+        width: min(100%, 430px);
+      }
+
+      .brand-line {
+        margin-bottom: 22px;
+      }
+
+      .headline {
+        margin-bottom: 22px;
       }
 
       .headline h1 {
-        font-size: 30px;
+        font-size: 28px;
       }
     }
 
     @media (max-width: 380px) {
       .login-panel {
-        padding-inline: 18px;
+        padding-inline: 16px;
+      }
+
+      .art-panel {
+        flex-basis: 108px;
+        min-height: 108px;
+      }
+
+      .brand-line img {
+        height: 30px;
       }
 
       .headline h1 {
-        font-size: 27px;
-      }
-
-      .form-options {
-        align-items: flex-start;
-        flex-direction: column;
-        gap: 10px;
+        font-size: 25px;
       }
     }
   </style>
@@ -411,9 +427,14 @@ if ($loginError !== '') {
   <main class="login-page" aria-label="Pagina de login">
     <section class="login-panel" aria-labelledby="login-title">
       <div class="login-content">
+        <div class="brand-line" aria-label="Lis'onTech">
+          <img src="/assets/lison.svg" alt="">
+          <span>Lis'onTech</span>
+        </div>
+
         <header class="headline">
           <h1 id="login-title">Bem-vindo de volta</h1>
-          <p>Bem-vindo! Por favor, informe seus dados.</p>
+          <p>Acesse o painel para acompanhar cobrancas, conversas e automacoes.</p>
         </header>
 
         <?php if (!$loginConfigured): ?>
@@ -434,12 +455,13 @@ if ($loginError !== '') {
           <?php endif; ?>
 
           <label class="field">
-            <span>Email</span>
+            <span>Usuario</span>
             <input
               type="text"
               name="user"
-              placeholder="Digite seu email"
+              placeholder="Digite seu usuario"
               autocomplete="username"
+              required
               value="<?= htmlspecialchars($loginUser, ENT_QUOTES, 'UTF-8') ?>"
               <?= !$loginConfigured ? 'disabled' : '' ?>
             >
@@ -447,52 +469,40 @@ if ($loginError !== '') {
 
           <label class="field">
             <span>Senha</span>
-            <input
-              type="password"
-              name="pass"
-              placeholder="Digite sua senha"
-              autocomplete="current-password"
-              <?= !$loginConfigured ? 'disabled' : '' ?>
-            >
+            <span class="password-box">
+              <input
+                id="loginPass"
+                type="password"
+                name="pass"
+                placeholder="Digite sua senha"
+                autocomplete="current-password"
+                required
+                <?= !$loginConfigured ? 'disabled' : '' ?>
+              >
+              <button class="password-toggle" id="togglePass" type="button" <?= !$loginConfigured ? 'disabled' : '' ?>>Mostrar</button>
+            </span>
           </label>
 
-          <div class="form-options">
-            <label class="remember">
-              <input type="checkbox" name="remember" <?= !$loginConfigured ? 'disabled' : '' ?>>
-              <span>Lembrar de mim</span>
-            </label>
-            <a href="#">Esqueceu a senha?</a>
-          </div>
-
           <button class="button button-primary" type="submit" name="login" value="1" <?= !$loginConfigured ? 'disabled' : '' ?>>Entrar</button>
-          <button class="button button-google" type="button">
-            <svg aria-hidden="true" viewBox="0 0 24 24" width="29" height="29">
-              <path
-                fill="#4285F4"
-                d="M22.6 12.2c0-.8-.1-1.5-.2-2.2H12v4.2h5.9c-.3 1.3-1 2.4-2 3.1v2.6h3.3c2-1.8 3.4-4.4 3.4-7.7Z"
-              />
-              <path
-                fill="#34A853"
-                d="M12 23c2.8 0 5.2-.9 6.9-2.6l-3.3-2.6c-.9.6-2.1 1-3.6 1-2.7 0-5-1.8-5.8-4.3H2.8v2.7C4.5 20.6 8 23 12 23Z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M6.2 14.5c-.2-.6-.3-1.3-.3-2s.1-1.4.3-2V7.8H2.8A11 11 0 0 0 2 12.5c0 1.7.4 3.2 1.1 4.6l3.1-2.6Z"
-              />
-              <path
-                fill="#EA4335"
-                d="M12 6.3c1.5 0 2.9.5 4 1.6l3-3A10.3 10.3 0 0 0 12 2C8 2 4.5 4.4 2.8 7.8l3.4 2.7C7 8 9.3 6.3 12 6.3Z"
-              />
-            </svg>
-            <span>Entrar com Google</span>
-          </button>
+          <p class="login-note">Acesso restrito aos usuarios autorizados.</p>
         </form>
-
-        <p class="signup">Ainda nao tem conta? <a href="#">Cadastre-se gratis!</a></p>
       </div>
     </section>
 
     <section class="art-panel" aria-label="Arte Lis'onTech"></section>
   </main>
+  <script>
+    const passInput = document.getElementById('loginPass');
+    const togglePass = document.getElementById('togglePass');
+
+    if (passInput && togglePass) {
+      togglePass.addEventListener('click', () => {
+        const isHidden = passInput.type === 'password';
+        passInput.type = isHidden ? 'text' : 'password';
+        togglePass.textContent = isHidden ? 'Ocultar' : 'Mostrar';
+        passInput.focus();
+      });
+    }
+  </script>
 </body>
 </html>
