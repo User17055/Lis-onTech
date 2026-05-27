@@ -110,10 +110,16 @@ $DRY_RUN = (isset($_GET['dry_run']) && $_GET['dry_run'] === '1');
 $LIMIT = isset($_GET['limit']) ? max(1, min(200, (int)$_GET['limit'])) : 50;
 $ONLY_BILL_ID = isset($_GET['bill_id']) ? max(0, (int)$_GET['bill_id']) : 0;
 
-if ($META_PHONE_NUMBER_ID === '' || $META_ACCESS_TOKEN === '' || $VINDI_API_KEY === '' || $TEMPLATE_NAME === '') {
-  logLine("ERRO config incompleta META/VINDI/TEMPLATE_DUE_TODAY.");
+$missingConfig = [];
+if ($META_PHONE_NUMBER_ID === '') $missingConfig[] = 'META_PHONE_NUMBER_ID';
+if ($META_ACCESS_TOKEN === '') $missingConfig[] = 'META_ACCESS_TOKEN';
+if ($TEMPLATE_NAME === '') $missingConfig[] = 'META_TEMPLATE_DUE_TODAY_NAME';
+
+if ($missingConfig) {
+  $msg = "Config incompleta vencimento_hoje: " . implode(', ', $missingConfig);
+  logLine("ERRO {$msg}");
   header('Content-Type: text/plain; charset=utf-8');
-  echo "ERRO config incompleta META/VINDI/TEMPLATE_DUE_TODAY.\n";
+  echo "ERRO {$msg}\n";
   http_response_code(200);
   exit;
 }
@@ -387,6 +393,14 @@ try {
   $rows = $st->fetchAll(PDO::FETCH_ASSOC);
 
   logLine("CRON start candidatos=" . count($rows) . " dry_run=" . ($DRY_RUN ? '1' : '0'));
+
+  if ($rows && $VINDI_API_KEY === '') {
+    $msg = "Config incompleta vencimento_hoje: VINDI_API_KEY";
+    logLine("ERRO {$msg}");
+    header('Content-Type: text/plain; charset=utf-8');
+    echo "ERRO {$msg}\n";
+    exit;
+  }
 
   $sent = 0;
   $skipped = 0;
