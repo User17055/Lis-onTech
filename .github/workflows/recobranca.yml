@@ -74,7 +74,7 @@ jobs:
             *\?*) separator="&" ;;
           esac
 
-          cron_url="${RECOBRANCA_CRON_URL}${separator}limit=5"
+          cron_url="${RECOBRANCA_CRON_URL}${separator}limit=10"
           separator="&"
           cron_url="${cron_url}${separator}token=${RECOBRANCA_CRON_TOKEN}"
           echo "::add-mask::$RECOBRANCA_CRON_TOKEN"

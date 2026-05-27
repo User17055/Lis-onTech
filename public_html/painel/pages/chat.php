@@ -297,6 +297,31 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     }
     .empty-state i{font-size:42px;color:#b5c3d4;margin-bottom:12px;display:block;}
 
+    .date-separator{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      margin:8px 0 4px;
+      color:#718198;
+      font-size:12px;
+      font-weight:900;
+      line-height:1;
+      text-align:center;
+    }
+    .date-separator::before,
+    .date-separator::after{
+      content:"";
+      height:1px;
+      flex:1;
+      background:var(--line);
+    }
+    .date-separator span{
+      white-space:nowrap;
+      max-width:min(72vw, 360px);
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
     .msg-row{display:flex;}
     .msg-row.out{justify-content:flex-end;}
     .bubble{
@@ -863,6 +888,32 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         : dt.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'}) + ' ' + dt.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
     }
 
+    function messageDateKey(value){
+      const dt = parseServerDate(value);
+      if (!dt) return String(value ?? '').slice(0, 10);
+      const y = dt.getFullYear();
+      const m = String(dt.getMonth() + 1).padStart(2, '0');
+      const d = String(dt.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function dateSeparatorLabel(value){
+      const dt = parseServerDate(value);
+      if (!dt) return String(value ?? '');
+      const today = new Date();
+      const yesterday = new Date();
+      yesterday.setDate(today.getDate() - 1);
+
+      if (dt.toDateString() === today.toDateString()) return 'Hoje';
+      if (dt.toDateString() === yesterday.toDateString()) return 'Ontem';
+
+      return dt.toLocaleDateString('pt-BR', {
+        day:'numeric',
+        month:'long',
+        year:'numeric'
+      });
+    }
+
     function parseServerDate(value){
       const s = String(value ?? '').trim();
       if (!s) return null;
@@ -1187,6 +1238,22 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       `;
     }
 
+    function renderMessages(messages){
+      const parts = [];
+      let lastKey = '';
+
+      messages.forEach(msg => {
+        const key = messageDateKey(msg.created_at);
+        if (key !== lastKey) {
+          parts.push(`<div class="date-separator"><span>${esc(dateSeparatorLabel(msg.created_at))}</span></div>`);
+          lastKey = key;
+        }
+        parts.push(messageHtml(msg));
+      });
+
+      return parts.join('');
+    }
+
     function mediaUrl(msg, download=false){
       const suffix = download ? '&download=1' : '';
       return `/painel/api/chat_media.php?id=${encodeURIComponent(msg.id)}${suffix}`;
@@ -1391,14 +1458,14 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         const data = await fetchJson(url.toString(), {cache:'no-store'});
         const messages = Array.isArray(data.messages) ? data.messages : [];
         state.lastCharge = data.last_charge || null;
-        const hash = JSON.stringify(messages.map(m => [m.id, m.status, m.message_type, m.body, m.error_text]));
+        const hash = JSON.stringify(messages.map(m => [m.id, m.status, m.message_type, m.body, m.error_text, m.created_at]));
         const activeThread = data.thread || state.threads.find(t => t.phone === state.selectedPhone);
         setActiveHeader(activeThread);
 
         if (hash !== state.lastMessageHash) {
           state.lastMessageHash = hash;
           el('messages').innerHTML = messages.length
-            ? messages.map(messageHtml).join('')
+            ? renderMessages(messages)
             : `<div class="empty-state"><i class="fa-regular fa-message"></i>Nenhuma mensagem nesta conversa.</div>`;
           el('messages').scrollTop = el('messages').scrollHeight;
         }
