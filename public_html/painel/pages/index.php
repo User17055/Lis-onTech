@@ -119,7 +119,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       border-radius: var(--radius-pill);
       padding: 0 25px;
       height: 45px;
-      font-family: 'Nunito', sans-serif;
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
       font-size: 15px;
       font-weight: 600;
       outline: none;
@@ -246,9 +246,11 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .badge {
       padding: 6px 14px;
       border-radius: var(--radius-pill);
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
       font-weight: 700;
       font-size: 12px;
-      text-transform: uppercase;
+      text-transform: none;
+      letter-spacing: 0;
       display: inline-flex;
       align-items: center;
       gap: 6px;
