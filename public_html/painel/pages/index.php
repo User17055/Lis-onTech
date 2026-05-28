@@ -245,8 +245,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
 
     .badge {
       min-height: 24px;
-      min-width: 112px;
-      padding: 0 14px;
+      padding: 0 12px;
       border-radius: var(--radius-pill);
       font-family: inherit;
       font-weight: 800;
@@ -256,9 +255,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       letter-spacing: 0;
       display: inline-flex;
       align-items: center;
-      justify-content: center;
       gap: 6px;
-      white-space: nowrap;
     }
 
     .badge i {
@@ -669,13 +666,13 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
   function badge(status) {
     const normalized = String(status || '').trim().toLowerCase();
     const map = {
-      processed:  { label: 'Enviado',      cls: 'b-success', icon: 'paper-plane' },
-      processing: { label: 'Processando',  cls: 'b-process', icon: 'spinner fa-spin' },
+      processed:  { label: 'Enviado',   cls: 'b-success', icon: 'paper-plane' },
+      processing: { label: 'Gerando',   cls: 'b-process', icon: 'spinner fa-spin' },
       paid:       { label: 'J&aacute; pago', cls: 'b-paid',    icon: 'circle-check' },
-      error:      { label: 'Falhou',       cls: 'b-error',   icon: 'circle-xmark' },
-      not_sent:   { label: 'N&atilde;o enviado', cls: 'b-pending', icon: 'clock' }
+      error:      { label: 'Falhou',    cls: 'b-error',   icon: 'circle-xmark' },
+      not_sent:   { label: 'Pendente',  cls: 'b-pending', icon: 'clock' }
     };
-    const info = map[normalized] || { label: 'Pendente', cls: 'b-pending', icon: 'clock' };
+    const info = map[normalized] || { label: normalized || 'Pendente', cls: 'b-pending', icon: 'clock' };
     return `<span class="badge ${info.cls}"><i class="fa-solid fa-${info.icon}"></i> ${info.label}</span>`;
   }
 
