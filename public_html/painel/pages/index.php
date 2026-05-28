@@ -257,7 +257,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .b-success { background: var(--green-bg); color: var(--green-text); }
     .b-error   { background: var(--red-bg); color: var(--red-text); }
     .b-process { background: var(--blue-bg); color: var(--blue-text); }
-    .b-paid    { background: var(--green-bg); color: var(--green-text); }
+    .b-paid    { background: var(--blue-bg); color: var(--blue-text); }
     .b-pending { background: var(--yellow-bg); color: var(--yellow-text); }
 
     .btn-icon {
@@ -657,7 +657,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
   function badge(status) {
     const normalized = String(status || '').trim().toLowerCase();
     const map = {
-      processed:  { label: 'Sucesso',   cls: 'b-success', icon: 'circle-check' },
+      processed:  { label: 'Enviado',   cls: 'b-success', icon: 'paper-plane' },
       processing: { label: 'Gerando',   cls: 'b-process', icon: 'spinner fa-spin' },
       paid:       { label: 'J&aacute; pago', cls: 'b-paid',    icon: 'circle-check' },
       error:      { label: 'Falhou',    cls: 'b-error',   icon: 'circle-xmark' },
