@@ -610,7 +610,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
 
       <select id="status" class="form-control" style="cursor:pointer; flex: 1; max-width: 200px;">
         <option value="">Todos os Status</option>
-        <option value="processed">Sucesso</option>
+        <option value="processed">Enviados</option>
         <option value="processing">Processando</option>
         <option value="error">Erros</option>
         <option value="paid">J&aacute; pago</option>
