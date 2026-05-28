@@ -119,7 +119,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       border-radius: var(--radius-pill);
       padding: 0 25px;
       height: 45px;
-      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      font-family: inherit;
       font-size: 15px;
       font-weight: 600;
       outline: none;
@@ -246,7 +246,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .badge {
       padding: 6px 14px;
       border-radius: var(--radius-pill);
-      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      font-family: inherit;
       font-weight: 700;
       font-size: 12px;
       text-transform: none;
