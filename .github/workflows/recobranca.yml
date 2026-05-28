@@ -2,7 +2,7 @@ name: Recobranca automatica
 
 on:
   schedule:
-    - cron: "17,47 12,15,18,21 * * *"
+    - cron: "0 * * * *"
   workflow_dispatch:
 
 jobs:
@@ -11,7 +11,24 @@ jobs:
     timeout-minutes: 10
 
     steps:
+      - name: Validar janela de execucao
+        id: execution_window
+        if: github.event_name == 'schedule'
+        run: |
+          hour="$(date -u +%H)"
+          case "$hour" in
+            12|13|15|16|18|19|21|22)
+              echo "run_cron=true" >> "$GITHUB_OUTPUT"
+              echo "Janela ativa para recobranca: ${hour}:00 UTC."
+              ;;
+            *)
+              echo "run_cron=false" >> "$GITHUB_OUTPUT"
+              echo "Fora da janela de recobranca: ${hour}:00 UTC. Encerrando sem chamar cron."
+              ;;
+          esac
+
       - name: Validar URL do cron
+        if: github.event_name == 'workflow_dispatch' || steps.execution_window.outputs.run_cron == 'true'
         env:
           RECOBRANCA_CRON_URL: ${{ secrets.RECOBRANCA_CRON_URL }}
           RECOBRANCA_CRON_TOKEN: ${{ secrets.RECOBRANCA_CRON_TOKEN }}
@@ -54,6 +71,7 @@ jobs:
           fi
 
       - name: Chamar recobranca
+        if: github.event_name == 'workflow_dispatch' || steps.execution_window.outputs.run_cron == 'true'
         env:
           RECOBRANCA_CRON_URL: ${{ secrets.RECOBRANCA_CRON_URL }}
           RECOBRANCA_CRON_TOKEN: ${{ secrets.RECOBRANCA_CRON_TOKEN }}
