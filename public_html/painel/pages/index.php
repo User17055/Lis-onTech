@@ -265,7 +265,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       line-height: 1;
     }
 
-    .b-success { background: #e9fbfc; color: #138a91; }
+    .b-success { background: #ecfdf5; color: #047857; }
     .b-error   { background: #fff1f2; color: #be3a45; }
     .b-process { background: #e9fbfc; color: #138a91; }
     .b-paid    { background: #e9fbfc; color: #138a91; }
