@@ -268,7 +268,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .b-success { background: #e8f8ef71; color: #059633; }
     .b-error   { background: #fde8e871; color: #c30b0b; }
     .b-process { background: #e8f1ff71; color: #0b4cd6; }
-    .b-paid    { background: #d9f8f771; color: #0bbbe7; }
+    .b-paid    { background: #d9f8f771; color: #15a7cb; }
     .b-pending { background: #fff4d671; color: #df8722; }
 
     .btn-icon {
