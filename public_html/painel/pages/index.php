@@ -245,8 +245,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
 
     .badge {
       min-height: 30px;
-      min-width: 118px;
-      padding: 0 15px;
+      padding: 0 12px;
       border-radius: var(--radius-pill);
       font-family: inherit;
       font-weight: 800;
