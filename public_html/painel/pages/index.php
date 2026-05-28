@@ -265,11 +265,11 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       line-height: 1;
     }
 
-    .b-success { background: #e8f8ef; color: #059669; }
-    .b-error   { background: #fde8e8; color: #dc2626; }
-    .b-process { background: #e8f1ff; color: #2563eb; }
-    .b-paid    { background: #d9f8f7; color: #0891b2; }
-    .b-pending { background: #fff4d6; color: #d97706; }
+    .b-success { background: #e8f8efaf; color: #059669; }
+    .b-error   { background: #fde8e8af; color: #dc2626; }
+    .b-process { background: #e8f1ffaf; color: #2563eb; }
+    .b-paid    { background: #d9f8f7af; color: #0891b2; }
+    .b-pending { background: #fff4d6af; color: #d97706; }
 
     .btn-icon {
       color: #94a3b8;
