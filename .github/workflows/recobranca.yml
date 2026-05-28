@@ -2,7 +2,7 @@ name: Recobranca automatica
 
 on:
   schedule:
-    - cron: "17 12,15,18,21 * * *"
+    - cron: "17,47 12,15,18,21 * * *"
   workflow_dispatch:
 
 jobs:
@@ -74,7 +74,7 @@ jobs:
             *\?*) separator="&" ;;
           esac
 
-          cron_url="${RECOBRANCA_CRON_URL}${separator}limit=100"
+          cron_url="${RECOBRANCA_CRON_URL}${separator}limit=50"
           separator="&"
           cron_url="${cron_url}${separator}token=${RECOBRANCA_CRON_TOKEN}"
           echo "::add-mask::$RECOBRANCA_CRON_TOKEN"
@@ -161,7 +161,7 @@ jobs:
           case "$DUE_TODAY_CRON_URL" in
             *\?*) separator="&" ;;
           esac
-          due_today_url="${DUE_TODAY_CRON_URL}${separator}limit=100"
+          due_today_url="${DUE_TODAY_CRON_URL}${separator}limit=50"
           due_today_url="${due_today_url}&token=${RECOBRANCA_CRON_TOKEN}"
           echo "::add-mask::$due_today_url"
           echo "Chamando cron de vencimento hoje..."
