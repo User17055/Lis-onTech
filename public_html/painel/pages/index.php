@@ -257,7 +257,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .b-success { background: var(--green-bg); color: var(--green-text); }
     .b-error   { background: var(--red-bg); color: var(--red-text); }
     .b-process { background: var(--blue-bg); color: var(--blue-text); }
-    .b-paid    { background: var(--blue-bg); color: var(--blue-text); }
+    .b-paid    { background: var(--green-bg); color: var(--green-text); }
     .b-pending { background: var(--yellow-bg); color: var(--yellow-text); }
 
     .btn-icon {
@@ -655,6 +655,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
   }
 
   function badge(status) {
+    const normalized = String(status || '').trim().toLowerCase();
     const map = {
       processed:  { label: 'Sucesso',   cls: 'b-success', icon: 'circle-check' },
       processing: { label: 'Gerando',   cls: 'b-process', icon: 'spinner fa-spin' },
@@ -662,7 +663,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       error:      { label: 'Falhou',    cls: 'b-error',   icon: 'circle-xmark' },
       not_sent:   { label: 'Pendente',  cls: 'b-pending', icon: 'clock' }
     };
-    const info = map[status] || { label: status, cls: 'b-pending', icon: 'circle' };
+    const info = map[normalized] || { label: normalized || 'Pendente', cls: 'b-pending', icon: 'clock' };
     return `<span class="badge ${info.cls}"><i class="fa-solid fa-${info.icon}"></i> ${info.label}</span>`;
   }
 

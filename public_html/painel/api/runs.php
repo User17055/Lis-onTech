@@ -14,18 +14,18 @@ $status = isset($_GET['status']) ? trim((string)$_GET['status']) : '';
 $q      = isset($_GET['q']) ? trim((string)$_GET['q']) : '';
 $knownSignature = isset($_GET['signature']) ? trim((string)$_GET['signature']) : '';
 
+$fromSql = "
+  FROM automation_runs ar
+  LEFT JOIN bill_reminders br ON br.bill_id = ar.bill_id
+";
 $where = "WHERE 1=1";
 $params = [];
 $paidNoSendExpr = "(
-  status = 'paid'
+  ar.status = 'paid'
+  OR br.status = 'paid'
   OR (
-    status = 'not_sent'
-    AND (
-      LOWER(COALESCE(error_message, '')) LIKE '%ja paga%'
-      OR LOWER(COALESCE(error_message, '')) LIKE '%já paga%'
-      OR LOWER(COALESCE(error_message, '')) LIKE '%ja esta paga%'
-      OR LOWER(COALESCE(error_message, '')) LIKE '%já está paga%'
-    )
+    ar.status = 'not_sent'
+    AND LOWER(COALESCE(ar.error_message, '')) LIKE '%paga%'
   )
 )";
 
@@ -33,20 +33,20 @@ if ($status !== '') {
   if ($status === 'paid') {
     $where .= " AND $paidNoSendExpr ";
   } elseif ($status === 'not_sent') {
-    $where .= " AND status = :status AND NOT ($paidNoSendExpr) ";
+    $where .= " AND ar.status = :status AND NOT ($paidNoSendExpr) ";
     $params[':status'] = $status;
   } else {
-    $where .= " AND status = :status ";
+    $where .= " AND ar.status = :status ";
     $params[':status'] = $status;
   }
 }
 
 if ($q !== '') {
   $where .= " AND (
-    run_id LIKE :q_run_id OR
-    customer_name LIKE :q_customer_name OR
-    CAST(bill_id AS CHAR) LIKE :q_bill_id OR
-    event_type LIKE :q_event_type
+    ar.run_id LIKE :q_run_id OR
+    ar.customer_name LIKE :q_customer_name OR
+    CAST(ar.bill_id AS CHAR) LIKE :q_bill_id OR
+    ar.event_type LIKE :q_event_type
   ) ";
   $qLike = '%' . $q . '%';
   $params[':q_run_id'] = $qLike;
@@ -59,9 +59,10 @@ if ($q !== '') {
 $summarySql = "
   SELECT
     COUNT(*) AS total,
-    MAX(updated_at) AS max_updated_at,
-    MAX(created_at) AS max_created_at
-  FROM automation_runs
+    MAX(ar.updated_at) AS max_updated_at,
+    MAX(ar.created_at) AS max_created_at,
+    MAX(br.updated_at) AS max_bill_updated_at
+  $fromSql
   $where
 ";
 $stmt = $pdo->prepare($summarySql);
@@ -81,6 +82,7 @@ $signature = hash('sha256', implode('|', [
   $total,
   (string)($summary['max_updated_at'] ?? ''),
   (string)($summary['max_created_at'] ?? ''),
+  (string)($summary['max_bill_updated_at'] ?? ''),
 ]));
 
 if ($knownSignature !== '' && hash_equals($signature, $knownSignature)) {
@@ -99,19 +101,19 @@ if ($knownSignature !== '' && hash_equals($signature, $knownSignature)) {
 /* 2) dados */
 $dataSql = "
   SELECT
-    run_id,
-    created_at,
-    updated_at,
-    event_type,
-    CASE WHEN $paidNoSendExpr THEN 'paid' ELSE status END AS status,
-    customer_name,
-    bill_id,
-    bill_url,
-    meta_http,
-    error_message
-  FROM automation_runs
+    ar.run_id,
+    ar.created_at,
+    ar.updated_at,
+    ar.event_type,
+    CASE WHEN $paidNoSendExpr THEN 'paid' ELSE COALESCE(NULLIF(ar.status, ''), 'not_sent') END AS status,
+    ar.customer_name,
+    ar.bill_id,
+    ar.bill_url,
+    ar.meta_http,
+    ar.error_message
+  $fromSql
   $where
-  ORDER BY created_at DESC
+  ORDER BY ar.created_at DESC
   LIMIT :limit OFFSET :offset
 ";
 
