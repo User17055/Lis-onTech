@@ -244,25 +244,25 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     }
 
     .badge {
-      min-height: 34px;
-      min-width: 126px;
-      padding: 0 18px;
+      min-height: 30px;
+      min-width: 118px;
+      padding: 0 15px;
       border-radius: var(--radius-pill);
       font-family: inherit;
       font-weight: 800;
-      font-size: 13px;
+      font-size: 12px;
       line-height: 1;
       text-transform: uppercase;
       letter-spacing: 0;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: 7px;
       white-space: nowrap;
     }
 
     .badge i {
-      font-size: 13px;
+      font-size: 12px;
       line-height: 1;
     }
 
