@@ -11,21 +11,19 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - name: Validar janela de execucao
+      - name: Validar intervalo de execucao
         id: execution_window
         if: github.event_name == 'schedule'
         run: |
           hour="$(date -u +%H)"
-          case "$hour" in
-            12|13|15|16|18|19|21|22)
-              echo "run_cron=true" >> "$GITHUB_OUTPUT"
-              echo "Janela ativa para recobranca: ${hour}:00 UTC."
-              ;;
-            *)
-              echo "run_cron=false" >> "$GITHUB_OUTPUT"
-              echo "Fora da janela de recobranca: ${hour}:00 UTC. Encerrando sem chamar cron."
-              ;;
-          esac
+          hour_num=$((10#$hour))
+          if [ $((hour_num % 3)) -eq 0 ]; then
+            echo "run_cron=true" >> "$GITHUB_OUTPUT"
+            echo "Intervalo ativo para recobranca: ${hour}:00 UTC."
+          else
+            echo "run_cron=false" >> "$GITHUB_OUTPUT"
+            echo "Fora do intervalo de 3 horas: ${hour}:00 UTC. Encerrando sem chamar cron."
+          fi
 
       - name: Validar URL do cron
         if: github.event_name == 'workflow_dispatch' || steps.execution_window.outputs.run_cron == 'true'
