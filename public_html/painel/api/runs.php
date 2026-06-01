@@ -109,7 +109,6 @@ $dataSql = "
     ar.customer_name,
     ar.bill_id,
     ar.bill_url,
-    COALESCE(NULLIF(ar.phone, ''), NULLIF(br.phone, ''), '') AS phone,
     ar.meta_http,
     ar.error_message
   $fromSql

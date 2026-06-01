@@ -14,7 +14,12 @@ if ($runId === '') {
   exit;
 }
 
-$stmt = $pdo->prepare("SELECT * FROM automation_runs WHERE run_id = ?");
+$stmt = $pdo->prepare("
+  SELECT ar.*, br.phone AS reminder_phone
+  FROM automation_runs ar
+  LEFT JOIN bill_reminders br ON br.bill_id = ar.bill_id
+  WHERE ar.run_id = ?
+");
 $stmt->execute([$runId]);
 $run = $stmt->fetch(PDO::FETCH_ASSOC);
 

@@ -703,6 +703,10 @@ $run_id = (string) $_GET['id'];
             </div>
 
             <div class="det-actions">
+                <button id="btnOpenChat" class="det-btn secondary" style="display:none;">
+                    <i class="fa-solid fa-comments"></i> Ir para o chat
+                </button>
+
                 <button id="btnResendWhats" class="det-btn primary" style="display:none;">
                     <i class="fa-solid fa-paper-plane"></i> Reenviar WhatsApp
                 </button>
@@ -1303,6 +1307,7 @@ $run_id = (string) $_GET['id'];
         function extractPhoneFromRun(run) {
             // 1) run.phone
             if (run?.phone) return String(run.phone);
+            if (run?.reminder_phone) return String(run.reminder_phone);
 
             // 2) run.whatsapp_request (JSON string) => { to: "55..." }
             const req = safeJsonParse(run?.whatsapp_request);
@@ -1326,6 +1331,25 @@ $run_id = (string) $_GET['id'];
             const norm = normalizeBrPhone(candidate);
             const digits = norm.replace(/\D+/g, "");
             return { candidate, norm, digits };
+        }
+
+        function bindOpenChat(run, logs, inputItems, outputItems) {
+            const btn = document.getElementById("btnOpenChat");
+            if (!btn) return;
+
+            const { digits } = getBestPhone(run, inputItems, outputItems, logs);
+            const canOpen = digits && digits.startsWith("55") && (digits.length === 12 || digits.length === 13);
+            if (!canOpen) {
+                btn.style.display = "none";
+                return;
+            }
+
+            btn.style.display = "inline-flex";
+            btn.onclick = () => {
+                const url = `/painel/index.php?pagina=chat&phone=${encodeURIComponent(digits)}`;
+                window.LisOnPageLoader?.show();
+                window.location.href = url;
+            };
         }
 
         // Manual: mostrar apenas quando falhou por problema de telefone
@@ -1502,6 +1526,7 @@ $run_id = (string) $_GET['id'];
                 const inputItems = input ? flatten(input) : [];
                 const outputItems = output ? flatten(output) : [];
 
+                bindOpenChat(run, logs, inputItems, outputItems);
                 bindResend(run, logs, inputItems, outputItems);
                 bindResendSame(run, logs, inputItems, outputItems);
                 bindRetryVindi(run);
