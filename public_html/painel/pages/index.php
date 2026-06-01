@@ -704,6 +704,16 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     });
   }
 
+  function normalizeChatPhone(value) {
+    let phone = String(value ?? '').replace(/\D+/g, '');
+    if (phone && !phone.startsWith('55') && phone.length <= 11) phone = '55' + phone;
+    return /^55\d{10,11}$/.test(phone) ? phone : '';
+  }
+
+  function chatUrl(phone) {
+    return `/painel/index.php?pagina=chat&phone=${encodeURIComponent(phone)}`;
+  }
+
   function buildPager(totalPages, page) {
     const pager = document.getElementById('pager');
     if (!pager) return;
@@ -892,6 +902,13 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         const quando = formatDateTimeBr(row.created_at);
         const backUrl = encodeURIComponent(currentListUrl());
         const linkDestino = `/painel/index.php?pagina=detalhes&id=${encodeURIComponent(row.run_id)}&back=${backUrl}`;
+        const phone = normalizeChatPhone(row.phone);
+        const linkChat = phone ? chatUrl(phone) : '';
+        const chatButton = linkChat
+          ? `<a href="${linkChat}" class="btn-icon" title="Ir para o chat" onclick="event.stopPropagation(); window.LisOnPageLoader?.show();">
+               <i class="fa-solid fa-comments"></i>
+             </a>`
+          : '';
         const dotColor = (row.status === 'error') ? 'var(--red-text)' : 'var(--primary)';
         const dotBg = (row.status === 'error') ? 'var(--red-bg)' : 'var(--blue-bg)';
 
@@ -909,6 +926,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
             <td style="text-align:right;">
               <div style="display:flex; align-items:center; justify-content:flex-end; gap:15px;">
                 <span style="font-size:13px; color:var(--text-muted); font-weight:600;">${quando}</span>
+                ${chatButton}
                 <a href="${linkDestino}" class="btn-icon" onclick="event.stopPropagation(); window.LisOnPageLoader?.show();">
                   <i class="fa-solid fa-chevron-right"></i>
                 </a>

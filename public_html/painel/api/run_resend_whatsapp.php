@@ -160,19 +160,24 @@ try {
   // configs Meta
   $META_PHONE_NUMBER_ID = cfg($cfg, 'META_PHONE_NUMBER_ID');
   $META_ACCESS_TOKEN    = cfg($cfg, 'META_ACCESS_TOKEN');
-  $TEMPLATE_NAME        = cfg($cfg, 'META_TEMPLATE_RECOBRANCA');
-  if ($TEMPLATE_NAME === '') {
-    $TEMPLATE_NAME = cfg($cfg, 'META_TEMPLATE_REMINDER_NAME');
+  $TEMPLATE_OVERDUE_NAME = cfg($cfg, 'META_TEMPLATE_RECOBRANCA');
+  if ($TEMPLATE_OVERDUE_NAME === '') {
+    $TEMPLATE_OVERDUE_NAME = cfg($cfg, 'META_TEMPLATE_REMINDER_NAME');
   }
-  if ($TEMPLATE_NAME === '') {
-    $TEMPLATE_NAME = 'recobranca';
+  if ($TEMPLATE_OVERDUE_NAME === '') {
+    $TEMPLATE_OVERDUE_NAME = 'recobranca';
+  }
+  $TEMPLATE_INVOICE_NAME = cfg($cfg, 'META_TEMPLATE_NAME');
+  if ($TEMPLATE_INVOICE_NAME === '') {
+    $TEMPLATE_INVOICE_NAME = 'fatura22';
   }
   $TEMPLATE_LANG        = cfg($cfg, 'META_TEMPLATE_LANG', 'pt_BR');
   $VINDI_API_KEY        = cfg($cfg, 'VINDI_API_KEY');
   $VINDI_API_BASE       = cfg($cfg, 'VINDI_API_BASE', 'https://app.vindi.com.br/api/v1');
   $INTERVAL_DAYS        = max(7, (int) cfg($cfg, 'RECOBRANCA_INTERVAL_DAYS', cfg($cfg, 'REMINDERS_INTERVAL_DAYS', '7')));
+  $FIRST_DELAY_DAYS     = max(7, (int) cfg($cfg, 'RECOBRANCA_FIRST_DELAY_DAYS', '7'));
 
-  if ($META_PHONE_NUMBER_ID === '' || $META_ACCESS_TOKEN === '' || $TEMPLATE_NAME === '') {
+  if ($META_PHONE_NUMBER_ID === '' || $META_ACCESS_TOKEN === '' || $TEMPLATE_OVERDUE_NAME === '' || $TEMPLATE_INVOICE_NAME === '') {
     http_response_code(500);
     echo json_encode(['ok' => false, 'error' => 'Config META/template incompleta']);
     exit;
@@ -303,26 +308,35 @@ try {
     exit;
   }
 
-  $variaveis = [
-    ["type" => "text", "text" => waClean($nome)],
-    ["type" => "text", "text" => waClean(formatDueDateBr($dueAt))],
-    ["type" => "text", "text" => waClean($link)],
-  ];
+  $runEventType = strtolower(trim((string)($run['event_type'] ?? '')));
+  $canUseOverdueTemplate = $runEventType !== 'bill_created' && isBillOverdueForRecobranca($dueAt, $FIRST_DELAY_DAYS);
+  $templateName = $canUseOverdueTemplate ? $TEMPLATE_OVERDUE_NAME : $TEMPLATE_INVOICE_NAME;
+  $variaveis = $canUseOverdueTemplate
+    ? [
+      ["type" => "text", "text" => waClean($nome)],
+      ["type" => "text", "text" => waClean(formatDueDateBr($dueAt))],
+      ["type" => "text", "text" => waClean($link)],
+    ]
+    : [
+      ["type" => "text", "text" => waClean($nome)],
+      ["type" => "text", "text" => waClean($link)],
+      ["type" => "text", "text" => waClean($itens_texto)],
+    ];
 
   $tag = ($mode === 'same') ? 'same_resend' : 'manual_resend';
 
-  rlog("RESEND mode={$mode} run_id={$runId} phone={$phone} status={$status} reason=".preg_replace("/[\r\n]+/"," ",$reason));
+  rlog("RESEND mode={$mode} run_id={$runId} phone={$phone} status={$status} template={$templateName} due_at={$dueAt} reason=".preg_replace("/[\r\n]+/"," ",$reason));
 
   // log no banco
   try {
-    runLog($pdo, $runId, 'info', "[{$tag}] Disparando para {$phone}" . ($mode === 'same' ? " | motivo: {$reason}" : ""));
+    runLog($pdo, $runId, 'info', "[{$tag}] Disparando template {$templateName} para {$phone}" . ($mode === 'same' ? " | motivo: {$reason}" : ""));
   } catch(Throwable $e){}
 
   $resultado = enviarTemplateWhatsApp(
     $META_PHONE_NUMBER_ID,
     $META_ACCESS_TOKEN,
     $phone,
-    $TEMPLATE_NAME,
+    $templateName,
     $TEMPLATE_LANG,
     $variaveis
   );
@@ -358,24 +372,45 @@ try {
     // ✅ opcional: NÃO sobrescrever o envio original quando for mode=same
     if ($billId > 0) {
       try {
-        $st = $pdo->prepare("
-          UPDATE bill_reminders
-          SET last_overdue_sent_at = NOW(),
-              last_reminder_at = NOW(),
-              last_reminder_sent_at = NOW(),
-              overdue_sent_count = COALESCE(overdue_sent_count,0) + 1,
-              reminder_count = COALESCE(reminder_count,0) + 1,
-              reminder_attempts = 0,
-              next_reminder_at = DATE_ADD(NOW(), INTERVAL {$INTERVAL_DAYS} DAY),
-              last_status = 'meta_ok',
-              last_status_check_at = NOW()
-          WHERE bill_id = ?
-            AND COALESCE(NULLIF(status, ''), 'unpaid') = 'unpaid'
-            AND (last_status IS NULL OR last_status = '' OR last_status NOT IN ('paid', 'canceled', 'cancelled'))
-        ");
+        if ($canUseOverdueTemplate) {
+          $st = $pdo->prepare("
+            UPDATE bill_reminders
+            SET last_overdue_sent_at = NOW(),
+                last_reminder_at = NOW(),
+                last_reminder_sent_at = NOW(),
+                overdue_sent_count = COALESCE(overdue_sent_count,0) + 1,
+                reminder_count = COALESCE(reminder_count,0) + 1,
+                reminder_attempts = 0,
+                next_reminder_at = DATE_ADD(NOW(), INTERVAL {$INTERVAL_DAYS} DAY),
+                last_status = 'meta_ok',
+                last_status_check_at = NOW()
+            WHERE bill_id = ?
+              AND COALESCE(NULLIF(status, ''), 'unpaid') = 'unpaid'
+              AND (last_status IS NULL OR last_status = '' OR last_status NOT IN ('paid', 'canceled', 'cancelled'))
+          ");
+        } else {
+          $st = $pdo->prepare("
+            UPDATE bill_reminders
+            SET created_sent_at = COALESCE(created_sent_at, NOW()),
+                last_reminder_at = NOW(),
+                reminder_count = COALESCE(reminder_count,0) + 1,
+                reminder_attempts = 0,
+                next_reminder_at = CASE
+                  WHEN due_at IS NULL THEN next_reminder_at
+                  WHEN next_reminder_at IS NULL THEN DATE_ADD(due_at, INTERVAL {$FIRST_DELAY_DAYS} DAY)
+                  WHEN next_reminder_at < DATE_ADD(due_at, INTERVAL {$FIRST_DELAY_DAYS} DAY) THEN DATE_ADD(due_at, INTERVAL {$FIRST_DELAY_DAYS} DAY)
+                  ELSE next_reminder_at
+                END,
+                last_status = 'invoice_ok',
+                last_status_check_at = NOW()
+            WHERE bill_id = ?
+              AND COALESCE(NULLIF(status, ''), 'unpaid') = 'unpaid'
+              AND (last_status IS NULL OR last_status = '' OR last_status NOT IN ('paid', 'canceled', 'cancelled'))
+          ");
+        }
         $st->execute([$billId]);
       } catch (Throwable $e) {
-        try { runLog($pdo, $runId, 'error', "[{$tag}] Falha ao reagendar proxima cobranca: " . $e->getMessage()); } catch(Throwable $ignored) {}
+        try { runLog($pdo, $runId, 'error', "[{$tag}] Falha ao atualizar controle da fatura: " . $e->getMessage()); } catch(Throwable $ignored) {}
       }
     }
 
@@ -444,6 +479,13 @@ function buildBillItemsText(array $bill): string {
 function formatDueDateBr($value): string {
   $ts = is_numeric($value) ? (int)$value : strtotime((string)$value);
   return $ts ? date('d/m/Y', $ts) : 'data nao informada';
+}
+
+function isBillOverdueForRecobranca($value, int $firstDelayDays): bool {
+  if ($value === null || trim((string)$value) === '') return false;
+  $dueTs = is_numeric($value) ? (int)$value : strtotime((string)$value);
+  if (!$dueTs) return false;
+  return $dueTs <= strtotime("-{$firstDelayDays} days");
 }
 
 function curlGetJson(string $url, string $apiKey): ?array {
