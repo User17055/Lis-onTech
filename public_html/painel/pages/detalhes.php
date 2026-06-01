@@ -541,6 +541,21 @@ $run_id = (string) $_GET['id'];
         color: #38b6ff;
     }
 
+    .det-btn.chat {
+        background: #0ea5e9;
+        color: #fff;
+        border-color: #0284c7;
+        box-shadow: 0 10px 22px rgba(14, 165, 233, .22);
+    }
+
+    .det-btn.chat:hover {
+        background: #0284c7;
+        border-color: #0369a1;
+        color: #fff;
+        transform: translateY(-1px);
+        box-shadow: 0 12px 26px rgba(2, 132, 199, .28);
+    }
+
     .det-modal {
         position: fixed;
         inset: 0;
@@ -703,7 +718,7 @@ $run_id = (string) $_GET['id'];
             </div>
 
             <div class="det-actions">
-                <button id="btnOpenChat" class="det-btn secondary" style="display:none;">
+                <button id="btnOpenChat" class="det-btn chat" style="display:none;">
                     <i class="fa-solid fa-comments"></i> Ir para o chat
                 </button>
 
