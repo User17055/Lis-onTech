@@ -1403,15 +1403,14 @@ $run_id = (string) $_GET['id'];
             const btn = document.getElementById("btnVindiProfile");
             if (!btn) return;
 
-            const name = String(run?.customer_name || "").trim();
-            if (!name) {
+            const customerId = String(run?.customer_id || "").replace(/\D+/g, "");
+            if (!customerId) {
                 btn.style.display = "none";
                 btn.removeAttribute("href");
                 return;
             }
 
-            const query = encodeURIComponent(name).replace(/%20/g, "+");
-            btn.href = `https://app.vindi.com.br/admin/customers/search?utf8=%E2%9C%93&query=${query}`;
+            btn.href = `https://app.vindi.com.br/admin/customers/${encodeURIComponent(customerId)}#tab-bills`;
             btn.style.display = "inline-flex";
         }
 
