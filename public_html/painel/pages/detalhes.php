@@ -545,15 +545,13 @@ $run_id = (string) $_GET['id'];
         background: #0ea5e9;
         color: #fff;
         border-color: #0284c7;
-        box-shadow: 0 10px 22px rgba(14, 165, 233, .22);
     }
 
     .det-btn.chat:hover {
-        background: #0284c7;
-        border-color: #0369a1;
+        background: #0ea5e9;
+        border-color: #0284c7;
         color: #fff;
         transform: translateY(-1px);
-        box-shadow: 0 12px 26px rgba(2, 132, 199, .28);
     }
 
     .det-modal {
