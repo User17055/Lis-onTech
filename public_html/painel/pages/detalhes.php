@@ -501,7 +501,7 @@ $run_id = (string) $_GET['id'];
     /* ====== ADIÇÕES (Reenvio WhatsApp) - NÃO MEXE NO CSS EXISTENTE ====== */
     .det-actions {
         margin-top: 14px;
-        margin-bottom: 18px;
+        margin-bottom: 8px;
         display: flex;
         gap: 16px;
         flex-wrap: wrap;
