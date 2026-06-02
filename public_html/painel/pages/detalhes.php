@@ -501,6 +501,7 @@ $run_id = (string) $_GET['id'];
     /* ====== ADIÇÕES (Reenvio WhatsApp) - NÃO MEXE NO CSS EXISTENTE ====== */
     .det-actions {
         margin-top: 14px;
+        margin-bottom: 18px;
         display: flex;
         gap: 16px;
         flex-wrap: wrap;
@@ -525,7 +526,11 @@ $run_id = (string) $_GET['id'];
         border-radius: 14px;
         padding: 11px 18px;
         cursor: pointer;
+        box-sizing: border-box;
+        font-family: inherit;
+        font-size: 14px;
         font-weight: 1100;
+        line-height: 1;
         display: inline-flex;
         align-items: center;
         gap: 8px;
@@ -572,6 +577,7 @@ $run_id = (string) $_GET['id'];
     .det-btn.profile {
         text-decoration: none;
         white-space: nowrap;
+        padding: 11px 18px;
     }
 
     .det-modal {
