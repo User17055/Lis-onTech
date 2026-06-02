@@ -502,7 +502,7 @@ $run_id = (string) $_GET['id'];
     .det-actions {
         margin-top: 14px;
         display: flex;
-        gap: 22px;
+        gap: 16px;
         flex-wrap: wrap;
         align-items: center;
         justify-content: space-between;
@@ -510,13 +510,14 @@ $run_id = (string) $_GET['id'];
 
     .det-actions-group {
         display: flex;
-        gap: 18px;
+        gap: 16px;
         flex-wrap: wrap;
         align-items: center;
     }
 
     .det-actions-right {
         margin-left: auto;
+        flex: 0 0 auto;
     }
 
     .det-btn {
@@ -572,8 +573,9 @@ $run_id = (string) $_GET['id'];
         text-decoration: none;
         background: #fff;
         color: #0f172a;
-        padding: 9px 14px;
-        min-height: 40px;
+        padding: 8px 12px;
+        min-height: 38px;
+        white-space: nowrap;
     }
 
     .det-btn.profile:hover {
