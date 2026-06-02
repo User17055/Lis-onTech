@@ -544,14 +544,15 @@ $run_id = (string) $_GET['id'];
     .det-btn.chat {
         background: #0ea5e9;
         color: #fff;
-        border-color: #0284c7;
+        border-color: transparent;
     }
 
     .det-btn.chat:hover {
         background: #0ea5e9;
-        border-color: #0284c7;
+        border-color: transparent;
         color: #fff;
         transform: translateY(-1px);
+        box-shadow: inset 0 0 0 999px rgba(255, 255, 255, .12);
     }
 
     .det-modal {
