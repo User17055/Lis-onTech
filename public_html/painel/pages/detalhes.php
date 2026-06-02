@@ -502,7 +502,7 @@ $run_id = (string) $_GET['id'];
     .det-actions {
         margin-top: 14px;
         display: flex;
-        gap: 14px;
+        gap: 22px;
         flex-wrap: wrap;
         align-items: center;
         justify-content: space-between;
@@ -510,7 +510,7 @@ $run_id = (string) $_GET['id'];
 
     .det-actions-group {
         display: flex;
-        gap: 14px;
+        gap: 18px;
         flex-wrap: wrap;
         align-items: center;
     }
@@ -572,6 +572,8 @@ $run_id = (string) $_GET['id'];
         text-decoration: none;
         background: #fff;
         color: #0f172a;
+        padding: 9px 14px;
+        min-height: 40px;
     }
 
     .det-btn.profile:hover {
@@ -763,7 +765,7 @@ $run_id = (string) $_GET['id'];
 
                 <div class="det-actions-group det-actions-right">
                     <a id="btnVindiProfile" class="det-btn profile" href="#" target="_blank" rel="noopener" style="display:none;">
-                        <i class="fa-solid fa-user"></i> Perfil do cliente
+                        <i class="fa-solid fa-user"></i> Perfil
                     </a>
                 </div>
             </div>
