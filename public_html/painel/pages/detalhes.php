@@ -502,14 +502,27 @@ $run_id = (string) $_GET['id'];
     .det-actions {
         margin-top: 14px;
         display: flex;
-        gap: 10px;
+        gap: 14px;
         flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .det-actions-group {
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .det-actions-right {
+        margin-left: auto;
     }
 
     .det-btn {
         border: 2px solid #eef2f6;
         border-radius: 14px;
-        padding: 10px 14px;
+        padding: 11px 18px;
         cursor: pointer;
         font-weight: 1100;
         display: inline-flex;
@@ -553,6 +566,18 @@ $run_id = (string) $_GET['id'];
         color: #fff;
         transform: translateY(-1px);
         box-shadow: inset 0 0 0 999px rgba(255, 255, 255, .12);
+    }
+
+    .det-btn.profile {
+        text-decoration: none;
+        background: #fff;
+        color: #0f172a;
+    }
+
+    .det-btn.profile:hover {
+        transform: translateY(-1px);
+        border-color: #cfe0ff;
+        color: #38b6ff;
     }
 
     .det-modal {
@@ -717,22 +742,30 @@ $run_id = (string) $_GET['id'];
             </div>
 
             <div class="det-actions">
-                <button id="btnOpenChat" class="det-btn chat" style="display:none;">
-                    <i class="fa-solid fa-comments"></i> Ir para o chat
-                </button>
+                <div class="det-actions-group">
+                    <button id="btnOpenChat" class="det-btn chat" style="display:none;">
+                        <i class="fa-solid fa-comments"></i> Ir para o chat
+                    </button>
 
-                <button id="btnResendWhats" class="det-btn primary" style="display:none;">
-                    <i class="fa-solid fa-paper-plane"></i> Reenviar WhatsApp
-                </button>
+                    <button id="btnResendWhats" class="det-btn primary" style="display:none;">
+                        <i class="fa-solid fa-paper-plane"></i> Reenviar WhatsApp
+                    </button>
 
-                <!-- ✅ NOVO: Reenviar a mesma mensagem (quando já foi enviado / sucesso) -->
-                <button id="btnResendSame" class="det-btn secondary" style="display:none;">
-                    <i class="fa-solid fa-repeat"></i> Reenviar a mesma mensagem
-                </button>
+                    <!-- ✅ NOVO: Reenviar a mesma mensagem (quando já foi enviado / sucesso) -->
+                    <button id="btnResendSame" class="det-btn secondary" style="display:none;">
+                        <i class="fa-solid fa-repeat"></i> Reenviar a mesma mensagem
+                    </button>
 
-                <button id="btnRetryVindi" class="det-btn secondary" style="display:none;">
-                    <i class="fa-solid fa-rotate-right"></i> Tentar novamente (puxar da Vindi)
-                </button>
+                    <button id="btnRetryVindi" class="det-btn secondary" style="display:none;">
+                        <i class="fa-solid fa-rotate-right"></i> Tentar novamente (puxar da Vindi)
+                    </button>
+                </div>
+
+                <div class="det-actions-group det-actions-right">
+                    <a id="btnVindiProfile" class="det-btn profile" href="#" target="_blank" rel="noopener" style="display:none;">
+                        <i class="fa-solid fa-user"></i> Perfil do cliente
+                    </a>
+                </div>
             </div>
 
             <div class="det-muted" id="resendHint" style="margin-top:8px; display:none;">
@@ -1366,6 +1399,22 @@ $run_id = (string) $_GET['id'];
             };
         }
 
+        function bindVindiProfile(run) {
+            const btn = document.getElementById("btnVindiProfile");
+            if (!btn) return;
+
+            const name = String(run?.customer_name || "").trim();
+            if (!name) {
+                btn.style.display = "none";
+                btn.removeAttribute("href");
+                return;
+            }
+
+            const query = encodeURIComponent(name).replace(/%20/g, "+");
+            btn.href = `https://app.vindi.com.br/admin/customers/search?utf8=%E2%9C%93&query=${query}`;
+            btn.style.display = "inline-flex";
+        }
+
         // Manual: mostrar apenas quando falhou por problema de telefone
         function shouldShowResend(run, logs, inputItems, outputItems) {
             const stLower = String(run.status || "").toLowerCase();
@@ -1540,6 +1589,7 @@ $run_id = (string) $_GET['id'];
                 const inputItems = input ? flatten(input) : [];
                 const outputItems = output ? flatten(output) : [];
 
+                bindVindiProfile(run);
                 bindOpenChat(run, logs, inputItems, outputItems);
                 bindResend(run, logs, inputItems, outputItems);
                 bindResendSame(run, logs, inputItems, outputItems);
