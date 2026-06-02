@@ -571,17 +571,7 @@ $run_id = (string) $_GET['id'];
 
     .det-btn.profile {
         text-decoration: none;
-        background: #fff;
-        color: #0f172a;
-        padding: 8px 12px;
-        min-height: 38px;
         white-space: nowrap;
-    }
-
-    .det-btn.profile:hover {
-        transform: translateY(-1px);
-        border-color: #cfe0ff;
-        color: #38b6ff;
     }
 
     .det-modal {
@@ -766,7 +756,7 @@ $run_id = (string) $_GET['id'];
                 </div>
 
                 <div class="det-actions-group det-actions-right">
-                    <a id="btnVindiProfile" class="det-btn profile" href="#" target="_blank" rel="noopener" style="display:none;">
+                    <a id="btnVindiProfile" class="det-btn secondary profile" href="#" target="_blank" rel="noopener" style="display:none;">
                         <i class="fa-solid fa-user"></i> Perfil
                     </a>
                 </div>
