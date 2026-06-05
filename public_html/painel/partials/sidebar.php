@@ -193,7 +193,10 @@ if (!function_exists('isActive')) {
         padding: 24px 16px;
         box-sizing: border-box;
         z-index: 900;
-        transition: transform 0.4s ease-in-out;
+    }
+
+    body.sidebar-ready .sidebar {
+        transition: transform 0.24s ease;
     }
 
     .sidebar.open {
@@ -260,9 +263,12 @@ if (!function_exists('isActive')) {
     .main-content {
         padding: 40px;
         margin-left: 0;
-        transition: margin-left 0.5s ease;
         min-width: 0;
         box-sizing: border-box;
+    }
+
+    body.sidebar-ready .main-content {
+        transition: margin-left 0.24s ease;
     }
 
     .main-content.shift {
@@ -487,6 +493,7 @@ if (!function_exists('isActive')) {
 
         let isMenuOpen = localStorage.getItem('menuOpen') === 'true';
         toggleMenu(isMenuOpen);
+        requestAnimationFrame(() => document.body.classList.add('sidebar-ready'));
 
         btn.addEventListener('click', () => {
             isMenuOpen = !isMenuOpen;

@@ -238,6 +238,7 @@ if (file_exists($pathPages)) {
       document.addEventListener('click', (event) => {
         const link = event.target.closest('a[href]');
         if (!link) return;
+        if (link.closest('#sidebar') || link.closest('.logo-container')) return;
         const url = new URL(link.href, location.href);
         const sameWindow = !link.target || link.target === '_self';
         if (sameWindow && url.origin === location.origin && url.href !== location.href && !event.defaultPrevented) {
