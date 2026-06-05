@@ -11,6 +11,8 @@ CREATE TABLE IF NOT EXISTS chat_threads (
   last_inbound_at DATETIME NULL,
   last_outbound_at DATETIME NULL,
   unread_count INT UNSIGNED NOT NULL DEFAULT 0,
+  in_review TINYINT(1) NOT NULL DEFAULT 0,
+  review_updated_at DATETIME NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
@@ -131,6 +133,8 @@ CALL lison_add_column_if_missing('chat_threads', 'last_message_at', 'DATETIME NU
 CALL lison_add_column_if_missing('chat_threads', 'last_inbound_at', 'DATETIME NULL');
 CALL lison_add_column_if_missing('chat_threads', 'last_outbound_at', 'DATETIME NULL');
 CALL lison_add_column_if_missing('chat_threads', 'unread_count', 'INT UNSIGNED NOT NULL DEFAULT 0');
+CALL lison_add_column_if_missing('chat_threads', 'in_review', 'TINYINT(1) NOT NULL DEFAULT 0');
+CALL lison_add_column_if_missing('chat_threads', 'review_updated_at', 'DATETIME NULL');
 CALL lison_add_column_if_missing('chat_threads', 'created_at', 'DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP');
 CALL lison_add_column_if_missing('chat_threads', 'updated_at', 'DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP');
 

@@ -211,6 +211,9 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     }
     .thread-item:hover{background:#fff;border-color:#dce8f3;box-shadow:0 1px 3px rgba(23,32,51,.05);}
     .thread-item.active{background:#eef8ff;border-color:#bfe8ff;}
+    .thread-item.reviewing{background:#fff7ed;border-color:#fed7aa;}
+    .thread-item.reviewing.active{background:#ffedd5;border-color:#fb923c;}
+    .thread-item.reviewing .avatar{background:#f97316;}
     .avatar{
       width:50px;
       height:50px;
@@ -230,6 +233,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .thread-window{display:inline-flex;align-items:center;gap:6px;margin-top:8px;border-radius:8px;padding:4px 7px;font-size:11px;font-weight:900;}
     .thread-window.open{background:var(--soft-ok);color:#08734d;}
     .thread-window.closed{background:var(--soft-warn);color:var(--warn);}
+    .thread-review-chip{display:inline-flex;align-items:center;gap:6px;margin-top:8px;margin-left:6px;border-radius:8px;padding:4px 7px;font-size:11px;font-weight:900;background:#fed7aa;color:#9a3412;}
     .thread-meta{display:flex;flex-direction:column;align-items:flex-end;gap:8px;min-width:58px;}
     .thread-time{font-size:11px;color:#8a99ac;font-weight:900;white-space:nowrap;}
     .unread-pill{min-width:22px;height:22px;border-radius:999px;background:var(--brand);color:#fff;font-size:11px;font-weight:900;display:inline-flex;align-items:center;justify-content:center;padding:0 7px;box-sizing:border-box;}
@@ -273,6 +277,31 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     }
     .charge-btn:hover{background:#dff3ff;border-color:#8bd5ff;}
     .charge-btn:disabled{opacity:.45;cursor:not-allowed;background:#f3f7fb;border-color:var(--line);color:#7d8da1;}
+    .profile-btn,
+    .review-btn{
+      height:48px;
+      border:1px solid var(--line);
+      border-radius:8px;
+      background:#fff;
+      color:var(--text);
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:9px;
+      padding:0 14px;
+      cursor:pointer;
+      transition:.18s;
+      font-family:'Nunito',sans-serif;
+      font-size:13px;
+      font-weight:900;
+      white-space:nowrap;
+      text-decoration:none;
+      box-sizing:border-box;
+    }
+    .profile-btn:hover{border-color:#cfe0ff;color:var(--brand-dark);background:#f7fbff;}
+    .review-btn:hover{border-color:#fdba74;color:#c2410c;background:#fff7ed;}
+    .review-btn.active{background:#f97316;border-color:#f97316;color:#fff;}
+    .review-btn:disabled{opacity:.45;cursor:not-allowed;background:#f3f7fb;border-color:var(--line);color:#7d8da1;}
 
     .window-panel{
       border-bottom:1px solid var(--line);
@@ -303,6 +332,16 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       gap:12px;
       background:#f5f8fc;
     }
+    .chat-main-pane.reviewing{background:#fff7ed;}
+    .chat-main-pane.reviewing > .chat-pane-head{background:#fff7ed;border-bottom-color:#fed7aa;}
+    .chat-main-pane.reviewing .chat-title i{color:#f97316;}
+    .chat-main-pane.reviewing .messages{background:#fff7ed;}
+    .chat-main-pane.reviewing .window-panel{border-bottom-color:#fed7aa;}
+    .chat-main-pane.reviewing .window-panel.open,
+    .chat-main-pane.reviewing .window-panel.closed{background:#ffedd5;}
+    .chat-main-pane.reviewing .bubble{border-color:#fed7aa;}
+    .chat-main-pane.reviewing .msg-row.out .bubble{background:#ffedd5;border-color:#fdba74;}
+    .chat-main-pane.reviewing .composer{border-top-color:#fed7aa;background:#fffaf4;}
 
     .empty-state{
       margin:auto;
@@ -840,6 +879,12 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
           <button class="icon-btn mobile-chat-back" id="btnCloseMobileChat" type="button" title="Voltar para conversas">
             <i class="fa-solid fa-arrow-left"></i>
           </button>
+          <a class="profile-btn" id="btnVindiProfile" href="#" target="_blank" rel="noopener" style="display:none;">
+            <i class="fa-solid fa-user"></i> Perfil
+          </a>
+          <button class="review-btn" id="btnReviewChat" type="button" disabled>
+            <i class="fa-solid fa-clipboard-check"></i> <span id="reviewText">Revisão</span>
+          </button>
           <button class="charge-btn" id="btnResendCharge" type="button" disabled>
             <i class="fa-solid fa-repeat"></i> Reenviar cobranca
           </button>
@@ -1067,6 +1112,40 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       return `<span class="status-pill ${esc(status)}"><i class="${icon}"></i> ${esc(label)}</span>`;
     }
 
+    function isThreadInReview(thread){
+      return Number(thread?.in_review || 0) === 1;
+    }
+
+    function syncProfileButton(thread){
+      const btn = el('btnVindiProfile');
+      if (!btn) return;
+
+      const customerId = String(thread?.customer_id || '').replace(/\D+/g, '');
+      if (!customerId) {
+        btn.style.display = 'none';
+        btn.removeAttribute('href');
+        return;
+      }
+
+      btn.href = `https://app.vindi.com.br/admin/customers/${encodeURIComponent(customerId)}#tab-bills`;
+      btn.style.display = 'inline-flex';
+    }
+
+    function syncReviewUi(thread){
+      const reviewing = isThreadInReview(thread);
+      const main = document.querySelector('.chat-main-pane');
+      const btn = el('btnReviewChat');
+      if (main) main.classList.toggle('reviewing', reviewing);
+      if (!btn) return;
+
+      btn.disabled = !state.selectedPhone;
+      btn.classList.toggle('active', reviewing);
+      btn.title = reviewing ? 'Tirar conversa da revisao' : 'Colocar conversa em revisao';
+      btn.innerHTML = reviewing
+        ? '<i class="fa-solid fa-clipboard-check"></i> <span id="reviewText">Em revisao</span>'
+        : '<i class="fa-regular fa-clipboard"></i> <span id="reviewText">Revisao</span>';
+    }
+
     function windowMini(row){
       const info = threadWindow(row);
       if (info.open) {
@@ -1278,15 +1357,17 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         const phone = String(row.phone || '');
         const name = row.display_name || phone;
         const active = phone === state.selectedPhone ? 'active' : '';
+        const reviewing = isThreadInReview(row);
         const unread = Number(row.unread_count || 0);
         return `
-          <button class="thread-item ${active}" type="button" data-phone="${esc(phone)}">
+          <button class="thread-item ${active} ${reviewing ? 'reviewing' : ''}" type="button" data-phone="${esc(phone)}">
             <div class="avatar">${esc(initials(name, phone))}</div>
             <div style="min-width:0;">
               <div class="thread-name">${esc(name)}</div>
               <div class="thread-phone">${esc(phone)}</div>
               <div class="thread-preview">${esc(row.last_message_preview || 'Sem mensagens')}</div>
               ${windowMini(row)}
+              ${reviewing ? '<div class="thread-review-chip"><i class="fa-solid fa-clipboard-check"></i> em revisao</div>' : ''}
             </div>
             <div class="thread-meta">
               <span class="thread-time">${esc(fmtTime(row.last_message_at))}</span>
@@ -1314,6 +1395,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         const selected = state.threads.find(t => t.phone === state.selectedPhone);
         if (selected) {
           state.activeThread = {...(state.activeThread || {}), ...selected};
+          syncProfileButton(state.activeThread);
+          syncReviewUi(state.activeThread);
           updateWindowPanel();
         }
         renderThreads();
@@ -1510,6 +1593,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       el('btnSendTemplate').disabled = !phone;
       el('btnSendTemplateBottom').disabled = !phone;
       el('btnResendCharge').disabled = !phone || !state.lastCharge?.source_ref;
+      syncProfileButton(state.activeThread);
+      syncReviewUi(state.activeThread);
       updateWindowPanel();
     }
 
@@ -1622,6 +1707,32 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
           Abra uma conversa para ver o historico.
         </div>
       `;
+    }
+
+    async function toggleReviewMode(){
+      const phone = state.selectedPhone;
+      if (!phone) return;
+
+      const next = !isThreadInReview(state.activeThread);
+      const btn = el('btnReviewChat');
+      btn.disabled = true;
+
+      try {
+        const data = await fetchJson('/painel/api/chat_review.php', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({phone, in_review:next})
+        });
+
+        state.activeThread = {...(state.activeThread || {}), ...(data.thread || {}), phone};
+        state.threads = state.threads.map(row => row.phone === phone ? {...row, ...state.activeThread} : row);
+        renderThreads();
+        setActiveHeader(state.activeThread);
+        toast(next ? 'Conversa marcada em revisao' : 'Conversa removida da revisao');
+      } catch (e) {
+        toast(e.message || 'Falha ao atualizar revisao', 'error');
+        syncReviewUi(state.activeThread);
+      }
     }
 
     async function sendMessage(){
@@ -1820,6 +1931,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     el('btnSendTemplate').onclick = sendTemplate;
     el('btnSendTemplateBottom').onclick = sendTemplate;
     el('btnResendCharge').onclick = resendLastCharge;
+    el('btnReviewChat').onclick = toggleReviewMode;
     el('confirmCancel').onclick = () => closeConfirm(false);
     el('confirmOk').onclick = () => closeConfirm(true);
     el('imageViewerClose').onclick = closeImageViewer;

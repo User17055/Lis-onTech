@@ -75,6 +75,7 @@ try {
     }
 
     $thread = chatThreadWithWindowInfo($thread);
+    $thread['customer_id'] = chatFindThreadCustomerId($pdo, (int)($thread['id'] ?? 0), $phone);
 
     $stmt = $pdo->prepare("
         SELECT *

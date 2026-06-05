@@ -17,6 +17,8 @@ if (!function_exists('chatEnsureTables')) {
                 last_inbound_at DATETIME NULL,
                 last_outbound_at DATETIME NULL,
                 unread_count INT UNSIGNED NOT NULL DEFAULT 0,
+                in_review TINYINT(1) NOT NULL DEFAULT 0,
+                review_updated_at DATETIME NULL,
                 created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 PRIMARY KEY (id),
@@ -68,6 +70,8 @@ if (!function_exists('chatEnsureTables')) {
         chatEnsureColumn($pdo, 'chat_threads', 'last_inbound_at', "DATETIME NULL");
         chatEnsureColumn($pdo, 'chat_threads', 'last_outbound_at', "DATETIME NULL");
         chatEnsureColumn($pdo, 'chat_threads', 'unread_count', "INT UNSIGNED NOT NULL DEFAULT 0");
+        chatEnsureColumn($pdo, 'chat_threads', 'in_review', "TINYINT(1) NOT NULL DEFAULT 0");
+        chatEnsureColumn($pdo, 'chat_threads', 'review_updated_at', "DATETIME NULL");
         chatEnsureColumn($pdo, 'chat_threads', 'created_at', "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP");
         chatEnsureColumn($pdo, 'chat_threads', 'updated_at', "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
 
@@ -94,6 +98,109 @@ if (!function_exists('chatEnsureTables')) {
         chatEnsureColumn($pdo, 'chat_messages', 'updated_at', "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
 
         $done = true;
+    }
+}
+
+if (!function_exists('chatTableExists')) {
+    function chatTableExists(PDO $pdo, string $table): bool
+    {
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $table)) {
+            return false;
+        }
+
+        static $cache = [];
+        if (array_key_exists($table, $cache)) {
+            return $cache[$table];
+        }
+
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.TABLES
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = ?
+        ");
+        $stmt->execute([$table]);
+
+        $cache[$table] = (int)$stmt->fetchColumn() > 0;
+        return $cache[$table];
+    }
+}
+
+if (!function_exists('chatColumnExists')) {
+    function chatColumnExists(PDO $pdo, string $table, string $column): bool
+    {
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $table) || !preg_match('/^[a-zA-Z0-9_]+$/', $column)) {
+            return false;
+        }
+
+        static $cache = [];
+        $key = $table . '.' . $column;
+        if (array_key_exists($key, $cache)) {
+            return $cache[$key];
+        }
+
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = ?
+              AND COLUMN_NAME = ?
+        ");
+        $stmt->execute([$table, $column]);
+
+        $cache[$key] = (int)$stmt->fetchColumn() > 0;
+        return $cache[$key];
+    }
+}
+
+if (!function_exists('chatFindThreadCustomerId')) {
+    function chatFindThreadCustomerId(PDO $pdo, int $threadId, string $phone): string
+    {
+        if (!chatTableExists($pdo, 'automation_runs') || !chatColumnExists($pdo, 'automation_runs', 'customer_id')) {
+            return '';
+        }
+
+        $conditions = [];
+        $params = [];
+
+        if (chatColumnExists($pdo, 'automation_runs', 'phone')) {
+            $conditions[] = 'ar.phone = :phone';
+            $params[':phone'] = $phone;
+        }
+
+        if (chatColumnExists($pdo, 'automation_runs', 'run_id')) {
+            $conditions[] = "ar.run_id IN (
+                SELECT cm.source_ref
+                FROM chat_messages cm
+                WHERE cm.thread_id = :thread_id
+                  AND cm.source_ref IS NOT NULL
+                  AND cm.source_ref <> ''
+            )";
+            $params[':thread_id'] = $threadId;
+        }
+
+        if (!$conditions) {
+            return '';
+        }
+
+        $order = [];
+        if (chatColumnExists($pdo, 'automation_runs', 'updated_at')) $order[] = 'ar.updated_at DESC';
+        if (chatColumnExists($pdo, 'automation_runs', 'created_at')) $order[] = 'ar.created_at DESC';
+        if (chatColumnExists($pdo, 'automation_runs', 'id')) $order[] = 'ar.id DESC';
+        $orderSql = $order ? 'ORDER BY ' . implode(', ', $order) : '';
+
+        $stmt = $pdo->prepare("
+            SELECT ar.customer_id
+            FROM automation_runs ar
+            WHERE ar.customer_id IS NOT NULL
+              AND ar.customer_id <> ''
+              AND (" . implode(' OR ', $conditions) . ")
+            {$orderSql}
+            LIMIT 1
+        ");
+        $stmt->execute($params);
+
+        return preg_replace('/\D+/', '', (string)$stmt->fetchColumn());
     }
 }
 

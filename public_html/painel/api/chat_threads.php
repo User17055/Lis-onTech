@@ -64,6 +64,8 @@ try {
             t.last_inbound_at,
             t.last_outbound_at,
             t.unread_count,
+            t.in_review,
+            t.review_updated_at,
             m.direction AS last_direction,
             m.status AS last_status,
             m.error_text AS last_error
@@ -91,6 +93,7 @@ try {
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
     foreach ($rows as &$row) {
         $row = chatThreadWithWindowInfo($row);
+        $row['customer_id'] = chatFindThreadCustomerId($pdo, (int)($row['id'] ?? 0), (string)($row['phone'] ?? ''));
     }
     unset($row);
 
