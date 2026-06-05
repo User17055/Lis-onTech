@@ -90,6 +90,13 @@ if (file_exists($pathPages)) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <title>Lis'on System</title>
+  <script>
+    try {
+      if (localStorage.getItem('menuOpen') === 'true') {
+        document.documentElement.classList.add('sidebar-open-pref');
+      }
+    } catch (e) {}
+  </script>
   <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
   <link rel="shortcut icon" type="image/svg+xml" href="/assets/favicon.svg">
 

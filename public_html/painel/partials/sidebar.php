@@ -203,6 +203,10 @@ if (!function_exists('isActive')) {
         transform: translateX(0);
     }
 
+    html.sidebar-open-pref .sidebar {
+        transform: translateX(0);
+    }
+
     .nav-links {
         list-style: none;
         padding: 0;
@@ -275,6 +279,10 @@ if (!function_exists('isActive')) {
         margin-left: var(--sidebar-width);
     }
 
+    html.sidebar-open-pref .main-content {
+        margin-left: var(--sidebar-width);
+    }
+
     @media (max-width: 768px) {
         :root {
             --header-height: 62px;
@@ -340,6 +348,10 @@ if (!function_exists('isActive')) {
         }
 
         .main-content.shift {
+            margin-left: 0;
+        }
+
+        html.sidebar-open-pref .main-content {
             margin-left: 0;
         }
 
@@ -484,9 +496,11 @@ if (!function_exists('isActive')) {
             if (isOpen) {
                 sidebar.classList.add('open');
                 if (content) content.classList.add('shift');
+                document.documentElement.classList.add('sidebar-open-pref');
             } else {
                 sidebar.classList.remove('open');
                 if (content) content.classList.remove('shift');
+                document.documentElement.classList.remove('sidebar-open-pref');
             }
             localStorage.setItem('menuOpen', isOpen);
         }
