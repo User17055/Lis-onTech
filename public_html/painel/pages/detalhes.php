@@ -463,6 +463,11 @@ $run_id = (string) $_GET['id'];
         padding: 14px;
     }
 
+    .det-error.review {
+        background: #fff7ed;
+        border-color: #fed7aa;
+    }
+
     .det-error .h {
         font-weight: 1100;
         color: #991b1b;
@@ -471,12 +476,27 @@ $run_id = (string) $_GET['id'];
         gap: 10px;
     }
 
+    .det-error.review .h {
+        color: #9a3412;
+    }
+
     .det-error .m {
         margin-top: 6px;
         color: #7f1d1d;
         font-weight: 900;
         white-space: pre-wrap;
         word-break: break-word;
+    }
+
+    .det-error.review .m {
+        color: #7c2d12;
+    }
+
+    .det-error .a {
+        margin-top: 8px;
+        color: #475569;
+        font-weight: 900;
+        line-height: 1.45;
     }
 
     /* Loader skeleton */
@@ -976,6 +996,62 @@ $run_id = (string) $_GET['id'];
             try { return JSON.parse(v); } catch { return null; }
         }
 
+        function findValueDeep(obj, keyName) {
+            if (!obj || typeof obj !== "object") return "";
+            if (Object.prototype.hasOwnProperty.call(obj, keyName) && obj[keyName] !== null && obj[keyName] !== undefined) {
+                return String(obj[keyName]);
+            }
+            for (const value of Object.values(obj)) {
+                if (value && typeof value === "object") {
+                    const found = findValueDeep(value, keyName);
+                    if (found) return found;
+                }
+            }
+            return "";
+        }
+
+        function classifyMetaError(run, logs) {
+            const candidates = [
+                run?.whatsapp_response,
+                run?.chat_response_json,
+                run?.chat_payload_json,
+                run?.error_details,
+                run?.meta_http,
+                ...(logs || []).map(l => l.context)
+            ];
+
+            let code = "";
+            for (const item of candidates) {
+                const parsed = safeJsonParse(item);
+                if (!parsed) continue;
+                code = findValueDeep(parsed, "code") || code;
+                if (code) break;
+            }
+
+            const hay = [
+                run?.error_message,
+                run?.chat_error_text,
+                run?.whatsapp_response,
+                run?.chat_response_json,
+                run?.chat_payload_json,
+                run?.error_details,
+                run?.meta_http,
+                ...(logs || []).map(l => `${l.message || ""} ${l.context ? JSON.stringify(l.context) : ""}`)
+            ].join(" ").toLowerCase();
+
+            if (code === "131049" || hay.includes("131049") || hay.includes("healthy ecosystem")) {
+                return {
+                    code: "131049",
+                    kind: "review",
+                    title: "Revisao recomendada",
+                    message: "A Meta nao entregou esta mensagem para manter o engajamento saudavel do WhatsApp.",
+                    action: "Evite reenviar imediatamente. Aguarde um intervalo maior, confirme se o template e Utility quando for cobranca/fatura, ou continue pelo chat quando o cliente responder."
+                };
+            }
+
+            return null;
+        }
+
         function flatten(obj, prefix = '') {
             const out = [];
             const isObj = (x) => x && typeof x === 'object' && !Array.isArray(x);
@@ -1084,20 +1160,22 @@ $run_id = (string) $_GET['id'];
             const box = document.getElementById("boxErroDet");
 
             const errorLog = (logs || []).find(l => String(l.level || '').toLowerCase() === "error") || null;
-            const msg = run.error_message || errorLog?.message || '';
+            const metaError = classifyMetaError(run, logs);
+            const msg = metaError?.message || run.error_message || run.chat_error_text || errorLog?.message || '';
 
             if (!msg) {
                 card.style.display = "none";
                 return;
             }
 
-            const ctx = errorLog?.context || {};
+            const ctx = errorLog?.context || safeJsonParse(run.chat_response_json) || safeJsonParse(run.chat_payload_json) || {};
             const ctxStr = JSON.stringify(ctx || {}, null, 2);
 
             box.innerHTML = `
-      <div class="det-error">
-        <div class="h"><i class="fa-solid fa-bug"></i> Falha detectada</div>
+      <div class="det-error ${metaError?.kind === 'review' ? 'review' : ''}">
+        <div class="h"><i class="fa-solid ${metaError?.kind === 'review' ? 'fa-clipboard-check' : 'fa-bug'}"></i> ${esc(metaError?.title || 'Falha detectada')}</div>
         <div class="m">${esc(msg)}</div>
+        ${metaError?.action ? `<div class="a">${esc(metaError.action)}</div>` : ''}
 
         <details style="margin-top:10px;">
           <summary style="cursor:pointer;font-weight:1000;">Ver contexto técnico</summary>

@@ -83,6 +83,28 @@ try {
   unset($l);
 }
 
+try {
+  $chatStmt = $pdo->prepare("
+    SELECT status, error_text, http_code, response_json, payload_json, created_at
+    FROM chat_messages
+    WHERE source_ref = ?
+    ORDER BY created_at DESC, id DESC
+    LIMIT 1
+  ");
+  $chatStmt->execute([$runId]);
+  $chatMessage = $chatStmt->fetch(PDO::FETCH_ASSOC);
+  if ($chatMessage) {
+    $run['chat_status'] = $chatMessage['status'] ?? null;
+    $run['chat_error_text'] = $chatMessage['error_text'] ?? null;
+    $run['chat_http_code'] = $chatMessage['http_code'] ?? null;
+    $run['chat_response_json'] = $chatMessage['response_json'] ?? null;
+    $run['chat_payload_json'] = $chatMessage['payload_json'] ?? null;
+    $run['chat_message_at'] = $chatMessage['created_at'] ?? null;
+  }
+} catch (Throwable $e) {
+  // Chat pode nao existir em instalacoes antigas; detalhes continua funcionando.
+}
+
 echo json_encode([
   'ok' => true,
   'run' => $run,

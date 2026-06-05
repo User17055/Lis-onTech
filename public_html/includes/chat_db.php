@@ -564,6 +564,60 @@ if (!function_exists('chatMetaErrorText')) {
     }
 }
 
+if (!function_exists('chatMetaErrorCode')) {
+    function chatMetaErrorCode(array $payload): string
+    {
+        $direct = $payload['error']['code'] ?? $payload['code'] ?? null;
+        if ($direct !== null && (string)$direct !== '') {
+            return (string)$direct;
+        }
+
+        $errors = $payload['errors'] ?? [];
+        if (is_array($errors)) {
+            foreach ($errors as $error) {
+                if (is_array($error) && isset($error['code']) && (string)$error['code'] !== '') {
+                    return (string)$error['code'];
+                }
+            }
+        }
+
+        return '';
+    }
+}
+
+if (!function_exists('chatReviewReasonForMetaError')) {
+    function chatReviewReasonForMetaError(array $payload, ?string $curlError = null): string
+    {
+        if ($curlError) {
+            return '';
+        }
+
+        $code = chatMetaErrorCode($payload);
+        if ($code === '131049') {
+            return 'Meta bloqueou a entrega por limite de engajamento saudavel. Evite reenviar agora; tente novamente mais tarde ou aguarde resposta do cliente.';
+        }
+
+        return '';
+    }
+}
+
+if (!function_exists('chatMarkThreadReview')) {
+    function chatMarkThreadReview(PDO $pdo, int $threadId, string $reason = ''): void
+    {
+        if ($threadId <= 0) {
+            return;
+        }
+
+        $stmt = $pdo->prepare("
+            UPDATE chat_threads
+            SET in_review = 1,
+                review_updated_at = NOW()
+            WHERE id = ?
+        ");
+        $stmt->execute([$threadId]);
+    }
+}
+
 if (!function_exists('chatSaveOutgoingMessage')) {
     function chatSaveOutgoingMessage(
         PDO $pdo,
@@ -590,11 +644,12 @@ if (!function_exists('chatSaveOutgoingMessage')) {
         $errorText = $status === 'failed' ? chatMetaErrorText($response, $curlError) : null;
 
         if ($metaId !== '') {
-            $stmt = $pdo->prepare("SELECT id, status FROM chat_messages WHERE meta_message_id = ? LIMIT 1");
+            $stmt = $pdo->prepare("SELECT id, thread_id, phone, status FROM chat_messages WHERE meta_message_id = ? LIMIT 1");
             $stmt->execute([$metaId]);
             $existingRow = $stmt->fetch(PDO::FETCH_ASSOC);
             $existing = $existingRow ? (int)$existingRow['id'] : 0;
             if ($existing > 0) {
+                $threadId = (int)($existingRow['thread_id'] ?? 0);
                 $currentStatus = (string)($existingRow['status'] ?? '');
                 $finalStatus = ($status === 'failed' || chatStatusRank($status) > chatStatusRank($currentStatus))
                     ? $status
@@ -619,6 +674,10 @@ if (!function_exists('chatSaveOutgoingMessage')) {
                     chatJsonEncode($response),
                     $existing,
                 ]);
+                $reviewReason = $status === 'failed' ? chatReviewReasonForMetaError($response, $curlError) : '';
+                if ($reviewReason !== '') {
+                    chatMarkThreadReview($pdo, $threadId, $reviewReason);
+                }
                 return $existing;
             }
         }
@@ -652,6 +711,10 @@ if (!function_exists('chatSaveOutgoingMessage')) {
 
         $messageId = (int)$pdo->lastInsertId();
         chatTouchThread($pdo, $threadId, 'out', $body, $now, false);
+        $reviewReason = $status === 'failed' ? chatReviewReasonForMetaError($response, $curlError) : '';
+        if ($reviewReason !== '') {
+            chatMarkThreadReview($pdo, $threadId, $reviewReason);
+        }
         return $messageId;
     }
 }
@@ -797,6 +860,10 @@ if (!function_exists('chatApplyStatus')) {
                 $at,
             ]);
             chatTouchThread($pdo, $threadId, 'out', 'Mensagem enviada', $at, false);
+            $reviewReason = $status === 'failed' ? chatReviewReasonForMetaError($statusData) : '';
+            if ($reviewReason !== '') {
+                chatMarkThreadReview($pdo, $threadId, $reviewReason);
+            }
             return (int)$pdo->lastInsertId();
         }
 
@@ -834,6 +901,11 @@ if (!function_exists('chatApplyStatus')) {
             chatJsonEncode($statusData),
             (int)$row['id'],
         ]);
+
+        $reviewReason = $status === 'failed' ? chatReviewReasonForMetaError($statusData) : '';
+        if ($reviewReason !== '') {
+            chatMarkThreadReview($pdo, (int)($row['thread_id'] ?? 0), $reviewReason);
+        }
 
         return (int)$row['id'];
     }
