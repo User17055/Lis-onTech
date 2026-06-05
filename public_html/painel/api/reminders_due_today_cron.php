@@ -96,6 +96,7 @@ if (!$TOKEN_OK) {
 
 require_once $ROOT . '/db.php';
 require_once $ROOT . '/includes/chat_db.php';
+require_once $ROOT . '/includes/whatsapp_phone_retry.php';
 
 $META_PHONE_NUMBER_ID = cfg($cfg, 'META_PHONE_NUMBER_ID');
 $META_ACCESS_TOKEN    = cfg($cfg, 'META_ACCESS_TOKEN');
@@ -569,6 +570,41 @@ try {
     $ok = ($resp['http'] >= 200 && $resp['http'] < 300)
       && empty($resp['curl_error'])
       && empty($respArr['error']);
+
+    if (
+      !$ok
+      && (int)($r['customer_id'] ?? 0) > 0
+      && waRetryLooksLikePhoneFailure($respArr, $resp['curl_error'] ?? null)
+    ) {
+      $phoneVindi = waRetryNormalizeBrPhone(getCustomerPhoneFromVindi((int)$r['customer_id'], $VINDI_API_BASE, $VINDI_API_KEY));
+      $phoneAtual = waRetryNormalizeBrPhone((string)$phone);
+
+      if ($phoneVindi !== '' && $phoneVindi !== $phoneAtual) {
+        logLine("bill_id={$billId} falha_telefone retry_vindi old={$phone} new={$phoneVindi}");
+        $respRetry = enviarTemplateWhatsApp(
+          $META_PHONE_NUMBER_ID,
+          $META_ACCESS_TOKEN,
+          $phoneVindi,
+          $TEMPLATE_NAME,
+          $TEMPLATE_LANG,
+          $params
+        );
+        $respRetryArr = json_decode($respRetry['response_raw'] ?? '', true);
+        if (!is_array($respRetryArr)) $respRetryArr = ['raw' => (string)($respRetry['response_raw'] ?? '')];
+
+        $phone = $phoneVindi;
+        $resp = $respRetry;
+        $respArr = $respRetryArr;
+        $ok = ($resp['http'] >= 200 && $resp['http'] < 300)
+          && empty($resp['curl_error'])
+          && empty($respArr['error']);
+
+        $pdo->prepare("UPDATE bill_reminders SET phone = ? WHERE bill_id = ?")
+          ->execute([$phoneVindi, $billId]);
+      } else {
+        logLine("bill_id={$billId} falha_telefone retry_vindi_sem_numero_novo");
+      }
+    }
 
     try {
       chatSaveOutgoingMessage(

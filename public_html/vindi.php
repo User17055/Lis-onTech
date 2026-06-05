@@ -102,6 +102,7 @@ date_default_timezone_set('America/Sao_Paulo');
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/runs_db.php';
+require_once __DIR__ . '/includes/whatsapp_phone_retry.php';
 
 
 $META_PHONE_NUMBER_ID = cfg($cfg, 'META_PHONE_NUMBER_ID');
@@ -640,6 +641,55 @@ try {
         $metaOk = ($resultado['http'] >= 200 && $resultado['http'] < 300)
             && empty($resultado['curl_error'])
             && empty($respArr['error']);
+
+        if (
+            !$metaOk
+            && !empty($customerId)
+            && waRetryLooksLikePhoneFailure($respArr, $resultado['curl_error'] ?? null)
+        ) {
+            $telefoneVindi = getCustomerPhoneFromVindi((int) $customerId, $VINDI_API_BASE, $VINDI_API_KEY, $LOG_FILE);
+            $telefoneRetry = waRetryNormalizeBrPhone($telefoneVindi);
+            $telefoneAtual = waRetryNormalizeBrPhone((string) $telefone_cliente);
+
+            if ($telefoneRetry !== '' && $telefoneRetry !== $telefoneAtual) {
+                runLog($pdo, $runId, 'info', 'Falha por telefone na Meta; reenviando com telefone atualizado da Vindi.');
+                dbg($LOG_FILE, $DEBUG, $pdo, $runId, 'WA_RETRY_PHONE_FROM_VINDI', [
+                    'old' => mask((string) $telefone_cliente),
+                    'new' => mask($telefoneRetry),
+                ]);
+
+                $resultadoRetry = enviarTemplateWhatsApp(
+                    $META_PHONE_NUMBER_ID,
+                    $META_ACCESS_TOKEN,
+                    $telefoneRetry,
+                    $TEMPLATE_NAME,
+                    $TEMPLATE_LANG,
+                    $variaveis
+                );
+                $respRetry = json_decode($resultadoRetry['response_raw'] ?? '', true);
+                if (!is_array($respRetry)) {
+                    $respRetry = ['raw' => ($resultadoRetry['response_raw'] ?? '')];
+                }
+
+                $resultado = $resultadoRetry;
+                $respArr = $respRetry;
+                $telefone_cliente = $telefoneRetry;
+                $metaOk = ($resultado['http'] >= 200 && $resultado['http'] < 300)
+                    && empty($resultado['curl_error'])
+                    && empty($respArr['error']);
+
+                if ($billIdInt > 0) {
+                    try {
+                        $pdo->prepare("UPDATE bill_reminders SET phone = ? WHERE bill_id = ?")
+                            ->execute([$telefoneRetry, $billIdInt]);
+                    } catch (Throwable $e) {
+                        logLine($LOG_FILE, "ERRO ao atualizar telefone apos retry Vindi: " . $e->getMessage());
+                    }
+                }
+            } else {
+                runLog($pdo, $runId, 'info', 'Falha por telefone na Meta; Vindi nao retornou telefone novo para retry.');
+            }
+        }
 
         if ($metaOk) {
             runLog($pdo, $runId, 'info', 'WhatsApp enviado, Meta aceitou.');
