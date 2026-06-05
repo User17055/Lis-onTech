@@ -159,8 +159,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .filter-toggle:hover{text-decoration:underline;text-underline-offset:3px;}
 
     .filter-tabs{
-      display:grid;
-      grid-template-columns:repeat(3,1fr);
+      display:flex;
+      flex-wrap:wrap;
       gap:6px;
       padding:4px;
       border:1px solid var(--line);
@@ -168,7 +168,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       background:#f2f6fb;
     }
     .filter-tab{
-      height:36px;
+      min-height:36px;
       border:0;
       border-radius:6px;
       background:transparent;
@@ -182,6 +182,9 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       justify-content:center;
       gap:7px;
       transition:.16s;
+      flex:1 1 92px;
+      min-width:0;
+      padding:7px 8px;
     }
     .filter-tab:hover{background:#fff;color:var(--brand-dark);}
     .filter-tab.active{background:#fff;color:#172033;box-shadow:0 1px 3px rgba(23,32,51,.06);}
@@ -761,9 +764,6 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         height:42px;
         flex-basis:42px;
       }
-      .filter-tabs{
-        grid-template-columns:repeat(3,minmax(0,1fr));
-      }
       .filter-tab{font-size:11px;gap:4px;}
       .thread-item{
         grid-template-columns:42px minmax(0,1fr) auto;
@@ -849,6 +849,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         </div>
         <div class="filter-tabs" id="threadFilters" role="group" aria-label="Filtros de conversa">
           <button class="filter-tab active" type="button" data-filter="all"><i class="fa-solid fa-layer-group"></i> Todas</button>
+          <button class="filter-tab" type="button" data-filter="available"><i class="fa-regular fa-comment-dots"></i> Disponivel</button>
+          <button class="filter-tab" type="button" data-filter="review"><i class="fa-solid fa-clipboard-check"></i> Revisao</button>
           <button class="filter-tab" type="button" data-filter="received"><i class="fa-solid fa-inbox"></i> Recebidas</button>
           <button class="filter-tab" type="button" data-filter="unread"><i class="fa-solid fa-circle"></i> Nao lidas</button>
         </div>
@@ -960,6 +962,9 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       selectedPhone: new URLSearchParams(location.search).get('phone') || '',
       activeThread: null,
       loadingMessages: false,
+      messageController: null,
+      messageRequestSeq: 0,
+      threadController: null,
       lastMessageHash: '',
       lastCharge: null,
       threadFilter: 'all',
@@ -1284,6 +1289,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     function syncFilterUi(){
       const labels = {
         all:'Todas as conversas',
+        available:'Com janela aberta para responder',
+        review:'Conversas em revisao',
         received:'Conversas que receberam mensagem',
         unread:'Conversas nao lidas'
       };
@@ -1379,15 +1386,21 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     }
 
     async function loadThreads(manual=false){
+      if (state.threadController) state.threadController.abort();
+      state.threadController = new AbortController();
+      const controller = state.threadController;
       const url = new URL('/painel/api/chat_threads.php', location.origin);
       const q = el('searchThreads').value.trim();
       if (q) url.searchParams.set('q', q);
       if (el('onlyUnread').checked || state.threadFilter === 'unread') url.searchParams.set('unread', '1');
       if (state.threadFilter === 'received') url.searchParams.set('direction', 'in');
+      if (state.threadFilter === 'available') url.searchParams.set('window', 'open');
+      if (state.threadFilter === 'review') url.searchParams.set('review', '1');
       if (!state.backfillDone) url.searchParams.set('backfill', '1');
 
       try {
-        const data = await fetchJson(url.toString(), {cache:'no-store'});
+        const data = await fetchJson(url.toString(), {cache:'no-store', signal:controller.signal});
+        if (controller !== state.threadController) return;
         state.backfillDone = true;
         state.threads = Array.isArray(data.rows) ? data.rows : [];
         el('threadCount').textContent = `${data.total ?? state.threads.length} conversas`;
@@ -1405,8 +1418,11 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
           openConversation(state.threads[0].phone, false);
         }
       } catch (e) {
+        if (e.name === 'AbortError') return;
         el('listStatus').textContent = 'erro';
         if (manual) toast(e.message || 'Erro ao carregar conversas', 'error');
+      } finally {
+        if (controller === state.threadController) state.threadController = null;
       }
     }
 
@@ -1644,18 +1660,26 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     }
 
     async function loadMessages(markRead=false){
-      if (!state.selectedPhone || state.loadingMessages) return;
+      if (!state.selectedPhone) return;
+      if (state.loadingMessages && !markRead) return;
+      if (state.messageController && markRead) state.messageController.abort();
+
+      const requestPhone = state.selectedPhone;
+      const requestSeq = ++state.messageRequestSeq;
+      const controller = new AbortController();
+      state.messageController = controller;
       state.loadingMessages = true;
       const url = new URL('/painel/api/chat_messages.php', location.origin);
-      url.searchParams.set('phone', state.selectedPhone);
+      url.searchParams.set('phone', requestPhone);
       if (markRead) url.searchParams.set('mark_read', '1');
 
       try {
-        const data = await fetchJson(url.toString(), {cache:'no-store'});
+        const data = await fetchJson(url.toString(), {cache:'no-store', signal:controller.signal});
+        if (controller !== state.messageController || requestSeq !== state.messageRequestSeq || requestPhone !== state.selectedPhone) return;
         const messages = Array.isArray(data.messages) ? data.messages : [];
         state.lastCharge = data.last_charge || null;
         const hash = JSON.stringify(messages.map(m => [m.id, m.status, m.message_type, m.body, m.error_text, m.created_at]));
-        const activeThread = data.thread || state.threads.find(t => t.phone === state.selectedPhone);
+        const activeThread = data.thread || state.threads.find(t => t.phone === requestPhone);
         setActiveHeader(activeThread);
 
         if (hash !== state.lastMessageHash) {
@@ -1668,14 +1692,20 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
 
         if (markRead) loadThreads(false);
       } catch (e) {
+        if (e.name === 'AbortError') return;
         toast(e.message || 'Erro ao carregar mensagens', 'error');
       } finally {
-        state.loadingMessages = false;
+        if (controller === state.messageController) {
+          state.loadingMessages = false;
+          state.messageController = null;
+        }
       }
     }
 
     function openConversation(phone, markRead=true){
       state.selectedPhone = digits(phone);
+      if (state.messageController) state.messageController.abort();
+      state.loadingMessages = false;
       state.lastMessageHash = '';
       state.lastCharge = null;
       setConversationOpen(true);
@@ -1685,6 +1715,12 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       history.replaceState(null, '', url.toString());
       renderThreads();
       setActiveHeader(state.threads.find(t => t.phone === state.selectedPhone));
+      el('messages').innerHTML = `
+        <div class="empty-state">
+          <i class="fa-solid fa-spinner fa-spin"></i>
+          Carregando conversa...
+        </div>
+      `;
       loadMessages(markRead);
     }
 

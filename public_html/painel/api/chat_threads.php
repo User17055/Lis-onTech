@@ -27,6 +27,8 @@ try {
     $q = trim((string)($_GET['q'] ?? ''));
     $onlyUnread = (string)($_GET['unread'] ?? '0') === '1';
     $direction = strtolower(trim((string)($_GET['direction'] ?? '')));
+    $window = strtolower(trim((string)($_GET['window'] ?? '')));
+    $review = (string)($_GET['review'] ?? '0') === '1';
 
     $where = 'WHERE 1=1';
     $params = [];
@@ -38,6 +40,14 @@ try {
 
     if ($onlyUnread) {
         $where .= ' AND t.unread_count > 0';
+    }
+
+    if ($review) {
+        $where .= ' AND t.in_review = 1';
+    }
+
+    if ($window === 'open') {
+        $where .= ' AND t.last_inbound_at IS NOT NULL AND t.last_inbound_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)';
     }
 
     if (in_array($direction, ['in', 'out'], true)) {
@@ -93,7 +103,6 @@ try {
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
     foreach ($rows as &$row) {
         $row = chatThreadWithWindowInfo($row);
-        $row['customer_id'] = chatFindThreadCustomerId($pdo, (int)($row['id'] ?? 0), (string)($row['phone'] ?? ''));
     }
     unset($row);
 
