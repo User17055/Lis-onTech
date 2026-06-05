@@ -47,6 +47,7 @@ if (is_array($data)) {
     try {
         require_once __DIR__ . '/db.php';
         require_once __DIR__ . '/includes/chat_db.php';
+        require_once __DIR__ . '/includes/chat_media_cache.php';
         $chatPdo = $pdo;
         chatEnsureTables($chatPdo);
     } catch (Throwable $e) {
@@ -101,7 +102,14 @@ if (is_array($data)) {
 
                     if ($chatPdo) {
                         try {
-                            chatSaveIncomingMessage($chatPdo, $value, $message);
+                            $savedMessageId = chatSaveIncomingMessage($chatPdo, $value, $message);
+                            $messageType = strtolower((string)($message['type'] ?? ''));
+                            if ($savedMessageId > 0 && $accessToken !== '' && in_array($messageType, ['image', 'video', 'audio', 'document', 'sticker'], true)) {
+                                $cache = chatCacheMessageMedia($chatPdo, $savedMessageId, $accessToken);
+                                if (empty($cache['ok'])) {
+                                    webhookLog('media_cache_fail: ' . (string)($cache['error'] ?? 'erro desconhecido'));
+                                }
+                            }
                         } catch (Throwable $e) {
                             webhookLog('incoming_fail: ' . $e->getMessage());
                         }

@@ -825,6 +825,9 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
           </div>
         </div>
         <div class="chat-actions">
+          <button class="icon-btn" id="btnCacheMedia" type="button" title="Salvar midias recentes">
+            <i class="fa-solid fa-box-archive"></i>
+          </button>
           <button class="icon-btn" id="btnNewChat" type="button" title="Abrir conversa por numero">
             <i class="fa-solid fa-plus"></i>
           </button>
@@ -1771,6 +1774,34 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       }
     }
 
+    async function cacheRecentMedia(){
+      const btn = el('btnCacheMedia');
+      const original = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+      try {
+        const data = await fetchJson('/painel/api/chat_media_backfill.php', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({limit:30})
+        });
+
+        const saved = Number(data.saved || 0);
+        const failed = Number(data.failed || 0);
+        const checked = Number(data.checked || 0);
+        toast(failed > 0
+          ? `Midias salvas: ${saved}. Falharam: ${failed}.`
+          : (checked > 0 ? `Midias salvas localmente: ${saved}.` : 'Nenhuma midia pendente encontrada.')
+        );
+      } catch (e) {
+        toast(e.message || 'Falha ao salvar midias', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = original;
+      }
+    }
+
     async function sendMessage(){
       const phone = state.selectedPhone;
       const message = el('messageText').value.trim();
@@ -1962,6 +1993,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       loadThreads(true);
     };
     el('btnReloadThreads').onclick = () => loadThreads(true);
+    el('btnCacheMedia').onclick = cacheRecentMedia;
     el('btnCloseMobileChat').onclick = closeMobileChat;
     el('btnSend').onclick = sendMessage;
     el('btnSendTemplate').onclick = sendTemplate;
