@@ -454,7 +454,75 @@ function reportsRefreshLocalStatuses(PDO &$pdo, array $cfg, string $base, string
     return ['checked' => $checked, 'settled' => $settled, 'settled_ids' => $settledIds];
 }
 
-function reportsFetchLocalBills(PDO $pdo, string $q, int $limit): array
+function reportsMonthLabel(string $month): string
+{
+    static $names = [
+        '01' => 'Janeiro', '02' => 'Fevereiro', '03' => 'Marco', '04' => 'Abril',
+        '05' => 'Maio', '06' => 'Junho', '07' => 'Julho', '08' => 'Agosto',
+        '09' => 'Setembro', '10' => 'Outubro', '11' => 'Novembro', '12' => 'Dezembro',
+    ];
+    if (!preg_match('/^(\d{4})-(\d{2})$/', $month, $m)) return $month;
+    return ($names[$m[2]] ?? $m[2]) . ' ' . $m[1];
+}
+
+function reportsAvailableMonths(PDO $pdo): array
+{
+    if (!reportsTableExists($pdo, 'bill_reminders') || !reportsColumnExists($pdo, 'bill_reminders', 'due_at')) {
+        return [];
+    }
+
+    $where = ["due_at IS NOT NULL"];
+    if (reportsColumnExists($pdo, 'bill_reminders', 'active')) {
+        $where[] = 'COALESCE(active, 1) = 1';
+    }
+    if (reportsColumnExists($pdo, 'bill_reminders', 'status')) {
+        $where[] = "LOWER(COALESCE(NULLIF(status, ''), 'unpaid')) IN ('unpaid','pending','overdue')";
+    }
+
+    $stmt = $pdo->query("
+        SELECT DATE_FORMAT(due_at, '%Y-%m') AS month_key, COUNT(*) AS total
+        FROM bill_reminders
+        WHERE " . implode(' AND ', $where) . "
+        GROUP BY DATE_FORMAT(due_at, '%Y-%m')
+        ORDER BY month_key DESC
+    ");
+
+    $months = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        $key = (string)($row['month_key'] ?? '');
+        if (!preg_match('/^\d{4}-\d{2}$/', $key)) continue;
+        $months[] = [
+            'value' => $key,
+            'label' => reportsMonthLabel($key),
+            'total' => (int)($row['total'] ?? 0),
+        ];
+    }
+    return $months;
+}
+
+function reportsMonthRange(string $month): ?array
+{
+    if (!preg_match('/^\d{4}-\d{2}$/', $month)) return null;
+    $start = DateTime::createFromFormat('Y-m-d H:i:s', $month . '-01 00:00:00');
+    if (!$start) return null;
+    $end = (clone $start)->modify('first day of next month');
+    return [$start->format('Y-m-d H:i:s'), $end->format('Y-m-d H:i:s')];
+}
+
+function reportsFilterRowsByMonth(array $rows, string $month): array
+{
+    $range = reportsMonthRange($month);
+    if (!$range) return $rows;
+    [$start, $end] = $range;
+    $startTs = strtotime($start);
+    $endTs = strtotime($end);
+    return array_values(array_filter($rows, function (array $row) use ($startTs, $endTs): bool {
+        $ts = strtotime((string)($row['due_at'] ?? ''));
+        return $ts && $ts >= $startTs && $ts < $endTs;
+    }));
+}
+
+function reportsFetchLocalBills(PDO $pdo, string $q, int $limit, string $month = ''): array
 {
     if (!reportsTableExists($pdo, 'bill_reminders')) return [];
 
@@ -490,6 +558,12 @@ function reportsFetchLocalBills(PDO $pdo, string $q, int $limit): array
             $where[] = '(' . implode(' OR ', $search) . ')';
             $params[':q'] = '%' . $q . '%';
         }
+    }
+    $monthRange = reportsMonthRange($month);
+    if ($monthRange && reportsColumnExists($pdo, 'bill_reminders', 'due_at')) {
+        $where[] = 'br.due_at >= :month_start AND br.due_at < :month_end';
+        $params[':month_start'] = $monthRange[0];
+        $params[':month_end'] = $monthRange[1];
     }
 
     $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
@@ -589,18 +663,20 @@ function reportsMonthWindows(string $from, string $to): array
 try {
     $q = trim((string)($_GET['q'] ?? ''));
     $sync = (string)($_GET['sync'] ?? '0') === '1';
+    $month = trim((string)($_GET['month'] ?? ''));
+    if (!preg_match('/^\d{4}-\d{2}$/', $month)) $month = '';
     $localLimit = max(1000, min(20000, (int)($_GET['local_limit'] ?? 20000)));
     $maxPages = max(1, min(200, (int)($_GET['max_pages'] ?? 80)));
-    $defaultRecentFrom = date('Y-m-d', strtotime('-90 days'));
+    $defaultRecentFrom = cfg($cfg, 'REPORTS_VINDI_SYNC_FROM', '2024-01-01');
     $syncFrom = trim((string)($_GET['sync_from'] ?? $defaultRecentFrom));
     if ($syncFrom === '') $syncFrom = $defaultRecentFrom;
     $syncTo = trim((string)($_GET['sync_to'] ?? date('Y-m-d')));
-    $statusCheckLimit = max(0, min(1000, (int)($_GET['status_limit'] ?? 250)));
+    $statusCheckLimit = max(0, min(5000, (int)($_GET['status_limit'] ?? 1000)));
     $perPage = 50;
     $savedLocal = 0;
     $statusRefresh = ['checked' => 0, 'settled' => 0, 'settled_ids' => []];
 
-    $localRows = reportsFetchLocalBills($pdo, $q, $localLimit);
+    $localRows = reportsFetchLocalBills($pdo, $q, $localLimit, $month);
     $localByBill = [];
     foreach ($localRows as $row) {
         $billId = (int)($row['bill_id'] ?? 0);
@@ -700,8 +776,9 @@ try {
         $vindiMeta['error'] = 'VINDI_API_KEY nao configurada';
     }
 
-    $bills = reportsFilterRowsByText(array_values($rowsByBill), $q);
+    $bills = reportsFilterRowsByMonth(reportsFilterRowsByText(array_values($rowsByBill), $q), $month);
     reportsEnsurePdo($pdo, $cfg);
+    $availableMonths = reportsAvailableMonths($pdo);
     $logMap = reportsFetchLogMap($pdo, array_column($bills, 'bill_id'));
 
     $groups = [];
@@ -814,6 +891,8 @@ try {
             'sync' => $sync,
             'saved_local' => $savedLocal,
             'status_refresh' => $statusRefresh,
+            'available_months' => $availableMonths,
+            'selected_month' => $month,
         ],
     ]);
 } catch (Throwable $e) {

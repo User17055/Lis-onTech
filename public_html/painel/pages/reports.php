@@ -64,7 +64,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       width:100%;height:45px;box-sizing:border-box;border:2px solid transparent;border-radius:var(--radius-pill);background:var(--bg-panel);
       padding:0 18px 0 45px;color:var(--text-main);font-family:'Nunito',sans-serif;font-weight:800;font-size:15px;outline:none;
     }
-    .date-control{width:170px;padding-left:18px;flex:0 0 170px;}
+    .month-control{width:210px;padding-left:18px;flex:0 0 210px;cursor:pointer;}
     .form-control:focus{background:#fff;border-color:var(--primary);box-shadow:0 0 0 4px rgba(59,130,246,.1);}
     .btn-primary{
       height:45px;border:0;border-radius:var(--radius-pill);background:var(--primary);color:#fff;padding:0 18px;
@@ -148,7 +148,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       .rep-container{padding:0 8px;}
       .toolbar{border-radius:14px;align-items:stretch;flex-direction:column;}
       .search-box{min-width:0;width:100%;}
-      .date-control{width:100%;flex:auto;}
+      .month-control{width:100%;flex:auto;}
       .summary-grid,.leader-strip,.bill-line{grid-template-columns:1fr;}
       .metric{min-height:82px;}
       .btn-primary{width:100%;}
@@ -193,7 +193,9 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         <i class="fa-solid fa-search"></i>
         <input id="repQ" class="form-control" placeholder="Buscar cliente, telefone ou bill id">
       </div>
-      <input id="syncFrom" class="form-control date-control" type="date" value="<?= htmlspecialchars(date('Y-m-d', strtotime('-90 days')), ENT_QUOTES, 'UTF-8') ?>" title="Sincronizar Vindi desde">
+      <select id="monthFilter" class="form-control month-control" title="Filtrar por mes">
+        <option value="">Todos os meses</option>
+      </select>
       <button id="btnLoadReports" class="btn-primary" type="button"><i class="fa-solid fa-rotate"></i> Atualizar</button>
       <button id="btnSyncReports" class="btn-secondary" type="button"><i class="fa-solid fa-cloud-arrow-down"></i> Sincronizar Vindi</button>
     </div>
@@ -243,6 +245,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     const repState = { rows: [], expanded: new Set() };
     const $rep = (id) => document.getElementById(id);
     let reportsLoading = false;
+    let selectedMonth = new URLSearchParams(location.search).get('month') || '';
 
     function esc(value){
       return String(value ?? '').replace(/[&<>"']/g, m => ({
@@ -375,6 +378,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       const s = data.summary || {};
       const meta = data.meta || {};
       const vindi = meta.vindi || {};
+      renderMonthOptions(meta.available_months || [], meta.selected_month || selectedMonth);
       $rep('mDebtors').textContent = brNumber(s.debtors);
       $rep('mAmount').textContent = brMoney(s.total_amount);
       $rep('mBills').textContent = brNumber(s.open_bills);
@@ -405,6 +409,34 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       renderRows();
     }
 
+    function renderMonthOptions(months, current){
+      const select = $rep('monthFilter');
+      if (!select) return;
+      const prev = current || selectedMonth || select.value || '';
+      const rows = Array.isArray(months) ? months : [];
+      let exists = prev === '';
+      const options = ['<option value="">Todos os meses</option>'];
+      rows.forEach(row => {
+        const value = String(row.value || '');
+        if (!value) return;
+        if (value === prev) exists = true;
+        const total = Number(row.total || 0);
+        const label = `${row.label || value}${total ? ' (' + brNumber(total) + ')' : ''}`;
+        options.push(`<option value="${esc(value)}">${esc(label)}</option>`);
+      });
+      select.innerHTML = options.join('');
+      selectedMonth = exists ? prev : '';
+      select.value = selectedMonth;
+    }
+
+    function syncUrlState(){
+      const url = new URL(location.href);
+      url.searchParams.set('pagina', 'reports');
+      if (selectedMonth) url.searchParams.set('month', selectedMonth);
+      else url.searchParams.delete('month');
+      history.replaceState(null, '', url.toString());
+    }
+
     async function loadReports(sync=false){
       if (reportsLoading) return;
       reportsLoading = true;
@@ -424,12 +456,12 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         const url = new URL('/painel/api/reports.php', location.origin);
         const q = $rep('repQ').value.trim();
         if (q) url.searchParams.set('q', q);
+        if (selectedMonth) url.searchParams.set('month', selectedMonth);
         url.searchParams.set('local_limit', '20000');
         if (sync) {
           url.searchParams.set('sync', '1');
           url.searchParams.set('max_pages', '200');
-          url.searchParams.set('sync_from', $rep('syncFrom').value || '');
-          url.searchParams.set('status_limit', '350');
+          url.searchParams.set('status_limit', '5000');
         }
         const resp = await fetch(url.toString(), {credentials:'same-origin', cache:'no-store'});
         const text = await resp.text();
@@ -443,6 +475,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
           throw new Error(data?.error || text.slice(0, 220) || 'Falha ao carregar relatorios');
         }
         applyData(data);
+        syncUrlState();
         setStatus((sync ? 'Sincronizado em ' : 'Atualizado em ') + new Date().toLocaleString('pt-BR'));
       } catch (e) {
         setStatus(e.message || 'Erro ao carregar', true);
@@ -468,6 +501,11 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
 
     $rep('btnLoadReports').onclick = () => loadReports(false);
     $rep('btnSyncReports').onclick = () => loadReports(true);
+    $rep('monthFilter').addEventListener('change', () => {
+      selectedMonth = $rep('monthFilter').value;
+      repState.expanded.clear();
+      loadReports(false);
+    });
     $rep('repQ').addEventListener('keydown', (event) => {
       if (event.key === 'Enter') {
         repState.expanded.clear();
