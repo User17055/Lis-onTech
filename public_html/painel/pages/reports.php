@@ -65,6 +65,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       padding:0 18px 0 45px;color:var(--text-main);font-family:'Nunito',sans-serif;font-weight:800;font-size:15px;outline:none;
     }
     .month-control{width:210px;padding-left:18px;flex:0 0 210px;cursor:pointer;}
+    .month-control.is-hidden{display:none;}
     .form-control:focus{background:#fff;border-color:var(--primary);box-shadow:0 0 0 4px rgba(59,130,246,.1);}
     .btn-primary{
       height:45px;border:0;border-radius:var(--radius-pill);background:var(--primary);color:#fff;padding:0 18px;
@@ -95,6 +96,26 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       background:#fff;border:2px solid var(--border-color);border-radius:var(--radius-card);box-shadow:var(--shadow-soft);padding:16px 18px;
       display:grid;grid-template-columns:1fr repeat(3,max-content);align-items:center;gap:16px;margin-bottom:18px;
     }
+    .month-board{
+      background:#fff;border:2px solid var(--border-color);border-radius:var(--radius-card);box-shadow:var(--shadow-soft);
+      padding:14px;margin:0 0 18px;display:grid;gap:12px;
+    }
+    .month-board-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+    .month-board-title{display:flex;align-items:center;gap:9px;color:var(--text-main);font-size:14px;font-weight:900;}
+    .month-board-title i{color:var(--primary);}
+    .month-years{display:grid;gap:12px;}
+    .month-year{display:grid;gap:8px;}
+    .month-year-label{color:var(--text-muted);font-size:12px;font-weight:900;}
+    .month-grid{display:grid;grid-template-columns:repeat(6,minmax(92px,1fr));gap:8px;}
+    .month-btn{
+      min-height:54px;border:2px solid var(--border-color);border-radius:14px;background:#fff;color:var(--text-main);
+      display:grid;align-content:center;gap:2px;text-align:left;padding:8px 10px;font-family:'Nunito',sans-serif;font-weight:900;cursor:pointer;
+      box-shadow:var(--shadow-soft);transition:.18s;
+    }
+    .month-btn:hover{transform:translateY(-1px);border-color:#bfe8ff;color:#12628f;}
+    .month-btn.active{background:#eef8ff;border-color:#9bdcff;color:#12628f;}
+    .month-btn span{font-size:12px;text-transform:uppercase;}
+    .month-btn small{font-size:11px;color:var(--text-muted);font-weight:900;}
     .meta-line{
       margin:-6px 0 18px;color:var(--text-muted);font-size:12px;font-weight:800;display:flex;align-items:center;gap:8px;flex-wrap:wrap;
     }
@@ -123,13 +144,24 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .detail-row td{padding:0 16px 18px;background:#fff;border:none;}
     .detail-panel{border:2px solid #e6eef7;border-radius:16px;background:#fbfdff;padding:14px;display:grid;gap:10px;}
     .bill-line{
-      background:#fff;border:1px solid var(--border-color);border-radius:14px;padding:12px;display:grid;
-      grid-template-columns:minmax(120px,.75fr) minmax(140px,.75fr) minmax(220px,1.35fr) minmax(140px,.7fr) minmax(92px,.45fr);
-      gap:12px;align-items:start;
+      background:#fff;border:1px solid var(--border-color);border-radius:16px;padding:14px;display:grid;
+      grid-template-columns:minmax(190px,.8fr) minmax(0,1.4fr) minmax(210px,.8fr);
+      gap:14px;align-items:stretch;
     }
-    .bill-line span{display:block;color:var(--text-muted);font-size:11px;font-weight:900;text-transform:uppercase;margin-bottom:4px;}
-    .bill-line strong{display:block;font-size:13px;font-weight:900;line-height:1.35;}
-    .bill-items{white-space:pre-wrap;word-break:break-word;}
+    .bill-head{display:grid;gap:8px;align-content:start;}
+    .bill-tag{display:inline-flex;align-items:center;gap:7px;width:max-content;max-width:100%;padding:6px 10px;border-radius:999px;background:#eef8ff;color:#12628f;font-size:12px;font-weight:900;text-decoration:none;}
+    .bill-amount{font-size:20px;font-weight:900;line-height:1.05;color:var(--text-main);}
+    .bill-due{display:flex;align-items:flex-start;gap:8px;color:var(--text-muted);font-size:12px;font-weight:900;line-height:1.25;}
+    .bill-due i{color:var(--primary);margin-top:1px;}
+    .bill-main{display:grid;gap:8px;align-content:start;}
+    .bill-label{display:flex;align-items:center;gap:8px;color:var(--text-muted);font-size:11px;font-weight:900;text-transform:uppercase;}
+    .bill-label i{color:var(--primary);}
+    .bill-items{white-space:pre-wrap;word-break:break-word;font-size:14px;font-weight:900;line-height:1.38;color:var(--text-main);}
+    .bill-side{display:grid;gap:8px;align-content:start;justify-items:end;text-align:right;}
+    .bill-mini{display:inline-flex;align-items:center;gap:8px;padding:7px 11px;border-radius:999px;background:var(--bg-panel);border:2px solid var(--border-color);font-size:12px;font-weight:900;}
+    .bill-mini i{color:var(--primary);}
+    .bill-mini.ok i{color:var(--green-text);}
+    .bill-mini.warn i{color:var(--yellow-text);}
     .bill-link{color:#12628f;text-decoration:none;font-weight:900;}
     .bill-link:hover{text-decoration:underline;}
     .empty{color:var(--text-muted);font-size:13px;font-weight:800;text-align:center;padding:28px 12px;background:var(--bg-panel);border-radius:16px;}
@@ -139,7 +171,9 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     @media(max-width:1060px){
       .summary-grid{grid-template-columns:repeat(2,minmax(150px,1fr));}
       .leader-strip{grid-template-columns:1fr 1fr;}
-      .bill-line{grid-template-columns:1fr 1fr;}
+      .month-grid{grid-template-columns:repeat(4,minmax(88px,1fr));}
+      .bill-line{grid-template-columns:1fr;}
+      .bill-side{justify-items:start;text-align:left;grid-template-columns:repeat(3,max-content);align-items:center;overflow-x:auto;}
       table{min-width:980px;}
       .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
     }
@@ -150,6 +184,10 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       .search-box{min-width:0;width:100%;}
       .month-control{width:100%;flex:auto;}
       .summary-grid,.leader-strip,.bill-line{grid-template-columns:1fr;}
+      .month-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+      .month-board-head{align-items:stretch;flex-direction:column;}
+      #btnAllMonths{width:100%;justify-content:center;}
+      .month-board{padding:12px;border-radius:16px;}
       .metric{min-height:82px;}
       .btn-primary{width:100%;}
       .btn-secondary{width:100%;}
@@ -173,6 +211,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       .pill{white-space:normal;}
       .detail-row td{padding:0 0 14px;}
       .detail-panel{padding:10px;border-radius:14px;}
+      .bill-side{display:grid;grid-template-columns:1fr;justify-items:stretch;}
+      .bill-mini{justify-content:center;}
     }
     @media(max-width:390px){
       .summary-grid{grid-template-columns:1fr;}
@@ -198,6 +238,16 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       </select>
       <button id="btnLoadReports" class="btn-primary" type="button"><i class="fa-solid fa-rotate"></i> Atualizar</button>
       <button id="btnSyncReports" class="btn-secondary" type="button"><i class="fa-solid fa-cloud-arrow-down"></i> Sincronizar Vindi</button>
+    </div>
+
+    <div class="month-board" id="monthBoard">
+      <div class="month-board-head">
+        <div class="month-board-title"><i class="fa-regular fa-calendar"></i> Meses com faturas</div>
+        <button type="button" class="btn-secondary" id="btnAllMonths" style="height:36px;padding:0 14px;"><i class="fa-solid fa-layer-group"></i> Todos</button>
+      </div>
+      <div class="month-years" id="monthYears">
+        <div class="empty">Carregando meses...</div>
+      </div>
     </div>
 
     <div class="summary-grid">
@@ -326,16 +376,27 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       return bills.map(bill => {
         const billUrl = String(bill.bill_url || '');
         const billLabel = billUrl
-          ? `<a class="bill-link" href="${esc(billUrl)}" target="_blank" rel="noopener">Bill ${esc(bill.bill_id)}</a>`
-          : `Bill ${esc(bill.bill_id)}`;
+          ? `<a class="bill-tag" href="${esc(billUrl)}" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square"></i> Bill ${esc(bill.bill_id)}</a>`
+          : `<span class="bill-tag"><i class="fa-solid fa-file-invoice"></i> Bill ${esc(bill.bill_id)}</span>`;
         const overdue = Number(bill.days_overdue || 0);
+        const dueText = `${brDate(bill.due_at)}${overdue ? ` | ${overdue} dia(s) vencida` : ''}`;
+        const lastText = brDateTime(bill.last_reminder_at);
         return `
           <div class="bill-line">
-            <div><span>Parcela / fatura</span><strong>${billLabel}</strong></div>
-            <div><span>Valor e vencimento</span><strong>${brMoney(bill.amount)}<br>${brDate(bill.due_at)}${overdue ? ` | ${overdue} dia(s) vencida` : ''}</strong></div>
-            <div><span>O que esta devendo</span><strong class="bill-items">${esc(bill.items_text || 'Sem itens informados')}</strong></div>
-            <div><span>Recobrancas</span><strong>${brNumber(bill.reminders_sent)} enviada(s)<br>Ultima: ${esc(brDateTime(bill.last_reminder_at))}</strong></div>
-            <div><span>Origem</span><strong>${esc(sourceLabel(bill.source))}</strong></div>
+            <div class="bill-head">
+              ${billLabel}
+              <div class="bill-amount">${brMoney(bill.amount)}</div>
+              <div class="bill-due"><i class="fa-regular fa-calendar"></i><span>${esc(dueText)}</span></div>
+            </div>
+            <div class="bill-main">
+              <div class="bill-label"><i class="fa-solid fa-list-check"></i> O que esta devendo</div>
+              <div class="bill-items">${esc(bill.items_text || 'Sem itens informados')}</div>
+            </div>
+            <div class="bill-side">
+              <span class="bill-mini ok"><i class="fa-brands fa-whatsapp"></i> ${brNumber(bill.reminders_sent)} envio(s)</span>
+              <span class="bill-mini"><i class="fa-regular fa-clock"></i> ${esc(lastText === '-' ? 'Sem envio' : lastText)}</span>
+              <span class="bill-mini warn"><i class="fa-solid fa-database"></i> ${esc(sourceLabel(bill.source))}</span>
+            </div>
           </div>
         `;
       }).join('');
@@ -411,6 +472,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
 
     function renderMonthOptions(months, current){
       const select = $rep('monthFilter');
+      const board = $rep('monthYears');
       if (!select) return;
       const prev = current || selectedMonth || select.value || '';
       const rows = Array.isArray(months) ? months : [];
@@ -427,6 +489,38 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       select.innerHTML = options.join('');
       selectedMonth = exists ? prev : '';
       select.value = selectedMonth;
+
+      if (!board) return;
+      if (!rows.length) {
+        board.innerHTML = '<div class="empty">Nenhum mes com fatura aberta.</div>';
+        return;
+      }
+      const years = new Map();
+      rows.forEach(row => {
+        const value = String(row.value || '');
+        const year = value.slice(0, 4) || 'Sem ano';
+        if (!years.has(year)) years.set(year, []);
+        years.get(year).push(row);
+      });
+      board.innerHTML = Array.from(years.entries()).map(([year, yearRows]) => `
+        <div class="month-year">
+          <div class="month-year-label">${esc(year)}</div>
+          <div class="month-grid">
+            ${yearRows.map(row => {
+              const value = String(row.value || '');
+              const shortLabel = String(row.label || value).replace(/\s+\d{4}$/, '').slice(0, 3);
+              const total = Number(row.total || 0);
+              const active = value === selectedMonth ? 'active' : '';
+              return `
+                <button type="button" class="month-btn ${active}" data-month="${esc(value)}">
+                  <span>${esc(shortLabel)}</span>
+                  <small>${brNumber(total)} fatura(s)</small>
+                </button>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `).join('');
     }
 
     function syncUrlState(){
@@ -503,6 +597,18 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     $rep('btnSyncReports').onclick = () => loadReports(true);
     $rep('monthFilter').addEventListener('change', () => {
       selectedMonth = $rep('monthFilter').value;
+      repState.expanded.clear();
+      loadReports(false);
+    });
+    $rep('monthYears').addEventListener('click', (event) => {
+      const btn = event.target.closest('button[data-month]');
+      if (!btn) return;
+      selectedMonth = btn.getAttribute('data-month') || '';
+      repState.expanded.clear();
+      loadReports(false);
+    });
+    $rep('btnAllMonths').addEventListener('click', () => {
+      selectedMonth = '';
       repState.expanded.clear();
       loadReports(false);
     });
