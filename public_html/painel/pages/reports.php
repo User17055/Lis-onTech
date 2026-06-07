@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../config.php';
 require_once __DIR__ . '/../../includes/auth.php';
 if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
 ?>
-<div class="reports-wrap">
+<div class="pa-wrap reports-wrap">
   <style>
     .reports-wrap{
       --bg-panel:#f4f7fa;
@@ -17,7 +17,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       --blue-bg:#dbeafe; --blue-text:#1e40af;
       --yellow-bg:#fef3c7; --yellow-text:#92400e;
       --radius-pill:50px;
-      --radius-card:8px;
+      --radius-card:20px;
       --shadow-soft:0 4px 6px -1px rgba(0,0,0,.05),0 2px 4px -1px rgba(0,0,0,.03);
       --shadow-hover:0 10px 15px -3px rgba(59,130,246,.15);
       font-family:'Nunito',sans-serif;
@@ -27,7 +27,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       background:#fff;
       border-bottom:2px solid var(--border-color);
       padding:0 40px;
-      min-height:70px;
+      height:70px;
       display:flex;
       justify-content:space-between;
       align-items:center;
@@ -39,6 +39,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       margin-bottom:25px;
       gap:16px;
     }
+    .brand{font-size:22px;font-weight:800;color:var(--text-main);display:flex;align-items:center;gap:12px;}
+    .brand i{color:var(--primary);font-size:24px;}
     .rep-title{display:flex;align-items:center;gap:12px;min-width:0;}
     .rep-title i{color:var(--primary);font-size:24px;}
     .rep-title h1{font-size:22px;line-height:1.1;margin:0;font-weight:900;letter-spacing:0;}
@@ -47,12 +49,15 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       font-size:13px;color:var(--text-main);background:var(--bg-panel);padding:8px 18px;border-radius:var(--radius-pill);
       font-weight:800;border:2px solid var(--border-color);display:flex;align-items:center;gap:8px;white-space:nowrap;
     }
+    .status-pill.updated{background:var(--green-bg);color:var(--green-text);border-color:var(--green-bg);transform:scale(1.05);}
+    .status-pill.error{background:var(--red-bg);color:var(--red-text);border-color:var(--red-bg);}
     .status-dot{width:8px;height:8px;border-radius:50%;background:var(--primary);display:inline-block;animation:pulse-dot 1.5s infinite;}
     .rep-container{max-width:1200px;margin:0 auto;padding:0 25px;}
     .toolbar{
-      background:#fff;border:2px solid var(--border-color);border-radius:8px;padding:14px;display:flex;gap:12px;align-items:center;
-      box-shadow:var(--shadow-soft);margin-bottom:18px;flex-wrap:wrap;
+      background:#fff;border:2px solid var(--border-color);border-radius:var(--radius-pill);padding:12px 20px;display:flex;gap:12px;align-items:center;
+      box-shadow:var(--shadow-soft);margin-bottom:22px;flex-wrap:wrap;transition:box-shadow .3s;
     }
+    .toolbar:hover{box-shadow:var(--shadow-hover);}
     .search-box{flex:1;min-width:240px;position:relative;}
     .search-box i{position:absolute;left:18px;top:15px;color:var(--text-muted);}
     .form-control{
@@ -68,7 +73,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .btn-primary:hover{transform:translateY(-2px);background:var(--primary-hover);}
     .summary-grid{display:grid;grid-template-columns:repeat(5,minmax(150px,1fr));gap:14px;margin-bottom:18px;}
     .metric{
-      background:#fff;border:2px solid var(--border-color);border-radius:8px;padding:16px 18px;box-shadow:var(--shadow-soft);
+      background:#fff;border:2px solid var(--border-color);border-radius:var(--radius-card);padding:16px 18px;box-shadow:var(--shadow-soft);
       display:grid;grid-template-columns:1fr 42px;gap:12px;align-items:center;min-height:92px;box-sizing:border-box;
     }
     .metric span{display:block;color:var(--text-muted);font-size:12px;font-weight:900;text-transform:uppercase;}
@@ -78,31 +83,35 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .metric.warn .metric-icon{background:var(--yellow-bg);color:var(--yellow-text);}
     .metric.ok .metric-icon{background:var(--green-bg);color:var(--green-text);}
     .leader-strip{
-      background:#fff;border:2px solid var(--border-color);border-radius:8px;box-shadow:var(--shadow-soft);padding:16px 18px;
+      background:#fff;border:2px solid var(--border-color);border-radius:var(--radius-card);box-shadow:var(--shadow-soft);padding:16px 18px;
       display:grid;grid-template-columns:1fr repeat(3,max-content);align-items:center;gap:16px;margin-bottom:18px;
     }
+    .meta-line{
+      margin:-6px 0 18px;color:var(--text-muted);font-size:12px;font-weight:800;display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+    }
+    .meta-line i{color:var(--primary);}
     .leader-name{font-weight:900;font-size:16px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .leader-sub{display:block;color:var(--text-muted);font-size:12px;font-weight:800;margin-top:3px;}
     .pill{display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border-radius:999px;background:var(--bg-panel);border:2px solid var(--border-color);font-size:12px;font-weight:900;white-space:nowrap;}
     table{width:100%;border-collapse:separate;border-spacing:0 12px;}
     thead th{color:var(--text-muted);font-size:12px;text-transform:uppercase;font-weight:900;padding:0 16px;text-align:left;}
     thead th:last-child, tbody td:last-child{text-align:right;}
-    tbody tr.rep-row{background:#fff;box-shadow:var(--shadow-soft);border-radius:8px;transition:.2s;cursor:pointer;}
+    tbody tr.rep-row{background:#fff;box-shadow:var(--shadow-soft);border-radius:var(--radius-card);transition:.2s;cursor:pointer;}
     tbody tr.rep-row:hover{transform:translateY(-2px);box-shadow:var(--shadow-hover);}
     tbody tr.rep-row.open{box-shadow:var(--shadow-hover);}
     tbody td{padding:16px;border-top:2px solid var(--border-color);border-bottom:2px solid var(--border-color);font-size:13px;font-weight:800;vertical-align:middle;}
-    tbody td:first-child{border-left:2px solid var(--border-color);border-top-left-radius:8px;border-bottom-left-radius:8px;}
-    tbody td:last-child{border-right:2px solid var(--border-color);border-top-right-radius:8px;border-bottom-right-radius:8px;}
+    tbody td:first-child{border-left:2px solid var(--border-color);border-top-left-radius:var(--radius-card);border-bottom-left-radius:var(--radius-card);}
+    tbody td:last-child{border-right:2px solid var(--border-color);border-top-right-radius:var(--radius-card);border-bottom-right-radius:var(--radius-card);}
     .customer-cell{display:grid;grid-template-columns:10px 1fr;gap:14px;align-items:center;}
     .debt-bar{width:10px;height:48px;border-radius:99px;background:var(--primary);box-shadow:0 0 0 4px #eff6ff;}
     .debt-bar.hot{background:#ef4444;box-shadow:0 0 0 4px #fee2e2;}
     .customer-name{font-size:15px;font-weight:900;display:block;}
     .muted{color:var(--text-muted);font-size:12px;font-weight:800;margin-top:3px;display:block;}
     .detail-row td{padding:0 16px 18px;background:#fff;border:none;}
-    .detail-panel{border:2px solid #e6eef7;border-radius:8px;background:#fbfdff;padding:14px;display:grid;gap:10px;}
+    .detail-panel{border:2px solid #e6eef7;border-radius:16px;background:#fbfdff;padding:14px;display:grid;gap:10px;}
     .bill-line{
-      background:#fff;border:1px solid var(--border-color);border-radius:8px;padding:12px;display:grid;
-      grid-template-columns:minmax(130px,.8fr) minmax(140px,.8fr) minmax(220px,1.4fr) minmax(140px,.7fr);
+      background:#fff;border:1px solid var(--border-color);border-radius:14px;padding:12px;display:grid;
+      grid-template-columns:minmax(120px,.75fr) minmax(140px,.75fr) minmax(220px,1.35fr) minmax(140px,.7fr) minmax(92px,.45fr);
       gap:12px;align-items:start;
     }
     .bill-line span{display:block;color:var(--text-muted);font-size:11px;font-weight:900;text-transform:uppercase;margin-bottom:4px;}
@@ -110,7 +119,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .bill-items{white-space:pre-wrap;word-break:break-word;}
     .bill-link{color:#12628f;text-decoration:none;font-weight:900;}
     .bill-link:hover{text-decoration:underline;}
-    .empty{color:var(--text-muted);font-size:13px;font-weight:800;text-align:center;padding:28px 12px;background:var(--bg-panel);border-radius:8px;}
+    .empty{color:var(--text-muted);font-size:13px;font-weight:800;text-align:center;padding:28px 12px;background:var(--bg-panel);border-radius:16px;}
     .spinner{width:30px;height:30px;border:4px solid #e2e8f0;border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto;}
     @keyframes spin{to{transform:rotate(360deg)}}
     @keyframes pulse-dot{0%{opacity:.5;transform:scale(1)}50%{opacity:1;transform:scale(1.3)}100%{opacity:.5;transform:scale(1)}}
@@ -122,20 +131,19 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
     }
     @media(max-width:680px){
-      .rep-header{align-items:flex-start;flex-direction:column;padding:18px 20px;}
+      .rep-header{align-items:flex-start;flex-direction:column;height:auto;min-height:62px;padding:14px 16px;border-radius:12px;gap:10px;}
       .rep-container{padding:0 8px;}
+      .toolbar{border-radius:14px;align-items:stretch;flex-direction:column;}
+      .search-box{min-width:0;width:100%;}
       .summary-grid,.leader-strip,.bill-line{grid-template-columns:1fr;}
       .btn-primary{width:100%;}
     }
   </style>
 
   <div class="rep-header">
-    <div class="rep-title">
+    <div class="brand">
       <i class="fa-solid fa-chart-pie"></i>
-      <div>
-        <h1>Relatorios</h1>
-        <p>Resumo de clientes devendo, parcelas, valores e recobrancas recebidas.</p>
-      </div>
+      <span>Relatorios</span>
     </div>
     <div class="status-pill"><span class="status-dot" id="repDot"></span><span id="repStatus">Aguardando...</span></div>
   </div>
@@ -165,6 +173,11 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       <span class="pill"><i class="fa-solid fa-coins"></i> R$ 0,00</span>
       <span class="pill"><i class="fa-solid fa-file-invoice"></i> 0 parcelas</span>
       <span class="pill"><i class="fa-solid fa-paper-plane"></i> 0 recobrancas</span>
+    </div>
+
+    <div class="meta-line" id="repMeta">
+      <i class="fa-solid fa-database"></i>
+      <span>Aguardando leitura completa...</span>
     </div>
 
     <div class="table-scroll">
@@ -219,8 +232,21 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     }
 
     function setStatus(text, error=false){
+      const bar = $rep('repStatus').parentElement;
       $rep('repStatus').textContent = text;
       $rep('repDot').style.background = error ? '#ef4444' : 'var(--primary)';
+      if (bar) {
+        bar.classList.remove('updated','error');
+        bar.classList.add(error ? 'error' : 'updated');
+        setTimeout(() => bar.classList.remove('updated','error'), 1600);
+      }
+    }
+
+    function sourceLabel(source){
+      const s = String(source || '').toLowerCase();
+      if (s === 'vindi+local') return 'Vindi + local';
+      if (s === 'vindi') return 'Vindi';
+      return 'Local';
     }
 
     function renderLeader(row){
@@ -263,6 +289,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
             <div><span>Valor e vencimento</span><strong>${brMoney(bill.amount)}<br>${brDate(bill.due_at)}${overdue ? ` | ${overdue} dia(s) vencida` : ''}</strong></div>
             <div><span>O que esta devendo</span><strong class="bill-items">${esc(bill.items_text || 'Sem itens informados')}</strong></div>
             <div><span>Recobrancas</span><strong>${brNumber(bill.reminders_sent)} enviada(s)<br>Ultima: ${esc(brDateTime(bill.last_reminder_at))}</strong></div>
+            <div><span>Origem</span><strong>${esc(sourceLabel(bill.source))}</strong></div>
           </div>
         `;
       }).join('');
@@ -303,11 +330,20 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
 
     function applyData(data){
       const s = data.summary || {};
+      const meta = data.meta || {};
+      const vindi = meta.vindi || {};
       $rep('mDebtors').textContent = brNumber(s.debtors);
       $rep('mAmount').textContent = brMoney(s.total_amount);
       $rep('mBills').textContent = brNumber(s.open_bills);
       $rep('mOverdue').textContent = brNumber(s.overdue_bills);
       $rep('mReminders').textContent = brNumber(s.reminders_sent);
+      const vindiText = vindi.enabled
+        ? `Vindi: ${brNumber(vindi.bills_read)} fatura(s), ${brNumber(vindi.pages_read)} pagina(s), parada: ${esc(vindi.stopped_by || '-')}${vindi.error ? ' | ' + esc(vindi.error) : ''}`
+        : 'Vindi nao configurada; usando banco local';
+      $rep('repMeta').innerHTML = `
+        <i class="fa-solid fa-database"></i>
+        <span>Local: ${brNumber(meta.local_rows || 0)} registro(s) | Consolidado: ${brNumber(meta.merged_bills || 0)} fatura(s) | ${vindiText}</span>
+      `;
       renderLeader(s.top_debtor);
       repState.rows = Array.isArray(data.rows) ? data.rows : [];
       renderRows();
@@ -322,6 +358,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         const url = new URL('/painel/api/reports.php', location.origin);
         const q = $rep('repQ').value.trim();
         if (q) url.searchParams.set('q', q);
+        url.searchParams.set('max_pages', '200');
+        url.searchParams.set('local_limit', '20000');
         const resp = await fetch(url.toString(), {credentials:'same-origin', cache:'no-store'});
         const text = await resp.text();
         let data = null;

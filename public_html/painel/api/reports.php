@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 date_default_timezone_set('America/Sao_Paulo');
 header('Content-Type: application/json; charset=utf-8');
+@set_time_limit(180);
 
 require_once __DIR__ . '/_auth.php';
 require_once __DIR__ . '/../../config.php';
@@ -59,6 +60,13 @@ function reportsMoney($value): float
     return is_numeric($s) ? (float)$s : 0.0;
 }
 
+function reportsDateTimeOrNull($value): ?string
+{
+    if ($value === null || $value === '') return null;
+    $ts = strtotime((string)$value);
+    return $ts ? date('Y-m-d H:i:s', $ts) : null;
+}
+
 function reportsDaysOverdue($value): int
 {
     if (!$value) return 0;
@@ -76,52 +84,136 @@ function reportsCustomerKey(array $row): string
     return 'name:' . strtolower(trim((string)($row['customer_name'] ?? 'Cliente')));
 }
 
-try {
-    if (!reportsTableExists($pdo, 'bill_reminders')) {
-        reportsOut([
-            'ok' => true,
-            'summary' => [
-                'debtors' => 0,
-                'open_bills' => 0,
-                'total_amount' => 0,
-                'overdue_bills' => 0,
-                'reminders_sent' => 0,
-                'top_debtor' => null,
-            ],
-            'rows' => [],
-            'warning' => 'Tabela bill_reminders ainda nao existe.',
-        ]);
+function reportsCurlGetWithHeaders(string $url, string $apiKey): array
+{
+    if (!function_exists('curl_init')) {
+        return ['http' => 0, 'headers' => [], 'body' => '', 'err' => 'curl indisponivel'];
     }
 
-    $q = trim((string)($_GET['q'] ?? ''));
-    $limit = max(10, min(5000, (int)($_GET['limit'] ?? 1200)));
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HEADER, true);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 8);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 20);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Accept: application/json',
+        'Authorization: Basic ' . base64_encode($apiKey . ':'),
+    ]);
+
+    $raw = curl_exec($ch);
+    $http = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $hsz = (int)curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+    $err = curl_error($ch);
+    curl_close($ch);
+
+    if ($raw === false) return ['http' => $http, 'headers' => [], 'body' => '', 'err' => $err ?: 'curl_error'];
+
+    $headers = [];
+    foreach (preg_split("/\r\n|\n|\r/", substr($raw, 0, $hsz)) as $line) {
+        $p = strpos($line, ':');
+        if ($p === false) continue;
+        $headers[strtolower(trim(substr($line, 0, $p)))] = trim(substr($line, $p + 1));
+    }
+
+    return ['http' => $http, 'headers' => $headers, 'body' => substr($raw, $hsz), 'err' => $err ?: null];
+}
+
+function reportsVindiBillsPage(string $base, string $apiKey, string $query, int $page, int $perPage): array
+{
+    $url = rtrim($base, '/') . '/bills?per_page=' . $perPage . '&page=' . $page . '&query=' . rawurlencode($query);
+    $resp = reportsCurlGetWithHeaders($url, $apiKey);
+    if ($resp['http'] < 200 || $resp['http'] >= 300) {
+        return ['ok' => false, 'error' => "Vindi HTTP {$resp['http']}", 'raw' => substr((string)($resp['body'] ?? ''), 0, 220)];
+    }
+
+    $json = json_decode((string)($resp['body'] ?? ''), true);
+    if (!is_array($json)) return ['ok' => false, 'error' => 'JSON invalido da Vindi'];
+
+    return [
+        'ok' => true,
+        'bills' => is_array($json['bills'] ?? null) ? $json['bills'] : [],
+        'total' => (int)($resp['headers']['total'] ?? 0),
+    ];
+}
+
+function reportsBillItemsText(array $bill): string
+{
+    $items = $bill['bill_items'] ?? ($bill['items'] ?? []);
+    if (!is_array($items) || !$items) return '';
+
+    $lines = [];
+    foreach ($items as $item) {
+        if (!is_array($item)) continue;
+        $product = $item['product'] ?? [];
+        $name = (string)($item['description'] ?? ($product['name'] ?? ($item['name'] ?? 'Item')));
+        $amount = $item['amount'] ?? ($item['pricing_schema']['price'] ?? null);
+        $line = trim($name);
+        if ($amount !== null && $amount !== '') {
+            $line .= ' - R$ ' . number_format(reportsMoney($amount), 2, ',', '.');
+        }
+        if ($line !== '') $lines[] = $line;
+    }
+
+    return implode("\n", $lines);
+}
+
+function reportsBillAmount(array $bill): float
+{
+    foreach (['amount', 'total', 'value'] as $key) {
+        if (isset($bill[$key]) && $bill[$key] !== '') return reportsMoney($bill[$key]);
+    }
+    return 0.0;
+}
+
+function reportsRowFromVindiBill(array $bill, array $local = []): array
+{
+    $customer = $bill['customer'] ?? [];
+    if (!is_array($customer)) $customer = [];
+
+    $billId = (int)($bill['id'] ?? 0);
+    $customerId = (int)($customer['id'] ?? ($bill['customer_id'] ?? ($local['customer_id'] ?? 0)));
+    $phone = (string)($local['phone'] ?? '');
+    if ($phone === '') {
+        $phone = (string)($customer['phone_number'] ?? ($customer['mobile'] ?? ($customer['phone'] ?? '')));
+    }
+
+    return [
+        'bill_id' => $billId,
+        'customer_id' => $customerId,
+        'customer_name' => (string)($customer['name'] ?? ($local['customer_name'] ?? 'Cliente')),
+        'phone' => $phone,
+        'bill_url' => (string)($bill['url'] ?? ($local['bill_url'] ?? '')),
+        'items_text' => reportsBillItemsText($bill) ?: (string)($local['items_text'] ?? ''),
+        'amount' => reportsBillAmount($bill) ?: reportsMoney($local['amount'] ?? 0),
+        'due_at' => reportsDateTimeOrNull($bill['due_at'] ?? ($local['due_at'] ?? null)),
+        'status' => (string)($bill['status'] ?? ($local['status'] ?? 'pending')),
+        'active' => 1,
+        'blocked' => (int)($local['blocked'] ?? 0),
+        'reminder_count' => (int)($local['reminder_count'] ?? 0),
+        'overdue_sent_count' => (int)($local['overdue_sent_count'] ?? 0),
+        'reminder_attempts' => (int)($local['reminder_attempts'] ?? 0),
+        'last_overdue_sent_at' => $local['last_overdue_sent_at'] ?? null,
+        'last_reminder_sent_at' => $local['last_reminder_sent_at'] ?? null,
+        'next_reminder_at' => $local['next_reminder_at'] ?? null,
+        'updated_at' => $local['updated_at'] ?? null,
+        '_source' => !empty($local) ? 'vindi+local' : 'vindi',
+    ];
+}
+
+function reportsFetchLocalBills(PDO $pdo, string $q, int $limit): array
+{
+    if (!reportsTableExists($pdo, 'bill_reminders')) return [];
 
     $cols = [
-        'bill_id',
-        'customer_id',
-        'customer_name',
-        'phone',
-        'bill_url',
-        'items_text',
-        'amount',
-        'due_at',
-        'status',
-        'active',
-        'blocked',
-        'reminder_count',
-        'overdue_sent_count',
-        'reminder_attempts',
-        'last_overdue_sent_at',
-        'last_reminder_sent_at',
-        'next_reminder_at',
-        'updated_at',
+        'bill_id', 'customer_id', 'customer_name', 'phone', 'bill_url', 'items_text',
+        'amount', 'due_at', 'status', 'active', 'blocked', 'reminder_count',
+        'overdue_sent_count', 'reminder_attempts', 'last_overdue_sent_at',
+        'last_reminder_sent_at', 'next_reminder_at', 'updated_at',
     ];
 
     $select = [];
     foreach ($cols as $col) {
-        $select[] = reportsColumnExists($pdo, 'bill_reminders', $col)
-            ? "br.{$col}"
-            : "NULL AS {$col}";
+        $select[] = reportsColumnExists($pdo, 'bill_reminders', $col) ? "br.{$col}" : "NULL AS {$col}";
     }
 
     $where = [];
@@ -146,53 +238,138 @@ try {
     }
 
     $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
-    $orderBits = [];
-    if (reportsColumnExists($pdo, 'bill_reminders', 'due_at')) $orderBits[] = 'br.due_at ASC';
-    if (reportsColumnExists($pdo, 'bill_reminders', 'updated_at')) $orderBits[] = 'br.updated_at DESC';
-    $orderSql = $orderBits ? ('ORDER BY ' . implode(', ', $orderBits)) : 'ORDER BY br.bill_id DESC';
-
+    $order = reportsColumnExists($pdo, 'bill_reminders', 'due_at') ? 'br.due_at ASC' : 'br.bill_id DESC';
     $stmt = $pdo->prepare("
         SELECT " . implode(",\n               ", $select) . "
         FROM bill_reminders br
         {$whereSql}
-        {$orderSql}
+        ORDER BY {$order}
         LIMIT {$limit}
     ");
     $stmt->execute($params);
-    $bills = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    foreach ($rows as &$row) $row['_source'] = 'local';
+    unset($row);
+    return $rows;
+}
 
-    $logMap = [];
+function reportsFetchLogMap(PDO $pdo, array $ids): array
+{
+    if (!$ids || !reportsTableExists($pdo, 'reminder_logs')) return [];
     if (
-        $bills
-        && reportsTableExists($pdo, 'reminder_logs')
-        && reportsColumnExists($pdo, 'reminder_logs', 'bill_id')
-        && reportsColumnExists($pdo, 'reminder_logs', 'ok')
-        && reportsColumnExists($pdo, 'reminder_logs', 'created_at')
+        !reportsColumnExists($pdo, 'reminder_logs', 'bill_id')
+        || !reportsColumnExists($pdo, 'reminder_logs', 'ok')
+        || !reportsColumnExists($pdo, 'reminder_logs', 'created_at')
     ) {
-        $ids = [];
-        foreach ($bills as $bill) {
-            $id = (int)($bill['bill_id'] ?? 0);
-            if ($id > 0) $ids[] = $id;
+        return [];
+    }
+
+    $ids = array_values(array_unique(array_filter(array_map('intval', $ids))));
+    $map = [];
+    foreach (array_chunk($ids, 700) as $chunk) {
+        $in = implode(',', array_fill(0, count($chunk), '?'));
+        $stmt = $pdo->prepare("
+            SELECT
+                bill_id,
+                COUNT(CASE WHEN ok = 1 THEN 1 END) AS sent_count,
+                COUNT(*) AS attempt_count,
+                MAX(created_at) AS last_log_at
+            FROM reminder_logs
+            WHERE bill_id IN ({$in})
+            GROUP BY bill_id
+        ");
+        $stmt->execute($chunk);
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $log) {
+            $map[(int)$log['bill_id']] = $log;
         }
-        $ids = array_values(array_unique($ids));
-        if ($ids) {
-            $in = implode(',', array_fill(0, count($ids), '?'));
-            $logStmt = $pdo->prepare("
-                SELECT
-                    bill_id,
-                    COUNT(CASE WHEN ok = 1 THEN 1 END) AS sent_count,
-                    COUNT(*) AS attempt_count,
-                    MAX(created_at) AS last_log_at
-                FROM reminder_logs
-                WHERE bill_id IN ({$in})
-                GROUP BY bill_id
-            ");
-            $logStmt->execute($ids);
-            foreach ($logStmt->fetchAll(PDO::FETCH_ASSOC) as $log) {
-                $logMap[(int)$log['bill_id']] = $log;
+    }
+    return $map;
+}
+
+function reportsFilterRowsByText(array $rows, string $q): array
+{
+    if ($q === '') return $rows;
+    $needle = strtolower($q);
+    return array_values(array_filter($rows, function (array $row) use ($needle): bool {
+        $haystack = strtolower(implode(' ', [
+            $row['bill_id'] ?? '',
+            $row['customer_id'] ?? '',
+            $row['customer_name'] ?? '',
+            $row['phone'] ?? '',
+        ]));
+        return strpos($haystack, $needle) !== false;
+    }));
+}
+
+try {
+    $q = trim((string)($_GET['q'] ?? ''));
+    $localLimit = max(1000, min(20000, (int)($_GET['local_limit'] ?? 20000)));
+    $maxPages = max(1, min(200, (int)($_GET['max_pages'] ?? 120)));
+    $perPage = 50;
+
+    $localRows = reportsFetchLocalBills($pdo, $q, $localLimit);
+    $localByBill = [];
+    foreach ($localRows as $row) {
+        $billId = (int)($row['bill_id'] ?? 0);
+        if ($billId > 0) $localByBill[$billId] = $row;
+    }
+
+    $rowsByBill = $localByBill;
+    $vindiMeta = [
+        'enabled' => false,
+        'ok' => false,
+        'pages_read' => 0,
+        'bills_read' => 0,
+        'reported_total' => 0,
+        'stopped_by' => 'not_configured',
+        'error' => null,
+    ];
+
+    $apiKey = cfg($cfg, 'VINDI_API_KEY');
+    if ($apiKey !== '') {
+        $vindiMeta['enabled'] = true;
+        $base = cfg($cfg, 'VINDI_API_BASE', 'https://app.vindi.com.br/api/v1');
+        $query = 'status=pending';
+
+        for ($page = 1; $page <= $maxPages; $page++) {
+            $resp = reportsVindiBillsPage($base, $apiKey, $query, $page, $perPage);
+            if (!($resp['ok'] ?? false)) {
+                $vindiMeta['error'] = (string)($resp['error'] ?? 'Falha na Vindi');
+                $vindiMeta['stopped_by'] = 'error';
+                break;
+            }
+
+            $bills = is_array($resp['bills'] ?? null) ? $resp['bills'] : [];
+            $vindiMeta['ok'] = true;
+            $vindiMeta['pages_read'] = $page;
+            $vindiMeta['bills_read'] += count($bills);
+            $vindiMeta['reported_total'] = max((int)($vindiMeta['reported_total'] ?? 0), (int)($resp['total'] ?? 0));
+
+            if (!$bills) {
+                $vindiMeta['stopped_by'] = 'empty_page';
+                break;
+            }
+
+            foreach ($bills as $bill) {
+                if (!is_array($bill)) continue;
+                $billId = (int)($bill['id'] ?? 0);
+                if ($billId <= 0) continue;
+                $rowsByBill[$billId] = reportsRowFromVindiBill($bill, $localByBill[$billId] ?? []);
+            }
+
+            $reportedTotal = (int)($resp['total'] ?? 0);
+            if ($reportedTotal > 0 && ($page * $perPage) >= $reportedTotal) {
+                $vindiMeta['stopped_by'] = 'reported_total';
+                break;
+            }
+            if ($page === $maxPages) {
+                $vindiMeta['stopped_by'] = 'max_pages';
             }
         }
     }
+
+    $bills = reportsFilterRowsByText(array_values($rowsByBill), $q);
+    $logMap = reportsFetchLogMap($pdo, array_column($bills, 'bill_id'));
 
     $groups = [];
     foreach ($bills as $bill) {
@@ -222,6 +399,7 @@ try {
                 'oldest_due_at' => null,
                 'max_days_overdue' => 0,
                 'last_reminder_at' => null,
+                'sources' => [],
                 'bills' => [],
             ];
         }
@@ -233,6 +411,7 @@ try {
         $groups[$key]['reminders_sent'] += $sentCount;
         $groups[$key]['reminder_attempts'] += $attemptCount;
         $groups[$key]['max_days_overdue'] = max((int)$groups[$key]['max_days_overdue'], $days);
+        $groups[$key]['sources'][(string)($bill['_source'] ?? 'local')] = true;
 
         $dueAt = $bill['due_at'] ?? null;
         if ($dueAt && (!$groups[$key]['oldest_due_at'] || strtotime((string)$dueAt) < strtotime((string)$groups[$key]['oldest_due_at']))) {
@@ -255,6 +434,7 @@ try {
             'reminder_attempts' => $attemptCount,
             'last_reminder_at' => $lastSentAt,
             'next_reminder_at' => $bill['next_reminder_at'] ?? null,
+            'source' => (string)($bill['_source'] ?? 'local'),
         ];
     }
 
@@ -274,6 +454,7 @@ try {
             return $ad <=> $bd;
         });
         $row['total_amount'] = round((float)$row['total_amount'], 2);
+        $row['sources'] = array_keys($row['sources']);
     }
     unset($row);
 
@@ -291,7 +472,13 @@ try {
         'summary' => $summary,
         'rows' => $rows,
         'generated_at' => date('Y-m-d H:i:s'),
-        'limit' => $limit,
+        'meta' => [
+            'local_rows' => count($localRows),
+            'merged_bills' => count($bills),
+            'vindi' => $vindiMeta,
+            'max_pages' => $maxPages,
+            'per_page' => $perPage,
+        ],
     ]);
 } catch (Throwable $e) {
     reportsOut(['ok' => false, 'error' => $e->getMessage()], 500);
