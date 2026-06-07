@@ -457,7 +457,7 @@ function reportsRefreshLocalStatuses(PDO &$pdo, array $cfg, string $base, string
 function reportsMonthLabel(string $month): string
 {
     static $names = [
-        '01' => 'Janeiro', '02' => 'Fevereiro', '03' => 'Marco', '04' => 'Abril',
+        '01' => 'Janeiro', '02' => 'Fevereiro', '03' => 'Março', '04' => 'Abril',
         '05' => 'Maio', '06' => 'Junho', '07' => 'Julho', '08' => 'Agosto',
         '09' => 'Setembro', '10' => 'Outubro', '11' => 'Novembro', '12' => 'Dezembro',
     ];
@@ -471,7 +471,7 @@ function reportsAvailableMonths(PDO $pdo): array
         return [];
     }
 
-    $where = ["due_at IS NOT NULL"];
+    $where = ["due_at IS NOT NULL", "due_at < CURDATE()"];
     if (reportsColumnExists($pdo, 'bill_reminders', 'active')) {
         $where[] = 'COALESCE(active, 1) = 1';
     }
@@ -484,7 +484,7 @@ function reportsAvailableMonths(PDO $pdo): array
         FROM bill_reminders
         WHERE " . implode(' AND ', $where) . "
         GROUP BY DATE_FORMAT(due_at, '%Y-%m')
-        ORDER BY month_key DESC
+        ORDER BY month_key ASC
     ");
 
     $months = [];
@@ -513,7 +513,7 @@ function reportsMonthRange(string $month): ?array
 
 function reportsVisibleEndExclusive(): string
 {
-    return (new DateTime('first day of next month 00:00:00'))->format('Y-m-d H:i:s');
+    return (new DateTime('today 00:00:00'))->format('Y-m-d H:i:s');
 }
 
 function reportsFilterVisibleMonths(array $rows): array
@@ -521,9 +521,9 @@ function reportsFilterVisibleMonths(array $rows): array
     $endTs = strtotime(reportsVisibleEndExclusive());
     return array_values(array_filter($rows, function (array $row) use ($endTs): bool {
         $due = $row['due_at'] ?? null;
-        if (!$due) return true;
+        if (!$due) return false;
         $ts = strtotime((string)$due);
-        return !$ts || $ts < $endTs;
+        return $ts && $ts < $endTs;
     }));
 }
 
@@ -566,7 +566,7 @@ function reportsFetchLocalBills(PDO $pdo, string $q, int $limit, string $month =
         $where[] = "LOWER(COALESCE(NULLIF(br.status, ''), 'unpaid')) IN ('unpaid','pending','overdue')";
     }
     if (reportsColumnExists($pdo, 'bill_reminders', 'due_at')) {
-        $where[] = '(br.due_at IS NULL OR br.due_at < :visible_end)';
+        $where[] = 'br.due_at IS NOT NULL AND br.due_at < :visible_end';
         $params[':visible_end'] = reportsVisibleEndExclusive();
     }
     if ($q !== '') {

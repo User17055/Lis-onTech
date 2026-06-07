@@ -17,7 +17,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       --blue-bg:#dbeafe; --blue-text:#1e40af;
       --yellow-bg:#fef3c7; --yellow-text:#92400e;
       --radius-pill:50px;
-      --radius-card:20px;
+      --radius-card:8px;
       --shadow-soft:0 4px 6px -1px rgba(0,0,0,.05),0 2px 4px -1px rgba(0,0,0,.03);
       --shadow-hover:0 10px 15px -3px rgba(59,130,246,.15);
       font-family:'Nunito',sans-serif;
@@ -54,7 +54,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .status-dot{width:8px;height:8px;border-radius:50%;background:var(--primary);display:inline-block;animation:pulse-dot 1.5s infinite;}
     .rep-container{max-width:1200px;margin:0 auto;padding:0 25px;}
     .toolbar{
-      background:#fff;border:2px solid var(--border-color);border-radius:var(--radius-pill);padding:12px 20px;display:flex;gap:12px;align-items:center;
+      background:#fff;border:2px solid var(--border-color);border-radius:8px;padding:14px;display:flex;gap:12px;align-items:center;
       box-shadow:var(--shadow-soft);margin-bottom:22px;flex-wrap:wrap;transition:box-shadow .3s;
     }
     .toolbar:hover{box-shadow:var(--shadow-hover);}
@@ -122,9 +122,9 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .month-board.expanded .month-years{display:grid;}
     .month-year{display:grid;gap:8px;}
     .month-year-label{color:var(--text-muted);font-size:12px;font-weight:900;}
-    .month-grid{display:grid;grid-template-columns:repeat(6,minmax(86px,1fr));gap:8px;}
+    .month-grid{display:grid;grid-template-columns:repeat(4,minmax(118px,1fr));gap:8px;}
     .month-btn{
-      min-height:42px;border:2px solid var(--border-color);border-radius:12px;background:#fff;color:var(--text-main);
+      min-height:42px;border:2px solid var(--border-color);border-radius:8px;background:#fff;color:var(--text-main);
       display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;text-align:left;padding:8px 10px;font-family:'Nunito',sans-serif;font-weight:900;cursor:pointer;
       box-shadow:var(--shadow-soft);transition:.18s;
     }
@@ -156,16 +156,18 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     }
     .btn-mini:hover{border-color:#bfe8ff;color:#12628f;transform:translateY(-1px);}
     .btn-mini.primary{background:#eef8ff;border-color:#bfe8ff;color:#12628f;}
-    table{width:100%;border-collapse:separate;border-spacing:0 10px;}
-    thead th{color:var(--text-muted);font-size:12px;text-transform:uppercase;font-weight:900;padding:0 16px;text-align:left;}
+    table{width:100%;border-collapse:separate;border-spacing:0 12px;}
+    thead th{color:var(--text-muted);font-size:13px;text-transform:uppercase;font-weight:800;padding:0 20px;text-align:left;}
     thead th:last-child, tbody td:last-child{text-align:right;}
-    tbody tr.rep-row{background:#fff;box-shadow:var(--shadow-soft);border-radius:16px;transition:.2s;cursor:pointer;}
-    tbody tr.rep-row:hover{transform:translateY(-2px);box-shadow:var(--shadow-hover);}
+    tbody tr.rep-row{background:#fff;box-shadow:var(--shadow-soft);border:2px solid var(--border-color);border-radius:var(--radius-card);transition:.2s;cursor:pointer;}
+    tbody tr.rep-row:hover{transform:translateY(-2px);box-shadow:var(--shadow-hover);border-color:#dbeafe;}
     tbody tr.rep-row.open{box-shadow:var(--shadow-hover);}
-    tbody td{padding:14px 16px;border-top:2px solid var(--border-color);border-bottom:2px solid var(--border-color);font-size:13px;font-weight:800;vertical-align:middle;}
-    tbody td:first-child{border-left:2px solid var(--border-color);border-top-left-radius:16px;border-bottom-left-radius:16px;}
-    tbody td:last-child{border-right:2px solid var(--border-color);border-top-right-radius:16px;border-bottom-right-radius:16px;}
-    .customer-cell{display:grid;grid-template-columns:38px 1fr;gap:12px;align-items:center;}
+    tbody td{padding:18px 20px;border-top:2px solid var(--border-color);border-bottom:2px solid var(--border-color);font-size:13px;font-weight:800;vertical-align:middle;}
+    tbody td:first-child{border-left:2px solid var(--border-color);border-top-left-radius:var(--radius-card);border-bottom-left-radius:var(--radius-card);}
+    tbody td:last-child{border-right:2px solid var(--border-color);border-top-right-radius:var(--radius-card);border-bottom-right-radius:var(--radius-card);}
+    .customer-cell{display:grid;grid-template-columns:10px 1fr;gap:14px;align-items:center;}
+    .status-strip{width:10px;height:46px;border-radius:99px;background:var(--primary);box-shadow:0 0 0 4px #eff6ff;}
+    .status-strip.hot{background:#ef4444;box-shadow:0 0 0 4px #fee2e2;}
     .customer-name{font-size:15px;font-weight:900;display:block;}
     .muted{color:var(--text-muted);font-size:12px;font-weight:800;margin-top:3px;display:block;}
     .detail-row td{padding:0 16px 18px;background:#fff;border:none;}
@@ -207,7 +209,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     @media(max-width:1060px){
       .summary-grid{grid-template-columns:repeat(2,minmax(150px,1fr));}
       .leader-strip{grid-template-columns:1fr 1fr;}
-      .month-grid{grid-template-columns:repeat(4,minmax(88px,1fr));}
+      .month-grid{grid-template-columns:repeat(3,minmax(112px,1fr));}
       .bill-line{grid-template-columns:1fr;}
       .bill-side{justify-items:start;text-align:left;grid-template-columns:repeat(3,max-content);align-items:center;overflow-x:auto;}
       table{min-width:980px;}
@@ -216,14 +218,14 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     @media(max-width:680px){
       .rep-header{align-items:flex-start;flex-direction:column;height:auto;min-height:62px;padding:14px 16px;border-radius:12px;gap:10px;}
       .rep-container{padding:0 8px;}
-      .toolbar{border-radius:14px;align-items:stretch;flex-direction:column;}
+      .toolbar{border-radius:8px;align-items:stretch;flex-direction:column;}
       .search-box{min-width:0;width:100%;}
       .month-control{width:100%;flex:auto;}
       .summary-grid,.leader-strip,.bill-line{grid-template-columns:1fr;}
       .month-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
       .month-board-head{align-items:stretch;flex-direction:column;}
       #btnAllMonths,#btnToggleMonths{width:100%;justify-content:center;}
-      .month-board{padding:12px;border-radius:16px;}
+      .month-board{padding:12px;border-radius:8px;}
       .metric{min-height:82px;}
       .btn-primary{width:100%;}
       .btn-secondary{width:100%;}
@@ -238,7 +240,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       table,thead,tbody,tr,td{display:block;width:100%;min-width:0;box-sizing:border-box;}
       table{border-spacing:0;}
       thead{display:none;}
-      tbody tr.rep-row{padding:14px;margin-bottom:12px;border:2px solid var(--border-color);border-radius:16px;}
+      tbody tr.rep-row{padding:14px;margin-bottom:12px;border:2px solid var(--border-color);border-radius:8px;}
       tbody tr.rep-row:hover{transform:none;}
       tbody td,
       tbody td:first-child,
@@ -377,6 +379,34 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       const d = new Date(raw.replace(' ', 'T'));
       if (Number.isNaN(d.getTime())) return raw;
       return d.toLocaleString('pt-BR', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'});
+    }
+
+    function isoDate(date){
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    }
+
+    function monthStart(value){
+      const [year, month] = String(value || '').split('-').map(Number);
+      return new Date(year || new Date().getFullYear(), (month || 1) - 1, 1);
+    }
+
+    function monthEnd(value){
+      const start = monthStart(value);
+      return new Date(start.getFullYear(), start.getMonth() + 1, 0);
+    }
+
+    function buildSyncMonths(){
+      if (/^\d{4}-\d{2}$/.test(selectedMonth)) return [selectedMonth];
+      const from = '2024-01';
+      const now = new Date();
+      const end = new Date(now.getFullYear(), now.getMonth(), 1);
+      const months = [];
+      let cursor = monthStart(from);
+      while (cursor <= end) {
+        months.push(`${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`);
+        cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+      }
+      return months;
     }
 
     function initialOf(name){
@@ -544,7 +574,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
           <tr class="rep-row" data-key="${esc(key)}" data-href="${esc(detailsHref)}" title="Clique para abrir detalhes">
             <td>
               <div class="customer-cell">
-                <span class="avatar-initial ${hot}">${esc(initialOf(row.customer_name))}</span>
+                <span class="status-strip ${hot}"></span>
                 <div>
                   <span class="customer-name">${esc(row.customer_name || 'Cliente')}</span>
                   <span class="muted">${row.phone ? 'Tel ' + esc(row.phone) : 'Telefone nao salvo'} | ${brNumber(row.max_days_overdue)} dia(s) max.</span>
@@ -616,6 +646,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       const now = new Date();
       const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
       const rows = (Array.isArray(months) ? months : []).filter(row => String(row.value || '') <= currentMonth);
+      rows.sort((a, b) => String(a.value || '').localeCompare(String(b.value || '')));
       let exists = prev === '';
       const options = ['<option value="">Todos os meses</option>'];
       rows.forEach(row => {
@@ -650,13 +681,13 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         if (!years.has(year)) years.set(year, []);
         years.get(year).push(row);
       });
-      board.innerHTML = Array.from(years.entries()).map(([year, yearRows]) => `
+      board.innerHTML = Array.from(years.entries()).sort((a, b) => b[0].localeCompare(a[0])).map(([year, yearRows]) => `
         <div class="month-year">
           <div class="month-year-label">${esc(year)}</div>
           <div class="month-grid">
-            ${yearRows.map(row => {
+            ${yearRows.sort((a, b) => String(a.value || '').localeCompare(String(b.value || ''))).map(row => {
               const value = String(row.value || '');
-              const shortLabel = String(row.label || value).replace(/\s+\d{4}$/, '').slice(0, 3);
+              const shortLabel = String(row.label || value).replace(/\s+\d{4}$/, '').toUpperCase();
               const total = Number(row.total || 0);
               const active = value === selectedMonth ? 'active' : '';
               return `
@@ -691,8 +722,114 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       history.replaceState(null, '', url.toString());
     }
 
-    async function loadReports(sync=false){
+    async function fetchReportsData(params){
+      const url = new URL('/painel/api/reports.php', location.origin);
+      Object.entries(params || {}).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') url.searchParams.set(key, String(value));
+      });
+      const resp = await fetch(url.toString(), {credentials:'same-origin', cache:'no-store'});
+      const text = await resp.text();
+      let data = null;
+      try { data = JSON.parse(text); } catch(e) {}
+      if (resp.status === 401) {
+        location.href = '/painel/';
+        return null;
+      }
+      if (!resp.ok || !data || data.ok === false) {
+        throw new Error(data?.error || text.slice(0, 220) || 'Falha ao carregar relatorios');
+      }
+      return data;
+    }
+
+    async function syncReportsChunked(){
       if (reportsLoading) return;
+      reportsLoading = true;
+      const btnLoad = $rep('btnLoadReports');
+      const btnSync = $rep('btnSyncReports');
+      const originalSync = btnSync ? btnSync.innerHTML : '';
+      if (btnLoad) btnLoad.disabled = true;
+      if (btnSync) btnSync.disabled = true;
+      const q = $rep('repQ').value.trim();
+      const months = buildSyncMonths();
+      let lastData = null;
+      const totals = {bills_read: 0, saved_local: 0, pages_read: 0, status_checked: 0, settled_local: 0};
+      $rep('repBody').innerHTML = `<tr><td colspan="6" style="text-align:center;padding:38px;"><div class="spinner"></div><div class="muted" style="margin-top:12px;">Sincronizando Vindi em lotes...</div></td></tr>`;
+
+      try {
+        for (let i = 0; i < months.length; i++) {
+          const monthKey = months[i];
+          const start = monthStart(monthKey);
+          const end = monthEnd(monthKey);
+          const today = new Date();
+          const syncTo = end > today ? today : end;
+          setStatus(`Vindi ${i + 1}/${months.length}: ${monthKey.split('-').reverse().join('/')}`);
+          if (btnSync) btnSync.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${i + 1}/${months.length}`;
+          lastData = await fetchReportsData({
+            q,
+            month: selectedMonth,
+            local_limit: 20000,
+            sync: 1,
+            sync_from: isoDate(start),
+            sync_to: isoDate(syncTo),
+            max_pages: 12,
+            status_limit: 0
+          });
+          const vm = lastData?.meta?.vindi || {};
+          totals.bills_read += Number(vm.bills_read || 0);
+          totals.saved_local += Number(vm.saved_local || lastData?.meta?.saved_local || 0);
+          totals.pages_read += Number(vm.pages_read || 0);
+        }
+
+        setStatus('Atualizando status pagos...');
+        if (btnSync) btnSync.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Status';
+        lastData = await fetchReportsData({
+          q,
+          month: selectedMonth,
+          local_limit: 20000,
+          sync: 1,
+          sync_from: isoDate(new Date()),
+          sync_to: isoDate(new Date()),
+          max_pages: 1,
+          status_limit: 800
+        });
+        const finalVm = lastData?.meta?.vindi || {};
+        totals.bills_read += Number(finalVm.bills_read || 0);
+        totals.saved_local += Number(finalVm.saved_local || lastData?.meta?.saved_local || 0);
+        totals.pages_read += Number(finalVm.pages_read || 0);
+        totals.status_checked += Number(finalVm.status_checked || 0);
+        totals.settled_local += Number(finalVm.settled_local || 0);
+
+        if (!lastData) return;
+        if (lastData.meta && lastData.meta.vindi) {
+          lastData.meta.vindi.bills_read = totals.bills_read;
+          lastData.meta.vindi.saved_local = totals.saved_local;
+          lastData.meta.vindi.pages_read = totals.pages_read;
+          lastData.meta.vindi.status_checked = totals.status_checked;
+          lastData.meta.vindi.settled_local = totals.settled_local;
+          lastData.meta.saved_local = totals.saved_local;
+        }
+        applyData(lastData);
+        syncUrlState();
+        setStatus('Sincronizado em ' + new Date().toLocaleString('pt-BR'));
+      } catch (e) {
+        setStatus(e.message || 'Erro ao sincronizar', true);
+        await loadReports(false, true);
+      } finally {
+        reportsLoading = false;
+        if (btnLoad) btnLoad.disabled = false;
+        if (btnSync) {
+          btnSync.disabled = false;
+          btnSync.innerHTML = originalSync;
+        }
+      }
+    }
+
+    async function loadReports(sync=false, force=false){
+      if (sync) {
+        syncReportsChunked();
+        return;
+      }
+      if (reportsLoading && !force) return;
       reportsLoading = true;
       const btnLoad = $rep('btnLoadReports');
       const btnSync = $rep('btnSyncReports');
@@ -707,27 +844,9 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         <tr><td colspan="6" style="text-align:center;padding:38px;"><div class="spinner"></div><div class="muted" style="margin-top:12px;">${sync ? 'Puxando Vindi e salvando no banco local...' : 'Carregando relatorios locais...'}</div></td></tr>
       `;
       try {
-        const url = new URL('/painel/api/reports.php', location.origin);
         const q = $rep('repQ').value.trim();
-        if (q) url.searchParams.set('q', q);
-        if (selectedMonth) url.searchParams.set('month', selectedMonth);
-        url.searchParams.set('local_limit', '20000');
-        if (sync) {
-          url.searchParams.set('sync', '1');
-          url.searchParams.set('max_pages', '200');
-          url.searchParams.set('status_limit', '5000');
-        }
-        const resp = await fetch(url.toString(), {credentials:'same-origin', cache:'no-store'});
-        const text = await resp.text();
-        let data = null;
-        try { data = JSON.parse(text); } catch(e) {}
-        if (resp.status === 401) {
-          location.href = '/painel/';
-          return;
-        }
-        if (!resp.ok || !data || data.ok === false) {
-          throw new Error(data?.error || text.slice(0, 220) || 'Falha ao carregar relatorios');
-        }
+        const data = await fetchReportsData({q, month: selectedMonth, local_limit: 20000});
+        if (!data) return;
         applyData(data);
         syncUrlState();
         setStatus((sync ? 'Sincronizado em ' : 'Atualizado em ') + new Date().toLocaleString('pt-BR'));

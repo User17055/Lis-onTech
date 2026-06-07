@@ -86,7 +86,7 @@ function rdMonthRange(string $month): ?array {
 
 function rdMonthLabel(string $month): string {
     static $names = [
-        '01' => 'Janeiro', '02' => 'Fevereiro', '03' => 'Marco', '04' => 'Abril',
+        '01' => 'Janeiro', '02' => 'Fevereiro', '03' => 'Março', '04' => 'Abril',
         '05' => 'Maio', '06' => 'Junho', '07' => 'Julho', '08' => 'Agosto',
         '09' => 'Setembro', '10' => 'Outubro', '11' => 'Novembro', '12' => 'Dezembro',
     ];
@@ -170,8 +170,8 @@ if (!rdTableExists($pdo, 'bill_reminders')) {
         $where[] = "LOWER(COALESCE(NULLIF(br.status, ''), 'unpaid')) IN ('unpaid','pending','overdue')";
     }
     if (rdColumnExists($pdo, 'bill_reminders', 'due_at')) {
-        $where[] = "(br.due_at IS NULL OR br.due_at < :visible_end)";
-        $params[':visible_end'] = date('Y-m-01 00:00:00', strtotime('first day of next month'));
+        $where[] = "br.due_at IS NOT NULL AND br.due_at < :visible_end";
+        $params[':visible_end'] = date('Y-m-d 00:00:00');
     }
     $range = rdMonthRange($month);
     if ($range && rdColumnExists($pdo, 'bill_reminders', 'due_at')) {
