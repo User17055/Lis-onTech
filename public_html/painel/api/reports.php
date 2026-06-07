@@ -488,9 +488,11 @@ function reportsAvailableMonths(PDO $pdo): array
     ");
 
     $months = [];
+    $currentMonth = date('Y-m');
     foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
         $key = (string)($row['month_key'] ?? '');
         if (!preg_match('/^\d{4}-\d{2}$/', $key)) continue;
+        if ($key > $currentMonth) continue;
         $months[] = [
             'value' => $key,
             'label' => reportsMonthLabel($key),
@@ -507,6 +509,22 @@ function reportsMonthRange(string $month): ?array
     if (!$start) return null;
     $end = (clone $start)->modify('first day of next month');
     return [$start->format('Y-m-d H:i:s'), $end->format('Y-m-d H:i:s')];
+}
+
+function reportsVisibleEndExclusive(): string
+{
+    return (new DateTime('first day of next month 00:00:00'))->format('Y-m-d H:i:s');
+}
+
+function reportsFilterVisibleMonths(array $rows): array
+{
+    $endTs = strtotime(reportsVisibleEndExclusive());
+    return array_values(array_filter($rows, function (array $row) use ($endTs): bool {
+        $due = $row['due_at'] ?? null;
+        if (!$due) return true;
+        $ts = strtotime((string)$due);
+        return !$ts || $ts < $endTs;
+    }));
 }
 
 function reportsFilterRowsByMonth(array $rows, string $month): array
@@ -546,6 +564,10 @@ function reportsFetchLocalBills(PDO $pdo, string $q, int $limit, string $month =
     }
     if (reportsColumnExists($pdo, 'bill_reminders', 'status')) {
         $where[] = "LOWER(COALESCE(NULLIF(br.status, ''), 'unpaid')) IN ('unpaid','pending','overdue')";
+    }
+    if (reportsColumnExists($pdo, 'bill_reminders', 'due_at')) {
+        $where[] = '(br.due_at IS NULL OR br.due_at < :visible_end)';
+        $params[':visible_end'] = reportsVisibleEndExclusive();
     }
     if ($q !== '') {
         $search = [];
@@ -665,6 +687,7 @@ try {
     $sync = (string)($_GET['sync'] ?? '0') === '1';
     $month = trim((string)($_GET['month'] ?? ''));
     if (!preg_match('/^\d{4}-\d{2}$/', $month)) $month = '';
+    if ($month !== '' && $month > date('Y-m')) $month = '';
     $localLimit = max(1000, min(20000, (int)($_GET['local_limit'] ?? 20000)));
     $maxPages = max(1, min(200, (int)($_GET['max_pages'] ?? 80)));
     $defaultRecentFrom = cfg($cfg, 'REPORTS_VINDI_SYNC_FROM', '2024-01-01');
@@ -776,7 +799,7 @@ try {
         $vindiMeta['error'] = 'VINDI_API_KEY nao configurada';
     }
 
-    $bills = reportsFilterRowsByMonth(reportsFilterRowsByText(array_values($rowsByBill), $q), $month);
+    $bills = reportsFilterRowsByMonth(reportsFilterVisibleMonths(reportsFilterRowsByText(array_values($rowsByBill), $q)), $month);
     reportsEnsurePdo($pdo, $cfg);
     $availableMonths = reportsAvailableMonths($pdo);
     $logMap = reportsFetchLogMap($pdo, array_column($bills, 'bill_id'));

@@ -103,19 +103,20 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .month-board-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
     .month-board-title{display:flex;align-items:center;gap:9px;color:var(--text-main);font-size:14px;font-weight:900;}
     .month-board-title i{color:var(--primary);}
-    .month-years{display:grid;gap:12px;}
+    .month-years{display:grid;gap:12px;max-height:236px;overflow:hidden;transition:max-height .2s ease;}
+    .month-board.expanded .month-years{max-height:760px;overflow:auto;padding-right:4px;}
     .month-year{display:grid;gap:8px;}
     .month-year-label{color:var(--text-muted);font-size:12px;font-weight:900;}
     .month-grid{display:grid;grid-template-columns:repeat(6,minmax(92px,1fr));gap:8px;}
     .month-btn{
-      min-height:54px;border:2px solid var(--border-color);border-radius:14px;background:#fff;color:var(--text-main);
-      display:grid;align-content:center;gap:2px;text-align:left;padding:8px 10px;font-family:'Nunito',sans-serif;font-weight:900;cursor:pointer;
+      min-height:48px;border:2px solid var(--border-color);border-radius:14px;background:#fff;color:var(--text-main);
+      display:flex;align-items:center;justify-content:space-between;gap:8px;text-align:left;padding:8px 10px;font-family:'Nunito',sans-serif;font-weight:900;cursor:pointer;
       box-shadow:var(--shadow-soft);transition:.18s;
     }
     .month-btn:hover{transform:translateY(-1px);border-color:#bfe8ff;color:#12628f;}
     .month-btn.active{background:#eef8ff;border-color:#9bdcff;color:#12628f;}
     .month-btn span{font-size:12px;text-transform:uppercase;}
-    .month-btn small{font-size:11px;color:var(--text-muted);font-weight:900;}
+    .month-btn small{font-size:11px;color:var(--text-muted);font-weight:900;white-space:nowrap;}
     .meta-line{
       margin:-6px 0 18px;color:var(--text-muted);font-size:12px;font-weight:800;display:flex;align-items:center;gap:8px;flex-wrap:wrap;
     }
@@ -127,18 +128,20 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .leader-name{font-weight:900;font-size:16px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .leader-sub{display:block;color:var(--text-muted);font-size:12px;font-weight:800;margin-top:3px;}
     .pill{display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border-radius:999px;background:var(--bg-panel);border:2px solid var(--border-color);font-size:12px;font-weight:900;white-space:nowrap;}
-    table{width:100%;border-collapse:separate;border-spacing:0 12px;}
+    table{width:100%;border-collapse:separate;border-spacing:0 10px;}
     thead th{color:var(--text-muted);font-size:12px;text-transform:uppercase;font-weight:900;padding:0 16px;text-align:left;}
     thead th:last-child, tbody td:last-child{text-align:right;}
-    tbody tr.rep-row{background:#fff;box-shadow:var(--shadow-soft);border-radius:var(--radius-card);transition:.2s;cursor:pointer;}
+    tbody tr.rep-row{background:#fff;box-shadow:var(--shadow-soft);border-radius:16px;transition:.2s;cursor:pointer;}
     tbody tr.rep-row:hover{transform:translateY(-2px);box-shadow:var(--shadow-hover);}
     tbody tr.rep-row.open{box-shadow:var(--shadow-hover);}
-    tbody td{padding:16px;border-top:2px solid var(--border-color);border-bottom:2px solid var(--border-color);font-size:13px;font-weight:800;vertical-align:middle;}
-    tbody td:first-child{border-left:2px solid var(--border-color);border-top-left-radius:var(--radius-card);border-bottom-left-radius:var(--radius-card);}
-    tbody td:last-child{border-right:2px solid var(--border-color);border-top-right-radius:var(--radius-card);border-bottom-right-radius:var(--radius-card);}
-    .customer-cell{display:grid;grid-template-columns:10px 1fr;gap:14px;align-items:center;}
-    .debt-bar{width:10px;height:48px;border-radius:99px;background:var(--primary);box-shadow:0 0 0 4px #eff6ff;}
+    tbody td{padding:14px 16px;border-top:2px solid var(--border-color);border-bottom:2px solid var(--border-color);font-size:13px;font-weight:800;vertical-align:middle;}
+    tbody td:first-child{border-left:2px solid var(--border-color);border-top-left-radius:16px;border-bottom-left-radius:16px;}
+    tbody td:last-child{border-right:2px solid var(--border-color);border-top-right-radius:16px;border-bottom-right-radius:16px;}
+    .customer-cell{display:grid;grid-template-columns:38px 1fr;gap:12px;align-items:center;}
+    .debt-bar{width:38px;height:38px;border-radius:12px;background:#eef8ff;color:#12628f;box-shadow:none;display:flex;align-items:center;justify-content:center;}
+    .debt-bar::before{content:"\\f007";font-family:"Font Awesome 6 Free";font-weight:900;font-size:14px;}
     .debt-bar.hot{background:#ef4444;box-shadow:0 0 0 4px #fee2e2;}
+    .debt-bar.hot::before{color:#fff;}
     .customer-name{font-size:15px;font-weight:900;display:block;}
     .muted{color:var(--text-muted);font-size:12px;font-weight:800;margin-top:3px;display:block;}
     .detail-row td{padding:0 16px 18px;background:#fff;border:none;}
@@ -233,7 +236,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         <i class="fa-solid fa-search"></i>
         <input id="repQ" class="form-control" placeholder="Buscar cliente, telefone ou bill id">
       </div>
-      <select id="monthFilter" class="form-control month-control" title="Filtrar por mes">
+      <select id="monthFilter" class="form-control month-control is-hidden" title="Filtrar por mes">
         <option value="">Todos os meses</option>
       </select>
       <button id="btnLoadReports" class="btn-primary" type="button"><i class="fa-solid fa-rotate"></i> Atualizar</button>
@@ -243,7 +246,10 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     <div class="month-board" id="monthBoard">
       <div class="month-board-head">
         <div class="month-board-title"><i class="fa-regular fa-calendar"></i> Meses com faturas</div>
-        <button type="button" class="btn-secondary" id="btnAllMonths" style="height:36px;padding:0 14px;"><i class="fa-solid fa-layer-group"></i> Todos</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button type="button" class="btn-secondary" id="btnAllMonths" style="height:36px;padding:0 14px;"><i class="fa-solid fa-layer-group"></i> Todos</button>
+          <button type="button" class="btn-secondary" id="btnToggleMonths" style="height:36px;padding:0 14px;"><i class="fa-solid fa-chevron-down"></i> Ver mais</button>
+        </div>
       </div>
       <div class="month-years" id="monthYears">
         <div class="empty">Carregando meses...</div>
@@ -296,6 +302,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     const $rep = (id) => document.getElementById(id);
     let reportsLoading = false;
     let selectedMonth = new URLSearchParams(location.search).get('month') || '';
+    let monthsExpanded = false;
 
     function esc(value){
       return String(value ?? '').replace(/[&<>"']/g, m => ({
@@ -475,7 +482,9 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       const board = $rep('monthYears');
       if (!select) return;
       const prev = current || selectedMonth || select.value || '';
-      const rows = Array.isArray(months) ? months : [];
+      const now = new Date();
+      const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      const rows = (Array.isArray(months) ? months : []).filter(row => String(row.value || '') <= currentMonth);
       let exists = prev === '';
       const options = ['<option value="">Todos os meses</option>'];
       rows.forEach(row => {
@@ -521,6 +530,15 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
           </div>
         </div>
       `).join('');
+      const monthBoard = $rep('monthBoard');
+      const toggle = $rep('btnToggleMonths');
+      if (monthBoard) monthBoard.classList.toggle('expanded', monthsExpanded);
+      if (toggle) {
+        toggle.innerHTML = monthsExpanded
+          ? '<i class="fa-solid fa-chevron-up"></i> Ver menos'
+          : '<i class="fa-solid fa-chevron-down"></i> Ver mais';
+        toggle.style.display = rows.length > 12 ? 'inline-flex' : 'none';
+      }
     }
 
     function syncUrlState(){
@@ -611,6 +629,13 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       selectedMonth = '';
       repState.expanded.clear();
       loadReports(false);
+    });
+    $rep('btnToggleMonths').addEventListener('click', () => {
+      monthsExpanded = !monthsExpanded;
+      $rep('monthBoard').classList.toggle('expanded', monthsExpanded);
+      $rep('btnToggleMonths').innerHTML = monthsExpanded
+        ? '<i class="fa-solid fa-chevron-up"></i> Ver menos'
+        : '<i class="fa-solid fa-chevron-down"></i> Ver mais';
     });
     $rep('repQ').addEventListener('keydown', (event) => {
       if (event.key === 'Enter') {
