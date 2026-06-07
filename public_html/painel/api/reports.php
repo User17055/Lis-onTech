@@ -34,7 +34,7 @@ function reportsColumnExists(PDO $pdo, string $table, string $column): bool
 {
     static $cache = [];
     $key = $table . '.' . $column;
-    if (isset($cache[$key])) return $cache[$key];
+    if (($cache[$key] ?? null) === true) return true;
     $stmt = $pdo->prepare("
         SELECT COUNT(*)
         FROM INFORMATION_SCHEMA.COLUMNS
@@ -200,6 +200,113 @@ function reportsRowFromVindiBill(array $bill, array $local = []): array
     ];
 }
 
+function reportsEnsureBillRemindersStorage(PDO $pdo): void
+{
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS bill_reminders (
+            bill_id BIGINT UNSIGNED NOT NULL,
+            customer_id BIGINT UNSIGNED NULL,
+            customer_name VARCHAR(180) NULL,
+            phone VARCHAR(32) NULL,
+            bill_url VARCHAR(500) NULL,
+            items_text TEXT NULL,
+            amount DECIMAL(14,2) NULL,
+            due_at DATETIME NULL,
+            active TINYINT(1) NOT NULL DEFAULT 1,
+            blocked TINYINT(1) NOT NULL DEFAULT 0,
+            status VARCHAR(30) NOT NULL DEFAULT 'unpaid',
+            next_reminder_at DATETIME NULL,
+            reminder_count INT UNSIGNED NOT NULL DEFAULT 0,
+            overdue_sent_count INT UNSIGNED NOT NULL DEFAULT 0,
+            reminder_attempts INT UNSIGNED NOT NULL DEFAULT 0,
+            last_overdue_sent_at DATETIME NULL,
+            last_reminder_sent_at DATETIME NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (bill_id),
+            KEY idx_bill_reminders_customer (customer_id),
+            KEY idx_bill_reminders_status_due (status, due_at),
+            KEY idx_bill_reminders_active_due (active, due_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    ");
+
+    $columns = [
+        'customer_id' => 'BIGINT UNSIGNED NULL',
+        'customer_name' => 'VARCHAR(180) NULL',
+        'phone' => 'VARCHAR(32) NULL',
+        'bill_url' => 'VARCHAR(500) NULL',
+        'items_text' => 'TEXT NULL',
+        'amount' => 'DECIMAL(14,2) NULL',
+        'due_at' => 'DATETIME NULL',
+        'active' => 'TINYINT(1) NOT NULL DEFAULT 1',
+        'blocked' => 'TINYINT(1) NOT NULL DEFAULT 0',
+        'status' => "VARCHAR(30) NOT NULL DEFAULT 'unpaid'",
+        'next_reminder_at' => 'DATETIME NULL',
+        'reminder_count' => 'INT UNSIGNED NOT NULL DEFAULT 0',
+        'overdue_sent_count' => 'INT UNSIGNED NOT NULL DEFAULT 0',
+        'reminder_attempts' => 'INT UNSIGNED NOT NULL DEFAULT 0',
+        'last_overdue_sent_at' => 'DATETIME NULL',
+        'last_reminder_sent_at' => 'DATETIME NULL',
+        'created_at' => 'DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP',
+        'updated_at' => 'DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
+    ];
+
+    foreach ($columns as $column => $definition) {
+        if (!reportsColumnExists($pdo, 'bill_reminders', $column)) {
+            $pdo->exec("ALTER TABLE bill_reminders ADD COLUMN {$column} {$definition}");
+        }
+    }
+}
+
+function reportsUpsertLocalBills(PDO $pdo, array $rows): int
+{
+    if (!$rows) return 0;
+    reportsEnsureBillRemindersStorage($pdo);
+
+    $stmt = $pdo->prepare("
+        INSERT INTO bill_reminders (
+            bill_id, customer_id, customer_name, phone, bill_url, items_text,
+            amount, due_at, active, blocked, status, next_reminder_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, COALESCE(?, 0), ?, ?)
+        ON DUPLICATE KEY UPDATE
+            customer_id = COALESCE(VALUES(customer_id), customer_id),
+            customer_name = COALESCE(NULLIF(VALUES(customer_name), ''), customer_name),
+            phone = COALESCE(NULLIF(VALUES(phone), ''), phone),
+            bill_url = COALESCE(NULLIF(VALUES(bill_url), ''), bill_url),
+            items_text = COALESCE(NULLIF(VALUES(items_text), ''), items_text),
+            amount = COALESCE(VALUES(amount), amount),
+            due_at = COALESCE(VALUES(due_at), due_at),
+            active = 1,
+            blocked = COALESCE(blocked, VALUES(blocked)),
+            status = COALESCE(NULLIF(VALUES(status), ''), status),
+            next_reminder_at = COALESCE(next_reminder_at, VALUES(next_reminder_at)),
+            updated_at = NOW()
+    ");
+
+    $saved = 0;
+    foreach ($rows as $row) {
+        $billId = (int)($row['bill_id'] ?? 0);
+        if ($billId <= 0) continue;
+        $stmt->execute([
+            $billId,
+            ((int)($row['customer_id'] ?? 0)) ?: null,
+            (string)($row['customer_name'] ?? 'Cliente'),
+            (string)($row['phone'] ?? ''),
+            (string)($row['bill_url'] ?? ''),
+            (string)($row['items_text'] ?? ''),
+            reportsMoney($row['amount'] ?? 0),
+            reportsDateTimeOrNull($row['due_at'] ?? null),
+            (int)($row['blocked'] ?? 0),
+            (string)($row['status'] ?? 'pending'),
+            $row['next_reminder_at'] ?? null,
+        ]);
+        $saved++;
+    }
+
+    return $saved;
+}
+
 function reportsFetchLocalBills(PDO $pdo, string $q, int $limit): array
 {
     if (!reportsTableExists($pdo, 'bill_reminders')) return [];
@@ -303,9 +410,11 @@ function reportsFilterRowsByText(array $rows, string $q): array
 
 try {
     $q = trim((string)($_GET['q'] ?? ''));
+    $sync = (string)($_GET['sync'] ?? '0') === '1';
     $localLimit = max(1000, min(20000, (int)($_GET['local_limit'] ?? 20000)));
     $maxPages = max(1, min(200, (int)($_GET['max_pages'] ?? 120)));
     $perPage = 50;
+    $savedLocal = 0;
 
     $localRows = reportsFetchLocalBills($pdo, $q, $localLimit);
     $localByBill = [];
@@ -321,15 +430,17 @@ try {
         'pages_read' => 0,
         'bills_read' => 0,
         'reported_total' => 0,
-        'stopped_by' => 'not_configured',
+        'stopped_by' => $sync ? 'not_configured' : 'local_only',
         'error' => null,
+        'saved_local' => 0,
     ];
 
     $apiKey = cfg($cfg, 'VINDI_API_KEY');
-    if ($apiKey !== '') {
+    if ($sync && $apiKey !== '') {
         $vindiMeta['enabled'] = true;
         $base = cfg($cfg, 'VINDI_API_BASE', 'https://app.vindi.com.br/api/v1');
         $query = 'status=pending';
+        $vindiRowsForSave = [];
 
         for ($page = 1; $page <= $maxPages; $page++) {
             $resp = reportsVindiBillsPage($base, $apiKey, $query, $page, $perPage);
@@ -354,7 +465,9 @@ try {
                 if (!is_array($bill)) continue;
                 $billId = (int)($bill['id'] ?? 0);
                 if ($billId <= 0) continue;
-                $rowsByBill[$billId] = reportsRowFromVindiBill($bill, $localByBill[$billId] ?? []);
+                $merged = reportsRowFromVindiBill($bill, $localByBill[$billId] ?? []);
+                $rowsByBill[$billId] = $merged;
+                $vindiRowsForSave[$billId] = $merged;
             }
 
             $reportedTotal = (int)($resp['total'] ?? 0);
@@ -366,6 +479,15 @@ try {
                 $vindiMeta['stopped_by'] = 'max_pages';
             }
         }
+
+        if ($vindiRowsForSave) {
+            $savedLocal = reportsUpsertLocalBills($pdo, array_values($vindiRowsForSave));
+            $vindiMeta['saved_local'] = $savedLocal;
+        }
+    } elseif ($sync && $apiKey === '') {
+        $vindiMeta['enabled'] = false;
+        $vindiMeta['stopped_by'] = 'not_configured';
+        $vindiMeta['error'] = 'VINDI_API_KEY nao configurada';
     }
 
     $bills = reportsFilterRowsByText(array_values($rowsByBill), $q);
@@ -478,6 +600,8 @@ try {
             'vindi' => $vindiMeta,
             'max_pages' => $maxPages,
             'per_page' => $perPage,
+            'sync' => $sync,
+            'saved_local' => $savedLocal,
         ],
     ]);
 } catch (Throwable $e) {

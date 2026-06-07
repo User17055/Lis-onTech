@@ -71,6 +71,13 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       box-shadow:0 4px 6px rgba(59,130,246,.2);transition:.2s;white-space:nowrap;
     }
     .btn-primary:hover{transform:translateY(-2px);background:var(--primary-hover);}
+    .btn-secondary{
+      height:45px;border:2px solid var(--border-color);border-radius:var(--radius-pill);background:#fff;color:var(--text-main);padding:0 18px;
+      display:inline-flex;align-items:center;justify-content:center;gap:10px;font-family:'Nunito',sans-serif;font-weight:900;cursor:pointer;
+      box-shadow:var(--shadow-soft);transition:.2s;white-space:nowrap;
+    }
+    .btn-secondary:hover{transform:translateY(-2px);border-color:#dbeafe;color:var(--primary);}
+    .btn-primary:disabled,.btn-secondary:disabled{opacity:.55;cursor:not-allowed;transform:none;}
     .summary-grid{display:grid;grid-template-columns:repeat(5,minmax(150px,1fr));gap:14px;margin-bottom:18px;}
     .metric{
       background:#fff;border:2px solid var(--border-color);border-radius:var(--radius-card);padding:16px 18px;box-shadow:var(--shadow-soft);
@@ -155,6 +162,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         <input id="repQ" class="form-control" placeholder="Buscar cliente, telefone ou bill id">
       </div>
       <button id="btnLoadReports" class="btn-primary" type="button"><i class="fa-solid fa-rotate"></i> Atualizar</button>
+      <button id="btnSyncReports" class="btn-secondary" type="button"><i class="fa-solid fa-cloud-arrow-down"></i> Sincronizar Vindi</button>
     </div>
 
     <div class="summary-grid">
@@ -200,6 +208,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
   <script>
     const repState = { rows: [], expanded: new Set() };
     const $rep = (id) => document.getElementById(id);
+    let reportsLoading = false;
 
     function esc(value){
       return String(value ?? '').replace(/[&<>"']/g, m => ({
@@ -337,9 +346,11 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       $rep('mBills').textContent = brNumber(s.open_bills);
       $rep('mOverdue').textContent = brNumber(s.overdue_bills);
       $rep('mReminders').textContent = brNumber(s.reminders_sent);
-      const vindiText = vindi.enabled
-        ? `Vindi: ${brNumber(vindi.bills_read)} fatura(s), ${brNumber(vindi.pages_read)} pagina(s), parada: ${esc(vindi.stopped_by || '-')}${vindi.error ? ' | ' + esc(vindi.error) : ''}`
-        : 'Vindi nao configurada; usando banco local';
+      const vindiText = meta.sync
+        ? (vindi.enabled
+          ? `Vindi: ${brNumber(vindi.bills_read)} fatura(s), ${brNumber(vindi.pages_read)} pagina(s), ${brNumber(vindi.saved_local || meta.saved_local || 0)} salva(s), parada: ${esc(vindi.stopped_by || '-')}${vindi.error ? ' | ' + esc(vindi.error) : ''}`
+          : `Sincronizacao Vindi indisponivel${vindi.error ? ': ' + esc(vindi.error) : ''}`)
+        : 'Leitura rapida pelo banco local';
       $rep('repMeta').innerHTML = `
         <i class="fa-solid fa-database"></i>
         <span>Local: ${brNumber(meta.local_rows || 0)} registro(s) | Consolidado: ${brNumber(meta.merged_bills || 0)} fatura(s) | ${vindiText}</span>
@@ -349,17 +360,30 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       renderRows();
     }
 
-    async function loadReports(){
-      setStatus('Carregando...');
+    async function loadReports(sync=false){
+      if (reportsLoading) return;
+      reportsLoading = true;
+      const btnLoad = $rep('btnLoadReports');
+      const btnSync = $rep('btnSyncReports');
+      const originalSync = btnSync ? btnSync.innerHTML : '';
+      setStatus(sync ? 'Sincronizando Vindi...' : 'Carregando local...');
+      if (btnLoad) btnLoad.disabled = true;
+      if (btnSync) {
+        btnSync.disabled = true;
+        if (sync) btnSync.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sincronizando';
+      }
       $rep('repBody').innerHTML = `
-        <tr><td colspan="6" style="text-align:center;padding:38px;"><div class="spinner"></div><div class="muted" style="margin-top:12px;">Carregando relatorios...</div></td></tr>
+        <tr><td colspan="6" style="text-align:center;padding:38px;"><div class="spinner"></div><div class="muted" style="margin-top:12px;">${sync ? 'Puxando Vindi e salvando no banco local...' : 'Carregando relatorios locais...'}</div></td></tr>
       `;
       try {
         const url = new URL('/painel/api/reports.php', location.origin);
         const q = $rep('repQ').value.trim();
         if (q) url.searchParams.set('q', q);
-        url.searchParams.set('max_pages', '200');
         url.searchParams.set('local_limit', '20000');
+        if (sync) {
+          url.searchParams.set('sync', '1');
+          url.searchParams.set('max_pages', '200');
+        }
         const resp = await fetch(url.toString(), {credentials:'same-origin', cache:'no-store'});
         const text = await resp.text();
         let data = null;
@@ -372,10 +396,17 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
           throw new Error(data?.error || text.slice(0, 220) || 'Falha ao carregar relatorios');
         }
         applyData(data);
-        setStatus('Atualizado em ' + new Date().toLocaleString('pt-BR'));
+        setStatus((sync ? 'Sincronizado em ' : 'Atualizado em ') + new Date().toLocaleString('pt-BR'));
       } catch (e) {
         setStatus(e.message || 'Erro ao carregar', true);
         $rep('repBody').innerHTML = `<tr><td colspan="6"><div class="empty">${esc(e.message || 'Erro ao carregar relatorios.')}</div></td></tr>`;
+      } finally {
+        reportsLoading = false;
+        if (btnLoad) btnLoad.disabled = false;
+        if (btnSync) {
+          btnSync.disabled = false;
+          btnSync.innerHTML = originalSync;
+        }
       }
     }
 
@@ -388,14 +419,16 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       renderRows();
     });
 
-    $rep('btnLoadReports').onclick = loadReports;
+    $rep('btnLoadReports').onclick = () => loadReports(false);
+    $rep('btnSyncReports').onclick = () => loadReports(true);
     $rep('repQ').addEventListener('keydown', (event) => {
       if (event.key === 'Enter') {
         repState.expanded.clear();
-        loadReports();
+        loadReports(false);
       }
     });
 
-    loadReports();
+    loadReports(false);
+    setInterval(() => loadReports(false), 60000);
   </script>
 </div>
