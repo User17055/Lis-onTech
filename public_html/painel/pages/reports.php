@@ -83,8 +83,9 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .summary-grid{display:grid;grid-template-columns:repeat(5,minmax(150px,1fr));gap:14px;margin-bottom:18px;}
     .metric{
       background:#fff;border:2px solid var(--border-color);border-radius:var(--radius-card);padding:16px 18px;box-shadow:var(--shadow-soft);
-      display:grid;gap:10px;align-content:center;min-height:96px;box-sizing:border-box;transition:.2s;
+      display:grid;gap:10px;align-content:center;min-height:104px;box-sizing:border-box;transition:.2s;position:relative;overflow:hidden;
     }
+    .metric::before{content:"";position:absolute;left:0;top:0;width:5px;height:100%;background:var(--primary);opacity:.95;}
     .metric:hover{transform:translateY(-2px);box-shadow:var(--shadow-hover);border-color:#dbeafe;}
     .metric-label{display:flex;align-items:center;gap:8px;color:var(--text-muted);font-size:12px;font-weight:900;text-transform:uppercase;white-space:nowrap;}
     .metric-label i{width:28px;height:28px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;background:#eef8ff;color:#12628f;font-size:13px;flex:0 0 28px;}
@@ -92,10 +93,22 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .metric.warn .metric-label i{background:var(--yellow-bg);color:var(--yellow-text);}
     .metric.ok .metric-label i{background:var(--green-bg);color:var(--green-text);}
     .metric strong{display:block;font-size:24px;font-weight:900;line-height:1.05;}
+    .metric-track{height:7px;border-radius:999px;background:var(--bg-panel);overflow:hidden;border:1px solid var(--border-color);}
+    .metric-fill{display:block;height:100%;width:0;border-radius:999px;background:var(--primary);transition:width .35s ease;}
+    .metric.danger::before,.metric.danger .metric-fill{background:#ef4444;}
+    .metric.warn::before,.metric.warn .metric-fill{background:#f59e0b;}
+    .metric.ok::before,.metric.ok .metric-fill{background:#10b981;}
     .leader-strip{
       background:#fff;border:2px solid var(--border-color);border-radius:var(--radius-card);box-shadow:var(--shadow-soft);padding:16px 18px;
       display:grid;grid-template-columns:1fr repeat(3,max-content);align-items:center;gap:16px;margin-bottom:18px;
     }
+    .leader-main{display:grid;grid-template-columns:42px 1fr;gap:12px;align-items:center;min-width:0;}
+    .avatar-initial{
+      width:38px;height:38px;border-radius:14px;background:#eef8ff;color:#12628f;box-shadow:0 0 0 4px #f4f7fa;
+      display:inline-flex;align-items:center;justify-content:center;font-size:15px;font-weight:1000;letter-spacing:0;text-transform:uppercase;flex:0 0 auto;
+    }
+    .avatar-initial.hot{background:#38b6ff;color:#fff;box-shadow:0 0 0 4px #e0f5ff;}
+    .leader-main .avatar-initial{width:42px;height:42px;border-radius:15px;}
     .month-board{
       background:#fff;border:2px solid var(--border-color);border-radius:var(--radius-card);box-shadow:var(--shadow-soft);
       padding:12px 14px;margin:0 0 18px;display:grid;gap:0;
@@ -153,10 +166,6 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     tbody td:first-child{border-left:2px solid var(--border-color);border-top-left-radius:16px;border-bottom-left-radius:16px;}
     tbody td:last-child{border-right:2px solid var(--border-color);border-top-right-radius:16px;border-bottom-right-radius:16px;}
     .customer-cell{display:grid;grid-template-columns:38px 1fr;gap:12px;align-items:center;}
-    .debt-bar{width:38px;height:38px;border-radius:12px;background:#eef8ff;color:#12628f;box-shadow:none;display:flex;align-items:center;justify-content:center;}
-    .debt-bar::before{content:"\\f007";font-family:"Font Awesome 6 Free";font-weight:900;font-size:14px;}
-    .debt-bar.hot{background:#ef4444;box-shadow:0 0 0 4px #fee2e2;}
-    .debt-bar.hot::before{color:#fff;}
     .customer-name{font-size:15px;font-weight:900;display:block;}
     .muted{color:var(--text-muted);font-size:12px;font-weight:800;margin-top:3px;display:block;}
     .detail-row td{padding:0 16px 18px;background:#fff;border:none;}
@@ -286,17 +295,22 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     </div>
 
     <div class="summary-grid">
-      <div class="metric"><span class="metric-label"><i class="fa-solid fa-users"></i> Devedores</span><strong id="mDebtors">0</strong></div>
-      <div class="metric danger"><span class="metric-label"><i class="fa-solid fa-coins"></i> Total</span><strong id="mAmount">R$ 0,00</strong></div>
-      <div class="metric warn"><span class="metric-label"><i class="fa-solid fa-file-invoice"></i> Faturas</span><strong id="mBills">0</strong></div>
-      <div class="metric"><span class="metric-label"><i class="fa-solid fa-triangle-exclamation"></i> Vencidas</span><strong id="mOverdue">0</strong></div>
-      <div class="metric ok"><span class="metric-label"><i class="fa-brands fa-whatsapp"></i> Recobrancas</span><strong id="mReminders">0</strong></div>
+      <div class="metric"><span class="metric-label"><i class="fa-solid fa-users"></i> Devedores</span><strong id="mDebtors">0</strong><span class="metric-track"><span class="metric-fill" id="mDebtorsFill"></span></span></div>
+      <div class="metric danger"><span class="metric-label"><i class="fa-solid fa-coins"></i> Total</span><strong id="mAmount">R$ 0,00</strong><span class="metric-track"><span class="metric-fill" id="mAmountFill"></span></span></div>
+      <div class="metric warn"><span class="metric-label"><i class="fa-solid fa-file-invoice"></i> Faturas</span><strong id="mBills">0</strong><span class="metric-track"><span class="metric-fill" id="mBillsFill"></span></span></div>
+      <div class="metric"><span class="metric-label"><i class="fa-solid fa-triangle-exclamation"></i> Vencidas</span><strong id="mOverdue">0</strong><span class="metric-track"><span class="metric-fill" id="mOverdueFill"></span></span></div>
+      <div class="metric ok"><span class="metric-label"><i class="fa-brands fa-whatsapp"></i> Recobrancas</span><strong id="mReminders">0</strong><span class="metric-track"><span class="metric-fill" id="mRemindersFill"></span></span></div>
     </div>
 
     <div class="leader-strip" id="leaderStrip">
       <div>
-        <span class="leader-name"><i class="fa-solid fa-crown" style="color:#eab308;margin-right:8px;"></i>Maior devedor</span>
-        <span class="leader-sub">-</span>
+        <div class="leader-main">
+          <span class="avatar-initial">?</span>
+          <div>
+            <span class="leader-name">Maior devedor</span>
+            <span class="leader-sub">-</span>
+          </div>
+        </div>
       </div>
       <span class="pill"><i class="fa-solid fa-coins"></i> R$ 0,00</span>
       <span class="pill"><i class="fa-solid fa-file-invoice"></i> 0 parcelas</span>
@@ -365,6 +379,19 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       return d.toLocaleString('pt-BR', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'});
     }
 
+    function initialOf(name){
+      const clean = String(name || 'Cliente').trim();
+      const first = clean.replace(/^[^A-Za-zÀ-ÿ0-9]+/, '').charAt(0);
+      return (first || 'C').toUpperCase();
+    }
+
+    function setMetric(valueId, fillId, text, percent){
+      const value = $rep(valueId);
+      const fill = $rep(fillId);
+      if (value) value.textContent = text;
+      if (fill) fill.style.width = `${Math.max(0, Math.min(100, Number(percent || 0)))}%`;
+    }
+
     function setStatus(text, error=false){
       const bar = $rep('repStatus').parentElement;
       $rep('repStatus').textContent = text;
@@ -423,9 +450,12 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       const box = $rep('leaderStrip');
       if (!row) {
         box.innerHTML = `
-          <div>
-            <span class="leader-name"><i class="fa-solid fa-crown" style="color:#eab308;margin-right:8px;"></i>Maior devedor</span>
-            <span class="leader-sub">-</span>
+          <div class="leader-main">
+            <span class="avatar-initial">?</span>
+            <div>
+              <span class="leader-name">Maior devedor</span>
+              <span class="leader-sub">-</span>
+            </div>
           </div>
           <span class="pill"><i class="fa-solid fa-coins"></i> R$ 0,00</span>
           <span class="pill"><i class="fa-solid fa-file-invoice"></i> 0 parcelas</span>
@@ -434,9 +464,12 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         return;
       }
       box.innerHTML = `
-        <div>
-          <span class="leader-name"><i class="fa-solid fa-crown" style="color:#eab308;margin-right:8px;"></i>${esc(row.customer_name || 'Cliente')}</span>
-          <span class="leader-sub">${row.phone ? 'Tel ' + esc(row.phone) : '-'}</span>
+        <div class="leader-main">
+          <span class="avatar-initial hot">${esc(initialOf(row.customer_name))}</span>
+          <div>
+            <span class="leader-name">${esc(row.customer_name || 'Cliente')}</span>
+            <span class="leader-sub">Maior devedor | ${row.phone ? 'Tel ' + esc(row.phone) : 'Telefone nao salvo'}</span>
+          </div>
         </div>
         <span class="pill"><i class="fa-solid fa-coins"></i> ${brMoney(row.total_amount)}</span>
         <span class="pill"><i class="fa-solid fa-file-invoice"></i> ${brNumber(row.open_bills)} parcela(s)</span>
@@ -511,7 +544,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
           <tr class="rep-row" data-key="${esc(key)}" data-href="${esc(detailsHref)}" title="Clique para abrir detalhes">
             <td>
               <div class="customer-cell">
-                <span class="debt-bar ${hot}"></span>
+                <span class="avatar-initial ${hot}">${esc(initialOf(row.customer_name))}</span>
                 <div>
                   <span class="customer-name">${esc(row.customer_name || 'Cliente')}</span>
                   <span class="muted">${row.phone ? 'Tel ' + esc(row.phone) : 'Telefone nao salvo'} | ${brNumber(row.max_days_overdue)} dia(s) max.</span>
@@ -540,11 +573,16 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       const meta = data.meta || {};
       const vindi = meta.vindi || {};
       renderMonthOptions(meta.available_months || [], meta.selected_month || selectedMonth);
-      $rep('mDebtors').textContent = brNumber(s.debtors);
-      $rep('mAmount').textContent = brMoney(s.total_amount);
-      $rep('mBills').textContent = brNumber(s.open_bills);
-      $rep('mOverdue').textContent = brNumber(s.overdue_bills);
-      $rep('mReminders').textContent = brNumber(s.reminders_sent);
+      const debtors = Number(s.debtors || 0);
+      const openBills = Number(s.open_bills || 0);
+      const overdueBills = Number(s.overdue_bills || 0);
+      const reminders = Number(s.reminders_sent || 0);
+      const countMax = Math.max(debtors, openBills, overdueBills, reminders, 1);
+      setMetric('mDebtors', 'mDebtorsFill', brNumber(debtors), (debtors / countMax) * 100);
+      setMetric('mAmount', 'mAmountFill', brMoney(s.total_amount), Number(s.total_amount || 0) > 0 ? 100 : 0);
+      setMetric('mBills', 'mBillsFill', brNumber(openBills), (openBills / countMax) * 100);
+      setMetric('mOverdue', 'mOverdueFill', brNumber(overdueBills), (overdueBills / Math.max(openBills, 1)) * 100);
+      setMetric('mReminders', 'mRemindersFill', brNumber(reminders), (reminders / countMax) * 100);
       const chips = [
         `<span class="meta-chip"><i class="fa-solid fa-database"></i> Local ${brNumber(meta.local_rows || 0)}</span>`,
         `<span class="meta-chip"><i class="fa-solid fa-file-invoice"></i> ${brNumber(meta.merged_bills || 0)} faturas</span>`

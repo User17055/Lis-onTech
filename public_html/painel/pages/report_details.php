@@ -94,6 +94,15 @@ function rdMonthLabel(string $month): string {
     return ($names[$m[2]] ?? $m[2]) . ' de ' . $m[1];
 }
 
+function rdInitial(string $name): string {
+    $name = trim($name);
+    if ($name === '') return 'C';
+    if (function_exists('mb_substr') && function_exists('mb_strtoupper')) {
+        return mb_strtoupper(mb_substr($name, 0, 1, 'UTF-8'), 'UTF-8');
+    }
+    return strtoupper(substr($name, 0, 1));
+}
+
 function rdSafeBackHref(): string {
     $fallback = '/painel/index.php?pagina=reports';
     $raw = trim((string)($_GET['back'] ?? ''));
@@ -248,6 +257,11 @@ unset($bill);
 
 $profileHref = $customerId > 0 ? 'https://app.vindi.com.br/admin/customers/' . rawurlencode((string)$customerId) . '#tab-bills' : '';
 $monthLabel = $month !== '' ? rdMonthLabel($month) : 'Todos os meses';
+$countBills = count($bills);
+$totalFill = $total > 0 ? 100 : 0;
+$billFill = $countBills > 0 ? 100 : 0;
+$daysFill = min(100, $maxDays > 0 ? max(12, ($maxDays / 180) * 100) : 0);
+$sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 100)) : 0;
 ?>
 
 <div class="det-wrap report-detail-wrap">
@@ -258,6 +272,7 @@ $monthLabel = $month !== '' ? rdMonthLabel($month) : 'Todos os meses';
     .det-back:hover{background:#e2e8f0;transform:translateX(-3px);}
     .det-head{min-width:0;display:flex;flex-direction:column;gap:6px;}
     .det-title{font-weight:1000;font-size:18px;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:10px;}
+    .avatar-initial{width:44px;height:44px;border-radius:16px;background:#eef8ff;color:#12628f;box-shadow:0 0 0 4px #f4f7fa;display:inline-flex;align-items:center;justify-content:center;font-size:17px;font-weight:1000;letter-spacing:0;text-transform:uppercase;flex:0 0 auto;}
     .det-sub{display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-weight:900;color:#64748b;font-size:13px;}
     .det-chip{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;border:1px solid #eef2f6;background:#fff;color:#334155;font-weight:1000;}
     .det-chip i{color:#38b6ff;}
@@ -268,10 +283,16 @@ $monthLabel = $month !== '' ? rdMonthLabel($month) : 'Todos os meses';
     .det-card{margin-top:18px;background:#fff;border:2px solid #eef2f6;border-radius:18px;padding:18px;box-shadow:0 8px 18px rgba(15,23,42,.05);}
     .det-card-title{font-weight:1000;color:#38b6ff;margin-bottom:12px;display:flex;align-items:center;gap:10px;font-size:14px;}
     .summary-grid{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:12px;}
-    .summary-box{border:1px solid #eef2f6;border-radius:16px;padding:14px;background:linear-gradient(180deg,#fff 0%,#fbfdff 100%);}
+    .summary-box{border:1px solid #eef2f6;border-radius:16px;padding:14px;background:#fff;box-shadow:0 4px 6px -1px rgba(0,0,0,.04);position:relative;overflow:hidden;}
+    .summary-box::before{content:"";position:absolute;left:0;top:0;width:5px;height:100%;background:#38b6ff;}
     .summary-box span{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:1000;text-transform:uppercase;color:#64748b;}
     .summary-box span i{width:28px;height:28px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;background:#eef8ff;color:#12628f;}
     .summary-box strong{display:block;margin-top:10px;font-size:22px;font-weight:1000;color:#0f172a;line-height:1.05;}
+    .summary-track{height:7px;border-radius:999px;background:#f4f7fa;border:1px solid #eef2f6;overflow:hidden;margin-top:12px;}
+    .summary-fill{display:block;height:100%;width:0;border-radius:999px;background:#38b6ff;}
+    .summary-box.danger::before,.summary-box.danger .summary-fill{background:#ef4444;}
+    .summary-box.warn::before,.summary-box.warn .summary-fill{background:#f59e0b;}
+    .summary-box.ok::before,.summary-box.ok .summary-fill{background:#10b981;}
     .bill-list{display:grid;gap:12px;}
     .bill-card{border:1px solid #e6eef7;border-radius:18px;padding:14px;background:#fff;display:grid;grid-template-columns:minmax(180px,.75fr) minmax(0,1.35fr) minmax(180px,.7fr);gap:14px;align-items:start;}
     .bill-id{display:inline-flex;align-items:center;gap:8px;width:max-content;max-width:100%;padding:7px 11px;border-radius:999px;background:#eef8ff;color:#12628f;font-weight:1000;text-decoration:none;font-size:12px;}
@@ -301,7 +322,7 @@ $monthLabel = $month !== '' ? rdMonthLabel($month) : 'Todos os meses';
     </a>
     <div class="det-head">
       <div class="det-title">
-        <i class="fa-solid fa-user" style="color:#38b6ff"></i>
+        <span class="avatar-initial"><?=h(rdInitial($customerName))?></span>
         <?=h($customerName)?>
       </div>
       <div class="det-sub">
@@ -326,10 +347,10 @@ $monthLabel = $month !== '' ? rdMonthLabel($month) : 'Todos os meses';
     <div class="det-card">
       <div class="det-card-title"><i class="fa-solid fa-chart-simple"></i> Resumo</div>
       <div class="summary-grid">
-        <div class="summary-box"><span><i class="fa-solid fa-coins"></i> Total</span><strong><?=h(rdMoneyBr($total))?></strong></div>
-        <div class="summary-box"><span><i class="fa-solid fa-file-invoice"></i> Faturas</span><strong><?=count($bills)?></strong></div>
-        <div class="summary-box"><span><i class="fa-solid fa-triangle-exclamation"></i> Maior atraso</span><strong><?=h($maxDays)?> dia(s)</strong></div>
-        <div class="summary-box"><span><i class="fa-brands fa-whatsapp"></i> Recobrancas</span><strong><?=h($sent)?></strong></div>
+        <div class="summary-box danger"><span><i class="fa-solid fa-coins"></i> Total</span><strong><?=h(rdMoneyBr($total))?></strong><div class="summary-track"><span class="summary-fill" style="width:<?=h($totalFill)?>%"></span></div></div>
+        <div class="summary-box warn"><span><i class="fa-solid fa-file-invoice"></i> Faturas</span><strong><?=h($countBills)?></strong><div class="summary-track"><span class="summary-fill" style="width:<?=h($billFill)?>%"></span></div></div>
+        <div class="summary-box"><span><i class="fa-solid fa-triangle-exclamation"></i> Maior atraso</span><strong><?=h($maxDays)?> dia(s)</strong><div class="summary-track"><span class="summary-fill" style="width:<?=h($daysFill)?>%"></span></div></div>
+        <div class="summary-box ok"><span><i class="fa-brands fa-whatsapp"></i> Recobrancas</span><strong><?=h($sent)?></strong><div class="summary-track"><span class="summary-fill" style="width:<?=h($sentFill)?>%"></span></div></div>
       </div>
     </div>
 
