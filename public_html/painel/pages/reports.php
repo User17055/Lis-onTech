@@ -82,14 +82,15 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .summary-grid{display:grid;grid-template-columns:repeat(5,minmax(150px,1fr));gap:14px;margin-bottom:18px;}
     .metric{
       background:#fff;border:2px solid var(--border-color);border-radius:var(--radius-card);padding:16px 18px;box-shadow:var(--shadow-soft);
-      display:grid;grid-template-columns:1fr 42px;gap:12px;align-items:center;min-height:92px;box-sizing:border-box;
+      display:grid;gap:10px;align-content:center;min-height:96px;box-sizing:border-box;transition:.2s;
     }
-    .metric span{display:block;color:var(--text-muted);font-size:12px;font-weight:900;text-transform:uppercase;}
-    .metric strong{display:block;font-size:23px;font-weight:900;margin-top:4px;line-height:1.05;}
-    .metric-icon{width:42px;height:42px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:#eef8ff;color:#12628f;}
-    .metric.danger .metric-icon{background:var(--red-bg);color:var(--red-text);}
-    .metric.warn .metric-icon{background:var(--yellow-bg);color:var(--yellow-text);}
-    .metric.ok .metric-icon{background:var(--green-bg);color:var(--green-text);}
+    .metric:hover{transform:translateY(-2px);box-shadow:var(--shadow-hover);border-color:#dbeafe;}
+    .metric-label{display:flex;align-items:center;gap:8px;color:var(--text-muted);font-size:12px;font-weight:900;text-transform:uppercase;white-space:nowrap;}
+    .metric-label i{width:28px;height:28px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;background:#eef8ff;color:#12628f;font-size:13px;flex:0 0 28px;}
+    .metric.danger .metric-label i{background:var(--red-bg);color:var(--red-text);}
+    .metric.warn .metric-label i{background:var(--yellow-bg);color:var(--yellow-text);}
+    .metric.ok .metric-label i{background:var(--green-bg);color:var(--green-text);}
+    .metric strong{display:block;font-size:24px;font-weight:900;line-height:1.05;}
     .leader-strip{
       background:#fff;border:2px solid var(--border-color);border-radius:var(--radius-card);box-shadow:var(--shadow-soft);padding:16px 18px;
       display:grid;grid-template-columns:1fr repeat(3,max-content);align-items:center;gap:16px;margin-bottom:18px;
@@ -97,7 +98,11 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .meta-line{
       margin:-6px 0 18px;color:var(--text-muted);font-size:12px;font-weight:800;display:flex;align-items:center;gap:8px;flex-wrap:wrap;
     }
-    .meta-line i{color:var(--primary);}
+    .meta-chip{display:inline-flex;align-items:center;gap:7px;padding:7px 11px;border:2px solid var(--border-color);border-radius:999px;background:#fff;box-shadow:var(--shadow-soft);white-space:nowrap;}
+    .meta-chip i{color:var(--primary);font-size:12px;}
+    .meta-chip.ok i{color:var(--green-text);}
+    .meta-chip.warn i{color:var(--yellow-text);}
+    .meta-chip.danger i{color:var(--red-text);}
     .leader-name{font-weight:900;font-size:16px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .leader-sub{display:block;color:var(--text-muted);font-size:12px;font-weight:800;margin-top:3px;}
     .pill{display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border-radius:999px;background:var(--bg-panel);border:2px solid var(--border-color);font-size:12px;font-weight:900;white-space:nowrap;}
@@ -145,8 +150,32 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       .search-box{min-width:0;width:100%;}
       .date-control{width:100%;flex:auto;}
       .summary-grid,.leader-strip,.bill-line{grid-template-columns:1fr;}
+      .metric{min-height:82px;}
       .btn-primary{width:100%;}
       .btn-secondary{width:100%;}
+      .meta-chip{width:100%;box-sizing:border-box;}
+    }
+    @media(max-width:620px){
+      .summary-grid{grid-template-columns:1fr 1fr;}
+      .metric{padding:13px;min-height:78px;}
+      .metric strong{font-size:20px;}
+      .metric-label{font-size:11px;}
+      .table-scroll{overflow:visible;}
+      table,thead,tbody,tr,td{display:block;width:100%;min-width:0;box-sizing:border-box;}
+      table{border-spacing:0;}
+      thead{display:none;}
+      tbody tr.rep-row{padding:14px;margin-bottom:12px;border:2px solid var(--border-color);border-radius:16px;}
+      tbody tr.rep-row:hover{transform:none;}
+      tbody td,
+      tbody td:first-child,
+      tbody td:last-child{border:0;padding:7px 0;border-radius:0;text-align:left;}
+      tbody td:last-child{text-align:left;}
+      .pill{white-space:normal;}
+      .detail-row td{padding:0 0 14px;}
+      .detail-panel{padding:10px;border-radius:14px;}
+    }
+    @media(max-width:390px){
+      .summary-grid{grid-template-columns:1fr;}
     }
   </style>
 
@@ -164,23 +193,23 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         <i class="fa-solid fa-search"></i>
         <input id="repQ" class="form-control" placeholder="Buscar cliente, telefone ou bill id">
       </div>
-      <input id="syncFrom" class="form-control date-control" type="date" value="2024-01-01" title="Sincronizar Vindi desde">
+      <input id="syncFrom" class="form-control date-control" type="date" value="<?= htmlspecialchars(date('Y-m-d', strtotime('-90 days')), ENT_QUOTES, 'UTF-8') ?>" title="Sincronizar Vindi desde">
       <button id="btnLoadReports" class="btn-primary" type="button"><i class="fa-solid fa-rotate"></i> Atualizar</button>
       <button id="btnSyncReports" class="btn-secondary" type="button"><i class="fa-solid fa-cloud-arrow-down"></i> Sincronizar Vindi</button>
     </div>
 
     <div class="summary-grid">
-      <div class="metric"><div><span>Pessoas devendo</span><strong id="mDebtors">0</strong></div><div class="metric-icon"><i class="fa-solid fa-users"></i></div></div>
-      <div class="metric danger"><div><span>Total em aberto</span><strong id="mAmount">R$ 0,00</strong></div><div class="metric-icon"><i class="fa-solid fa-coins"></i></div></div>
-      <div class="metric warn"><div><span>Parcelas</span><strong id="mBills">0</strong></div><div class="metric-icon"><i class="fa-solid fa-file-invoice"></i></div></div>
-      <div class="metric"><div><span>Vencidas</span><strong id="mOverdue">0</strong></div><div class="metric-icon"><i class="fa-solid fa-triangle-exclamation"></i></div></div>
-      <div class="metric ok"><div><span>Recobrancas</span><strong id="mReminders">0</strong></div><div class="metric-icon"><i class="fa-brands fa-whatsapp"></i></div></div>
+      <div class="metric"><span class="metric-label"><i class="fa-solid fa-users"></i> Devedores</span><strong id="mDebtors">0</strong></div>
+      <div class="metric danger"><span class="metric-label"><i class="fa-solid fa-coins"></i> Total</span><strong id="mAmount">R$ 0,00</strong></div>
+      <div class="metric warn"><span class="metric-label"><i class="fa-solid fa-file-invoice"></i> Faturas</span><strong id="mBills">0</strong></div>
+      <div class="metric"><span class="metric-label"><i class="fa-solid fa-triangle-exclamation"></i> Vencidas</span><strong id="mOverdue">0</strong></div>
+      <div class="metric ok"><span class="metric-label"><i class="fa-brands fa-whatsapp"></i> Recobrancas</span><strong id="mReminders">0</strong></div>
     </div>
 
     <div class="leader-strip" id="leaderStrip">
       <div>
-        <span class="leader-name">Maior devedor</span>
-        <span class="leader-sub">Aguardando dados</span>
+        <span class="leader-name"><i class="fa-solid fa-crown" style="color:#eab308;margin-right:8px;"></i>Maior devedor</span>
+        <span class="leader-sub">-</span>
       </div>
       <span class="pill"><i class="fa-solid fa-coins"></i> R$ 0,00</span>
       <span class="pill"><i class="fa-solid fa-file-invoice"></i> 0 parcelas</span>
@@ -188,8 +217,9 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     </div>
 
     <div class="meta-line" id="repMeta">
-      <i class="fa-solid fa-database"></i>
-      <span>Aguardando leitura completa...</span>
+      <span class="meta-chip"><i class="fa-solid fa-database"></i> Local 0</span>
+      <span class="meta-chip"><i class="fa-solid fa-file-invoice"></i> 0 faturas</span>
+      <span class="meta-chip"><i class="fa-solid fa-bolt"></i> Cache local</span>
     </div>
 
     <div class="table-scroll">
@@ -267,8 +297,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       if (!row) {
         box.innerHTML = `
           <div>
-            <span class="leader-name">Maior devedor</span>
-            <span class="leader-sub">Nenhum cliente devendo encontrado.</span>
+            <span class="leader-name"><i class="fa-solid fa-crown" style="color:#eab308;margin-right:8px;"></i>Maior devedor</span>
+            <span class="leader-sub">-</span>
           </div>
           <span class="pill"><i class="fa-solid fa-coins"></i> R$ 0,00</span>
           <span class="pill"><i class="fa-solid fa-file-invoice"></i> 0 parcelas</span>
@@ -278,8 +308,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       }
       box.innerHTML = `
         <div>
-          <span class="leader-name">${esc(row.customer_name || 'Cliente')}</span>
-          <span class="leader-sub">Cliente que esta mais devendo no momento${row.phone ? ' | Tel ' + esc(row.phone) : ''}</span>
+          <span class="leader-name"><i class="fa-solid fa-crown" style="color:#eab308;margin-right:8px;"></i>${esc(row.customer_name || 'Cliente')}</span>
+          <span class="leader-sub">${row.phone ? 'Tel ' + esc(row.phone) : '-'}</span>
         </div>
         <span class="pill"><i class="fa-solid fa-coins"></i> ${brMoney(row.total_amount)}</span>
         <span class="pill"><i class="fa-solid fa-file-invoice"></i> ${brNumber(row.open_bills)} parcela(s)</span>
@@ -350,15 +380,26 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       $rep('mBills').textContent = brNumber(s.open_bills);
       $rep('mOverdue').textContent = brNumber(s.overdue_bills);
       $rep('mReminders').textContent = brNumber(s.reminders_sent);
-      const vindiText = meta.sync
-        ? (vindi.enabled
-          ? `Vindi: ${brNumber(vindi.bills_read)} fatura(s), ${brNumber(vindi.pages_read)} pagina(s), ${brNumber(vindi.windows_read)} mes(es), ${brNumber(vindi.saved_local || meta.saved_local || 0)} salva(s), de ${esc(vindi.sync_from || '-')} ate ${esc(vindi.sync_to || '-')}, parada: ${esc(vindi.stopped_by || '-')}${vindi.error ? ' | ' + esc(vindi.error) : ''}`
-          : `Sincronizacao Vindi indisponivel${vindi.error ? ': ' + esc(vindi.error) : ''}`)
-        : 'Leitura rapida pelo banco local';
-      $rep('repMeta').innerHTML = `
-        <i class="fa-solid fa-database"></i>
-        <span>Local: ${brNumber(meta.local_rows || 0)} registro(s) | Consolidado: ${brNumber(meta.merged_bills || 0)} fatura(s) | ${vindiText}</span>
-      `;
+      const chips = [
+        `<span class="meta-chip"><i class="fa-solid fa-database"></i> Local ${brNumber(meta.local_rows || 0)}</span>`,
+        `<span class="meta-chip"><i class="fa-solid fa-file-invoice"></i> ${brNumber(meta.merged_bills || 0)} faturas</span>`
+      ];
+      if (meta.sync && vindi.enabled) {
+        chips.push(`<span class="meta-chip ok"><i class="fa-solid fa-cloud-arrow-down"></i> Vindi ${brNumber(vindi.bills_read || 0)}</span>`);
+        chips.push(`<span class="meta-chip"><i class="fa-solid fa-floppy-disk"></i> Salvas ${brNumber(vindi.saved_local || meta.saved_local || 0)}</span>`);
+        chips.push(`<span class="meta-chip warn"><i class="fa-solid fa-rotate"></i> Check ${brNumber(vindi.status_checked || 0)}</span>`);
+        if (Number(vindi.settled_local || 0) > 0) {
+          chips.push(`<span class="meta-chip ok"><i class="fa-solid fa-circle-check"></i> Pagas ${brNumber(vindi.settled_local || 0)}</span>`);
+        }
+        if (vindi.error) {
+          chips.push(`<span class="meta-chip danger"><i class="fa-solid fa-triangle-exclamation"></i> ${esc(vindi.error)}</span>`);
+        }
+      } else if (meta.sync) {
+        chips.push(`<span class="meta-chip danger"><i class="fa-solid fa-cloud-slash"></i> Vindi off</span>`);
+      } else {
+        chips.push(`<span class="meta-chip ok"><i class="fa-solid fa-bolt"></i> Cache local</span>`);
+      }
+      $rep('repMeta').innerHTML = chips.join('');
       renderLeader(s.top_debtor);
       repState.rows = Array.isArray(data.rows) ? data.rows : [];
       renderRows();
@@ -387,7 +428,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         if (sync) {
           url.searchParams.set('sync', '1');
           url.searchParams.set('max_pages', '200');
-          url.searchParams.set('sync_from', $rep('syncFrom').value || '2024-01-01');
+          url.searchParams.set('sync_from', $rep('syncFrom').value || '');
+          url.searchParams.set('status_limit', '350');
         }
         const resp = await fetch(url.toString(), {credentials:'same-origin', cache:'no-store'});
         const text = await resp.text();

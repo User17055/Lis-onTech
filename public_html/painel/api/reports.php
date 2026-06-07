@@ -136,6 +136,19 @@ function reportsVindiBillsPage(string $base, string $apiKey, string $query, int 
     ];
 }
 
+function reportsVindiGetBill(string $base, string $apiKey, int $billId): ?array
+{
+    if ($billId <= 0) return null;
+    $url = rtrim($base, '/') . '/bills/' . rawurlencode((string)$billId);
+    $resp = reportsCurlGetWithHeaders($url, $apiKey);
+    if ($resp['http'] < 200 || $resp['http'] >= 300) return null;
+
+    $json = json_decode((string)($resp['body'] ?? ''), true);
+    if (!is_array($json)) return null;
+    $bill = $json['bill'] ?? $json;
+    return is_array($bill) ? $bill : null;
+}
+
 function reportsBillItemsText(array $bill): string
 {
     $items = $bill['bill_items'] ?? ($bill['items'] ?? []);
@@ -244,6 +257,9 @@ function reportsEnsureBillRemindersStorage(PDO $pdo): void
             reminder_attempts INT UNSIGNED NOT NULL DEFAULT 0,
             last_overdue_sent_at DATETIME NULL,
             last_reminder_sent_at DATETIME NULL,
+            last_status VARCHAR(30) NULL,
+            last_status_check_at DATETIME NULL,
+            paid_at DATETIME NULL,
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (bill_id),
@@ -270,6 +286,9 @@ function reportsEnsureBillRemindersStorage(PDO $pdo): void
         'reminder_attempts' => 'INT UNSIGNED NOT NULL DEFAULT 0',
         'last_overdue_sent_at' => 'DATETIME NULL',
         'last_reminder_sent_at' => 'DATETIME NULL',
+        'last_status' => 'VARCHAR(30) NULL',
+        'last_status_check_at' => 'DATETIME NULL',
+        'paid_at' => 'DATETIME NULL',
         'created_at' => 'DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP',
         'updated_at' => 'DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
     ];
@@ -347,6 +366,94 @@ function reportsUpsertLocalBills(PDO &$pdo, array $rows, array $cfg): int
     return $saved;
 }
 
+function reportsStatusIsSettled(string $status): bool
+{
+    $s = strtolower(trim($status));
+    return in_array($s, ['paid', 'canceled', 'cancelled'], true);
+}
+
+function reportsVindiBillPaidAt(array $bill): ?string
+{
+    foreach (['paid_at', 'updated_at', 'created_at'] as $key) {
+        $value = reportsDateTimeOrNull($bill[$key] ?? null);
+        if ($value) return $value;
+    }
+    return null;
+}
+
+function reportsFetchStatusCheckRows(PDO $pdo, int $limit): array
+{
+    if (!reportsTableExists($pdo, 'bill_reminders')) return [];
+    reportsEnsureBillRemindersStorage($pdo);
+
+    $stmt = $pdo->prepare("
+        SELECT bill_id
+        FROM bill_reminders
+        WHERE COALESCE(active, 1) = 1
+          AND LOWER(COALESCE(NULLIF(status, ''), 'unpaid')) IN ('unpaid','pending','overdue')
+        ORDER BY
+          CASE WHEN last_status_check_at IS NULL THEN 0 ELSE 1 END ASC,
+          last_status_check_at ASC,
+          due_at ASC
+        LIMIT {$limit}
+    ");
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+}
+
+function reportsRefreshLocalStatuses(PDO &$pdo, array $cfg, string $base, string $apiKey, int $limit): array
+{
+    if ($apiKey === '' || $limit <= 0) {
+        return ['checked' => 0, 'settled' => 0, 'settled_ids' => []];
+    }
+
+    reportsEnsurePdo($pdo, $cfg);
+    $rows = reportsFetchStatusCheckRows($pdo, $limit);
+    if (!$rows) return ['checked' => 0, 'settled' => 0, 'settled_ids' => []];
+
+    $markOpen = $pdo->prepare("
+        UPDATE bill_reminders
+        SET last_status = ?, last_status_check_at = NOW()
+        WHERE bill_id = ?
+    ");
+    $markSettled = $pdo->prepare("
+        UPDATE bill_reminders
+        SET active = 0,
+            blocked = 0,
+            status = ?,
+            last_status = ?,
+            last_status_check_at = NOW(),
+            paid_at = COALESCE(?, paid_at),
+            next_reminder_at = NULL,
+            updated_at = NOW()
+        WHERE bill_id = ?
+    ");
+
+    $checked = 0;
+    $settled = 0;
+    $settledIds = [];
+    foreach ($rows as $row) {
+        $billId = (int)($row['bill_id'] ?? 0);
+        if ($billId <= 0) continue;
+
+        $bill = reportsVindiGetBill($base, $apiKey, $billId);
+        if (!$bill) continue;
+
+        $checked++;
+        $status = strtolower(trim((string)($bill['status'] ?? '')));
+        if (reportsStatusIsSettled($status)) {
+            $localStatus = $status === 'cancelled' ? 'canceled' : $status;
+            $markSettled->execute([$localStatus, $status, reportsVindiBillPaidAt($bill), $billId]);
+            $settled++;
+            $settledIds[] = $billId;
+        } else {
+            $markOpen->execute([$status ?: 'pending', $billId]);
+        }
+    }
+
+    return ['checked' => $checked, 'settled' => $settled, 'settled_ids' => $settledIds];
+}
+
 function reportsFetchLocalBills(PDO $pdo, string $q, int $limit): array
 {
     if (!reportsTableExists($pdo, 'bill_reminders')) return [];
@@ -355,7 +462,8 @@ function reportsFetchLocalBills(PDO $pdo, string $q, int $limit): array
         'bill_id', 'customer_id', 'customer_name', 'phone', 'bill_url', 'items_text',
         'amount', 'due_at', 'status', 'active', 'blocked', 'reminder_count',
         'overdue_sent_count', 'reminder_attempts', 'last_overdue_sent_at',
-        'last_reminder_sent_at', 'next_reminder_at', 'updated_at',
+        'last_reminder_sent_at', 'next_reminder_at', 'last_status',
+        'last_status_check_at', 'paid_at', 'updated_at',
     ];
 
     $select = [];
@@ -483,10 +591,14 @@ try {
     $sync = (string)($_GET['sync'] ?? '0') === '1';
     $localLimit = max(1000, min(20000, (int)($_GET['local_limit'] ?? 20000)));
     $maxPages = max(1, min(200, (int)($_GET['max_pages'] ?? 80)));
-    $syncFrom = trim((string)($_GET['sync_from'] ?? '2024-01-01'));
+    $defaultRecentFrom = date('Y-m-d', strtotime('-90 days'));
+    $syncFrom = trim((string)($_GET['sync_from'] ?? $defaultRecentFrom));
+    if ($syncFrom === '') $syncFrom = $defaultRecentFrom;
     $syncTo = trim((string)($_GET['sync_to'] ?? date('Y-m-d')));
+    $statusCheckLimit = max(0, min(1000, (int)($_GET['status_limit'] ?? 250)));
     $perPage = 50;
     $savedLocal = 0;
+    $statusRefresh = ['checked' => 0, 'settled' => 0, 'settled_ids' => []];
 
     $localRows = reportsFetchLocalBills($pdo, $q, $localLimit);
     $localByBill = [];
@@ -510,6 +622,8 @@ try {
         'sync_from' => $syncFrom,
         'sync_to' => $syncTo,
         'last_window' => null,
+        'status_checked' => 0,
+        'settled_local' => 0,
     ];
 
     $apiKey = cfg($cfg, 'VINDI_API_KEY');
@@ -571,6 +685,13 @@ try {
 
         if ($vindiMeta['stopped_by'] === 'not_configured') {
             $vindiMeta['stopped_by'] = 'date_windows_done';
+        }
+
+        $statusRefresh = reportsRefreshLocalStatuses($pdo, $cfg, $base, $apiKey, $statusCheckLimit);
+        $vindiMeta['status_checked'] = (int)($statusRefresh['checked'] ?? 0);
+        $vindiMeta['settled_local'] = (int)($statusRefresh['settled'] ?? 0);
+        foreach (($statusRefresh['settled_ids'] ?? []) as $settledId) {
+            unset($rowsByBill[(int)$settledId]);
         }
 
     } elseif ($sync && $apiKey === '') {
@@ -692,6 +813,7 @@ try {
             'per_page' => $perPage,
             'sync' => $sync,
             'saved_local' => $savedLocal,
+            'status_refresh' => $statusRefresh,
         ],
     ]);
 } catch (Throwable $e) {
