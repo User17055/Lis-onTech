@@ -722,23 +722,35 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       history.replaceState(null, '', url.toString());
     }
 
-    async function fetchReportsData(params){
+    async function fetchReportsData(params, timeoutMs=35000){
       const url = new URL('/painel/api/reports.php', location.origin);
       Object.entries(params || {}).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') url.searchParams.set(key, String(value));
       });
-      const resp = await fetch(url.toString(), {credentials:'same-origin', cache:'no-store'});
-      const text = await resp.text();
-      let data = null;
-      try { data = JSON.parse(text); } catch(e) {}
-      if (resp.status === 401) {
-        location.href = '/painel/';
-        return null;
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const resp = await fetch(url.toString(), {credentials:'same-origin', cache:'no-store', signal:controller.signal});
+        const text = await resp.text();
+        let data = null;
+        try { data = JSON.parse(text); } catch(e) {}
+        if (resp.status === 401) {
+          location.href = '/painel/';
+          return null;
+        }
+        if (!resp.ok || !data || data.ok === false) {
+          const cleanText = text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+          throw new Error(data?.error || cleanText.slice(0, 180) || 'Falha ao carregar relatorios');
+        }
+        return data;
+      } catch (e) {
+        if (e.name === 'AbortError') {
+          throw new Error('A Vindi demorou demais nesse lote. Tente sincronizar um mes por vez.');
+        }
+        throw e;
+      } finally {
+        clearTimeout(timer);
       }
-      if (!resp.ok || !data || data.ok === false) {
-        throw new Error(data?.error || text.slice(0, 220) || 'Falha ao carregar relatorios');
-      }
-      return data;
     }
 
     async function syncReportsChunked(){
@@ -771,9 +783,9 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
             sync: 1,
             sync_from: isoDate(start),
             sync_to: isoDate(syncTo),
-            max_pages: 12,
+            max_pages: 6,
             status_limit: 0
-          });
+          }, 30000);
           const vm = lastData?.meta?.vindi || {};
           totals.bills_read += Number(vm.bills_read || 0);
           totals.saved_local += Number(vm.saved_local || lastData?.meta?.saved_local || 0);
@@ -790,8 +802,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
           sync_from: isoDate(new Date()),
           sync_to: isoDate(new Date()),
           max_pages: 1,
-          status_limit: 800
-        });
+          status_limit: 80
+        }, 30000);
         const finalVm = lastData?.meta?.vindi || {};
         totals.bills_read += Number(finalVm.bills_read || 0);
         totals.saved_local += Number(finalVm.saved_local || lastData?.meta?.saved_local || 0);
