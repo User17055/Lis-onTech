@@ -64,6 +64,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       width:100%;height:45px;box-sizing:border-box;border:2px solid transparent;border-radius:var(--radius-pill);background:var(--bg-panel);
       padding:0 18px 0 45px;color:var(--text-main);font-family:'Nunito',sans-serif;font-weight:800;font-size:15px;outline:none;
     }
+    .date-control{width:170px;padding-left:18px;flex:0 0 170px;}
     .form-control:focus{background:#fff;border-color:var(--primary);box-shadow:0 0 0 4px rgba(59,130,246,.1);}
     .btn-primary{
       height:45px;border:0;border-radius:var(--radius-pill);background:var(--primary);color:#fff;padding:0 18px;
@@ -142,8 +143,10 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       .rep-container{padding:0 8px;}
       .toolbar{border-radius:14px;align-items:stretch;flex-direction:column;}
       .search-box{min-width:0;width:100%;}
+      .date-control{width:100%;flex:auto;}
       .summary-grid,.leader-strip,.bill-line{grid-template-columns:1fr;}
       .btn-primary{width:100%;}
+      .btn-secondary{width:100%;}
     }
   </style>
 
@@ -161,6 +164,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         <i class="fa-solid fa-search"></i>
         <input id="repQ" class="form-control" placeholder="Buscar cliente, telefone ou bill id">
       </div>
+      <input id="syncFrom" class="form-control date-control" type="date" value="2024-01-01" title="Sincronizar Vindi desde">
       <button id="btnLoadReports" class="btn-primary" type="button"><i class="fa-solid fa-rotate"></i> Atualizar</button>
       <button id="btnSyncReports" class="btn-secondary" type="button"><i class="fa-solid fa-cloud-arrow-down"></i> Sincronizar Vindi</button>
     </div>
@@ -348,7 +352,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       $rep('mReminders').textContent = brNumber(s.reminders_sent);
       const vindiText = meta.sync
         ? (vindi.enabled
-          ? `Vindi: ${brNumber(vindi.bills_read)} fatura(s), ${brNumber(vindi.pages_read)} pagina(s), ${brNumber(vindi.saved_local || meta.saved_local || 0)} salva(s), parada: ${esc(vindi.stopped_by || '-')}${vindi.error ? ' | ' + esc(vindi.error) : ''}`
+          ? `Vindi: ${brNumber(vindi.bills_read)} fatura(s), ${brNumber(vindi.pages_read)} pagina(s), ${brNumber(vindi.windows_read)} mes(es), ${brNumber(vindi.saved_local || meta.saved_local || 0)} salva(s), de ${esc(vindi.sync_from || '-')} ate ${esc(vindi.sync_to || '-')}, parada: ${esc(vindi.stopped_by || '-')}${vindi.error ? ' | ' + esc(vindi.error) : ''}`
           : `Sincronizacao Vindi indisponivel${vindi.error ? ': ' + esc(vindi.error) : ''}`)
         : 'Leitura rapida pelo banco local';
       $rep('repMeta').innerHTML = `
@@ -383,6 +387,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         if (sync) {
           url.searchParams.set('sync', '1');
           url.searchParams.set('max_pages', '200');
+          url.searchParams.set('sync_from', $rep('syncFrom').value || '2024-01-01');
         }
         const resp = await fetch(url.toString(), {credentials:'same-origin', cache:'no-store'});
         const text = await resp.text();

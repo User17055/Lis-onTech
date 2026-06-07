@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 date_default_timezone_set('America/Sao_Paulo');
 header('Content-Type: application/json; charset=utf-8');
-@set_time_limit(180);
+@set_time_limit(300);
 
 require_once __DIR__ . '/_auth.php';
 require_once __DIR__ . '/../../config.php';
@@ -408,11 +408,43 @@ function reportsFilterRowsByText(array $rows, string $q): array
     }));
 }
 
+function reportsMonthWindows(string $from, string $to): array
+{
+    $start = DateTime::createFromFormat('Y-m-d H:i:s', $from . ' 00:00:00')
+        ?: DateTime::createFromFormat('Y-m-d', $from)
+        ?: new DateTime('2024-01-01 00:00:00');
+    $end = DateTime::createFromFormat('Y-m-d H:i:s', $to . ' 23:59:59')
+        ?: DateTime::createFromFormat('Y-m-d', $to)
+        ?: new DateTime('today 23:59:59');
+
+    $start->modify('first day of this month 00:00:00');
+    $end->setTime(23, 59, 59);
+    if ($end < $start) $end = clone $start;
+
+    $windows = [];
+    $cursor = clone $start;
+    while ($cursor <= $end) {
+        $windowStart = clone $cursor;
+        $windowEnd = (clone $cursor)->modify('last day of this month')->setTime(23, 59, 59);
+        if ($windowEnd > $end) $windowEnd = clone $end;
+        $windows[] = [
+            'label' => $windowStart->format('Y-m'),
+            'start' => $windowStart->format('Y-m-d H:i:s'),
+            'end' => $windowEnd->format('Y-m-d H:i:s'),
+        ];
+        $cursor->modify('first day of next month 00:00:00');
+    }
+
+    return $windows;
+}
+
 try {
     $q = trim((string)($_GET['q'] ?? ''));
     $sync = (string)($_GET['sync'] ?? '0') === '1';
     $localLimit = max(1000, min(20000, (int)($_GET['local_limit'] ?? 20000)));
-    $maxPages = max(1, min(200, (int)($_GET['max_pages'] ?? 120)));
+    $maxPages = max(1, min(200, (int)($_GET['max_pages'] ?? 80)));
+    $syncFrom = trim((string)($_GET['sync_from'] ?? '2024-01-01'));
+    $syncTo = trim((string)($_GET['sync_to'] ?? date('Y-m-d')));
     $perPage = 50;
     $savedLocal = 0;
 
@@ -433,51 +465,65 @@ try {
         'stopped_by' => $sync ? 'not_configured' : 'local_only',
         'error' => null,
         'saved_local' => 0,
+        'windows_read' => 0,
+        'window_pages_read' => 0,
+        'sync_from' => $syncFrom,
+        'sync_to' => $syncTo,
+        'last_window' => null,
     ];
 
     $apiKey = cfg($cfg, 'VINDI_API_KEY');
     if ($sync && $apiKey !== '') {
         $vindiMeta['enabled'] = true;
         $base = cfg($cfg, 'VINDI_API_BASE', 'https://app.vindi.com.br/api/v1');
-        $query = 'status=pending';
         $vindiRowsForSave = [];
+        $windows = reportsMonthWindows($syncFrom, $syncTo);
 
-        for ($page = 1; $page <= $maxPages; $page++) {
-            $resp = reportsVindiBillsPage($base, $apiKey, $query, $page, $perPage);
-            if (!($resp['ok'] ?? false)) {
-                $vindiMeta['error'] = (string)($resp['error'] ?? 'Falha na Vindi');
-                $vindiMeta['stopped_by'] = 'error';
-                break;
-            }
+        foreach ($windows as $window) {
+            $vindiMeta['windows_read']++;
+            $vindiMeta['last_window'] = $window['label'];
+            $query = 'status=pending AND due_at>="' . $window['start'] . '" AND due_at<="' . $window['end'] . '"';
 
-            $bills = is_array($resp['bills'] ?? null) ? $resp['bills'] : [];
-            $vindiMeta['ok'] = true;
-            $vindiMeta['pages_read'] = $page;
-            $vindiMeta['bills_read'] += count($bills);
-            $vindiMeta['reported_total'] = max((int)($vindiMeta['reported_total'] ?? 0), (int)($resp['total'] ?? 0));
+            for ($page = 1; $page <= $maxPages; $page++) {
+                $resp = reportsVindiBillsPage($base, $apiKey, $query, $page, $perPage);
+                if (!($resp['ok'] ?? false)) {
+                    $vindiMeta['error'] = (string)($resp['error'] ?? 'Falha na Vindi');
+                    $vindiMeta['stopped_by'] = 'error';
+                    break 2;
+                }
 
-            if (!$bills) {
-                $vindiMeta['stopped_by'] = 'empty_page';
-                break;
-            }
+                $bills = is_array($resp['bills'] ?? null) ? $resp['bills'] : [];
+                $vindiMeta['ok'] = true;
+                $vindiMeta['pages_read']++;
+                $vindiMeta['window_pages_read'] = $page;
+                $vindiMeta['bills_read'] += count($bills);
+                $vindiMeta['reported_total'] += (int)($resp['total'] ?? 0);
 
-            foreach ($bills as $bill) {
-                if (!is_array($bill)) continue;
-                $billId = (int)($bill['id'] ?? 0);
-                if ($billId <= 0) continue;
-                $merged = reportsRowFromVindiBill($bill, $localByBill[$billId] ?? []);
-                $rowsByBill[$billId] = $merged;
-                $vindiRowsForSave[$billId] = $merged;
-            }
+                if (!$bills) {
+                    break;
+                }
 
-            $reportedTotal = (int)($resp['total'] ?? 0);
-            if ($reportedTotal > 0 && ($page * $perPage) >= $reportedTotal) {
-                $vindiMeta['stopped_by'] = 'reported_total';
-                break;
+                foreach ($bills as $bill) {
+                    if (!is_array($bill)) continue;
+                    $billId = (int)($bill['id'] ?? 0);
+                    if ($billId <= 0) continue;
+                    $merged = reportsRowFromVindiBill($bill, $localByBill[$billId] ?? []);
+                    $rowsByBill[$billId] = $merged;
+                    $vindiRowsForSave[$billId] = $merged;
+                }
+
+                $reportedTotal = (int)($resp['total'] ?? 0);
+                if ($reportedTotal > 0 && ($page * $perPage) >= $reportedTotal) {
+                    break;
+                }
+                if ($page === $maxPages) {
+                    $vindiMeta['stopped_by'] = 'max_pages_in_window';
+                }
             }
-            if ($page === $maxPages) {
-                $vindiMeta['stopped_by'] = 'max_pages';
-            }
+        }
+
+        if ($vindiMeta['stopped_by'] === 'not_configured') {
+            $vindiMeta['stopped_by'] = 'date_windows_done';
         }
 
         if ($vindiRowsForSave) {
