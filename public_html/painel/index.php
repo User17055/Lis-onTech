@@ -56,6 +56,7 @@ $paginasPermitidas = [
   'chat',
   'recobranca_detalhes',
   'reports',
+  'report_details',
   'finance',
   'config',
   'detalhes',

@@ -330,8 +330,10 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     const repState = { rows: [], expanded: new Set() };
     const $rep = (id) => document.getElementById(id);
     let reportsLoading = false;
-    let selectedMonth = new URLSearchParams(location.search).get('month') || '';
+    const reportUrlParams = new URLSearchParams(location.search);
+    let selectedMonth = reportUrlParams.get('month') || '';
     let monthsExpanded = false;
+    $rep('repQ').value = reportUrlParams.get('q') || '';
 
     function esc(value){
       return String(value ?? '').replace(/[&<>"']/g, m => ({
@@ -395,6 +397,26 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       const customerId = String(row?.customer_id || '').replace(/\D+/g, '');
       if (!customerId) return '';
       return `https://app.vindi.com.br/admin/customers/${encodeURIComponent(customerId)}#tab-bills`;
+    }
+
+    function currentReportsHref(){
+      const url = new URL('/painel/index.php', location.origin);
+      url.searchParams.set('pagina', 'reports');
+      const q = $rep('repQ')?.value?.trim() || '';
+      if (q) url.searchParams.set('q', q);
+      if (selectedMonth) url.searchParams.set('month', selectedMonth);
+      return url.toString();
+    }
+
+    function reportDetailsHref(row){
+      const customerId = String(row?.customer_id || '').replace(/\D+/g, '');
+      const url = new URL('/painel/index.php', location.origin);
+      url.searchParams.set('pagina', 'report_details');
+      if (customerId) url.searchParams.set('customer_id', customerId);
+      if (row?.customer_name) url.searchParams.set('name', String(row.customer_name));
+      if (selectedMonth) url.searchParams.set('month', selectedMonth);
+      url.searchParams.set('back', currentReportsHref());
+      return url.toString();
     }
 
     function renderLeader(row){
@@ -483,12 +505,10 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       }
       body.innerHTML = rows.map((row, idx) => {
         const key = String(row.customer_key || idx);
-        const open = repState.expanded.has(key);
         const hot = idx === 0 ? 'hot' : '';
-        const profileHref = customerProfileHref(row);
-        const localHref = customerLocalHref(row);
+        const detailsHref = reportDetailsHref(row);
         return `
-          <tr class="rep-row ${open ? 'open' : ''}" data-key="${esc(key)}">
+          <tr class="rep-row" data-key="${esc(key)}" data-href="${esc(detailsHref)}" title="Clique para abrir detalhes">
             <td>
               <div class="customer-cell">
                 <span class="debt-bar ${hot}"></span>
@@ -504,14 +524,13 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
             <td><span class="pill"><i class="fa-solid fa-paper-plane"></i> ${brNumber(row.reminders_sent)}</span></td>
             <td>
               <div class="row-actions">
-                ${profileHref ? `<a href="${esc(profileHref)}" class="btn-mini" target="_blank" rel="noopener" onclick="event.stopPropagation();"><i class="fa-solid fa-user"></i> Perfil</a>` : (localHref ? `<a href="${esc(localHref)}" class="btn-mini" onclick="event.stopPropagation(); window.LisOnPageLoader?.show();"><i class="fa-solid fa-file-invoice"></i> Faturas</a>` : `<span class="row-time">Sem perfil</span>`)}
-                <button type="button" class="btn-icon" title="${open ? 'Fechar detalhes' : 'Abrir detalhes'}">
-                  <i class="fa-solid ${open ? 'fa-chevron-up' : 'fa-chevron-right'}"></i>
-                </button>
+                <span class="row-time">Detalhes</span>
+                <a href="${esc(detailsHref)}" class="btn-icon" onclick="event.stopPropagation(); window.LisOnPageLoader?.show();" title="Abrir detalhes">
+                  <i class="fa-solid fa-chevron-right"></i>
+                </a>
               </div>
             </td>
           </tr>
-          ${open ? `<tr class="detail-row"><td colspan="6"><div class="detail-panel">${renderBills(row)}</div></td></tr>` : ''}
         `;
       }).join('');
     }
@@ -626,6 +645,9 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     function syncUrlState(){
       const url = new URL(location.href);
       url.searchParams.set('pagina', 'reports');
+      const q = $rep('repQ')?.value?.trim() || '';
+      if (q) url.searchParams.set('q', q);
+      else url.searchParams.delete('q');
       if (selectedMonth) url.searchParams.set('month', selectedMonth);
       else url.searchParams.delete('month');
       history.replaceState(null, '', url.toString());
@@ -685,12 +707,13 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     }
 
     $rep('repBody').addEventListener('click', (e) => {
-      const row = e.target.closest('tr.rep-row[data-key]');
+      if (e.target.closest('a,button,input,select,textarea')) return;
+      const row = e.target.closest('tr.rep-row[data-href]');
       if (!row) return;
-      const key = row.getAttribute('data-key');
-      if (repState.expanded.has(key)) repState.expanded.delete(key);
-      else repState.expanded.add(key);
-      renderRows();
+      const href = row.getAttribute('data-href');
+      if (!href) return;
+      window.LisOnPageLoader?.show();
+      window.location.href = href;
     });
 
     $rep('btnLoadReports').onclick = () => loadReports(false);

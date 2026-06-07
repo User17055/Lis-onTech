@@ -1,0 +1,394 @@
+<?php
+declare(strict_types=1);
+
+date_default_timezone_set('America/Sao_Paulo');
+
+require_once __DIR__ . '/../../config.php';
+require_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../../db.php';
+
+if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
+
+function h($value): string { return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8'); }
+
+function rdTableExists(PDO $pdo, string $table): bool {
+    static $cache = [];
+    if (isset($cache[$table])) return $cache[$table];
+    $st = $pdo->prepare("
+        SELECT COUNT(*)
+        FROM INFORMATION_SCHEMA.TABLES
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = ?
+    ");
+    $st->execute([$table]);
+    return $cache[$table] = ((int)$st->fetchColumn() > 0);
+}
+
+function rdColumnExists(PDO $pdo, string $table, string $column): bool {
+    static $cache = [];
+    $key = $table . '.' . $column;
+    if (isset($cache[$key])) return $cache[$key];
+    $st = $pdo->prepare("
+        SELECT COUNT(*)
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = ?
+          AND COLUMN_NAME = ?
+    ");
+    $st->execute([$table, $column]);
+    return $cache[$key] = ((int)$st->fetchColumn() > 0);
+}
+
+function rdMoney($value): float {
+    if ($value === null || $value === '') return 0.0;
+    if (is_numeric($value)) return (float)$value;
+    $s = preg_replace('/[^\d,.\-]/', '', (string)$value) ?? '';
+    if (strpos($s, ',') !== false && strpos($s, '.') !== false) {
+        $s = str_replace('.', '', $s);
+        $s = str_replace(',', '.', $s);
+    } elseif (strpos($s, ',') !== false) {
+        $s = str_replace(',', '.', $s);
+    }
+    return is_numeric($s) ? (float)$s : 0.0;
+}
+
+function rdMoneyBr($value): string {
+    return 'R$ ' . number_format((float)$value, 2, ',', '.');
+}
+
+function rdDateBr($value): string {
+    if (!$value) return '-';
+    $ts = strtotime((string)$value);
+    return $ts ? date('d/m/Y', $ts) : (string)$value;
+}
+
+function rdDateTimeBr($value): string {
+    if (!$value) return '-';
+    $ts = strtotime((string)$value);
+    return $ts ? date('d/m/Y, H:i', $ts) : (string)$value;
+}
+
+function rdDaysOverdue($value): int {
+    if (!$value) return 0;
+    $ts = strtotime(substr((string)$value, 0, 10) . ' 00:00:00');
+    $today = strtotime(date('Y-m-d') . ' 00:00:00');
+    if (!$ts || !$today || $ts >= $today) return 0;
+    return (int)floor(($today - $ts) / 86400);
+}
+
+function rdMonthRange(string $month): ?array {
+    if (!preg_match('/^\d{4}-\d{2}$/', $month)) return null;
+    $start = DateTime::createFromFormat('Y-m-d H:i:s', $month . '-01 00:00:00');
+    if (!$start) return null;
+    $end = (clone $start)->modify('first day of next month');
+    return [$start->format('Y-m-d H:i:s'), $end->format('Y-m-d H:i:s')];
+}
+
+function rdMonthLabel(string $month): string {
+    static $names = [
+        '01' => 'Janeiro', '02' => 'Fevereiro', '03' => 'Marco', '04' => 'Abril',
+        '05' => 'Maio', '06' => 'Junho', '07' => 'Julho', '08' => 'Agosto',
+        '09' => 'Setembro', '10' => 'Outubro', '11' => 'Novembro', '12' => 'Dezembro',
+    ];
+    if (!preg_match('/^(\d{4})-(\d{2})$/', $month, $m)) return 'Todos os meses';
+    return ($names[$m[2]] ?? $m[2]) . ' de ' . $m[1];
+}
+
+function rdSafeBackHref(): string {
+    $fallback = '/painel/index.php?pagina=reports';
+    $raw = trim((string)($_GET['back'] ?? ''));
+    if ($raw === '') return $fallback;
+
+    $parts = parse_url($raw);
+    if (!is_array($parts)) return $fallback;
+    $host = (string)($parts['host'] ?? '');
+    $path = (string)($parts['path'] ?? '');
+    $currentHost = (string)($_SERVER['HTTP_HOST'] ?? '');
+
+    if (($host === '' || strcasecmp($host, $currentHost) === 0)
+        && in_array($path, ['/painel/index.php', '/painel/'], true)
+    ) {
+        $query = isset($parts['query']) && $parts['query'] !== '' ? '?' . $parts['query'] : '';
+        $candidate = $path . $query;
+        if (!str_contains($candidate, 'pagina=report_details')) return $candidate;
+    }
+    return $fallback;
+}
+
+$backHref = rdSafeBackHref();
+$customerId = (int)($_GET['customer_id'] ?? 0);
+$name = trim((string)($_GET['name'] ?? ''));
+$month = trim((string)($_GET['month'] ?? ''));
+if (!preg_match('/^\d{4}-\d{2}$/', $month) || $month > date('Y-m')) $month = '';
+
+$bills = [];
+$recentLogs = [];
+$error = '';
+
+if (!rdTableExists($pdo, 'bill_reminders')) {
+    $error = 'Banco local ainda nao tem faturas sincronizadas.';
+} elseif ($customerId <= 0 && $name === '') {
+    $error = 'Cliente nao informado.';
+} else {
+    $cols = [
+        'bill_id', 'customer_id', 'customer_name', 'phone', 'bill_url', 'items_text',
+        'amount', 'due_at', 'status', 'active', 'blocked', 'reminder_count',
+        'overdue_sent_count', 'reminder_attempts', 'last_overdue_sent_at',
+        'last_reminder_sent_at', 'next_reminder_at', 'last_status',
+        'last_status_check_at', 'paid_at', 'updated_at',
+    ];
+    $select = [];
+    foreach ($cols as $col) {
+        $select[] = rdColumnExists($pdo, 'bill_reminders', $col) ? "br.{$col}" : "NULL AS {$col}";
+    }
+
+    $where = [];
+    $params = [];
+    $hasIdentityFilter = false;
+    if ($customerId > 0 && rdColumnExists($pdo, 'bill_reminders', 'customer_id')) {
+        $where[] = 'br.customer_id = :customer_id';
+        $params[':customer_id'] = $customerId;
+        $hasIdentityFilter = true;
+    } elseif ($name !== '' && rdColumnExists($pdo, 'bill_reminders', 'customer_name')) {
+        $where[] = 'br.customer_name = :customer_name';
+        $params[':customer_name'] = $name;
+        $hasIdentityFilter = true;
+    }
+    if (rdColumnExists($pdo, 'bill_reminders', 'active')) {
+        $where[] = 'COALESCE(br.active, 1) = 1';
+    }
+    if (rdColumnExists($pdo, 'bill_reminders', 'status')) {
+        $where[] = "LOWER(COALESCE(NULLIF(br.status, ''), 'unpaid')) IN ('unpaid','pending','overdue')";
+    }
+    if (rdColumnExists($pdo, 'bill_reminders', 'due_at')) {
+        $where[] = "(br.due_at IS NULL OR br.due_at < :visible_end)";
+        $params[':visible_end'] = date('Y-m-01 00:00:00', strtotime('first day of next month'));
+    }
+    $range = rdMonthRange($month);
+    if ($range && rdColumnExists($pdo, 'bill_reminders', 'due_at')) {
+        $where[] = 'br.due_at >= :month_start AND br.due_at < :month_end';
+        $params[':month_start'] = $range[0];
+        $params[':month_end'] = $range[1];
+    }
+
+    if (!$hasIdentityFilter) {
+        $where[] = '1=0';
+    }
+    $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : 'WHERE 1=0';
+    $order = rdColumnExists($pdo, 'bill_reminders', 'due_at') ? 'br.due_at ASC' : 'br.bill_id DESC';
+    $st = $pdo->prepare("
+        SELECT " . implode(",\n               ", $select) . "
+        FROM bill_reminders br
+        {$whereSql}
+        ORDER BY {$order}
+        LIMIT 500
+    ");
+    $st->execute($params);
+    $bills = $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+    if ($bills && rdTableExists($pdo, 'reminder_logs')
+        && rdColumnExists($pdo, 'reminder_logs', 'bill_id')
+        && rdColumnExists($pdo, 'reminder_logs', 'created_at')
+    ) {
+        $ids = array_values(array_unique(array_filter(array_map(static fn($b) => (int)($b['bill_id'] ?? 0), $bills))));
+        if ($ids) {
+            $in = implode(',', array_fill(0, count($ids), '?'));
+            $okExpr = rdColumnExists($pdo, 'reminder_logs', 'ok') ? 'ok' : 'NULL AS ok';
+            $codeExpr = rdColumnExists($pdo, 'reminder_logs', 'http_code') ? 'http_code' : 'NULL AS http_code';
+            $messageExpr = rdColumnExists($pdo, 'reminder_logs', 'message') ? 'message' : "'' AS message";
+            $stLogs = $pdo->prepare("
+                SELECT bill_id, {$okExpr}, {$codeExpr}, {$messageExpr}, created_at
+                FROM reminder_logs
+                WHERE bill_id IN ({$in})
+                ORDER BY created_at DESC
+                LIMIT 12
+            ");
+            $stLogs->execute($ids);
+            $recentLogs = $stLogs->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        }
+    }
+}
+
+$customerName = $name ?: 'Cliente';
+$phone = '';
+$billIds = [];
+$total = 0.0;
+$sent = 0;
+$attempts = 0;
+$oldestDue = null;
+$maxDays = 0;
+$lastReminder = null;
+$firstBillUrl = '';
+
+foreach ($bills as &$bill) {
+    $amount = rdMoney($bill['amount'] ?? 0);
+    $bill['amount_num'] = $amount;
+    $bill['days_overdue'] = rdDaysOverdue($bill['due_at'] ?? null);
+    $bill['sent_num'] = max((int)($bill['overdue_sent_count'] ?? 0), (int)($bill['reminder_count'] ?? 0));
+    $bill['attempts_num'] = max((int)($bill['reminder_attempts'] ?? 0), (int)$bill['sent_num']);
+    $last = $bill['last_overdue_sent_at'] ?: ($bill['last_reminder_sent_at'] ?? null);
+    $bill['last_reminder_calc'] = $last;
+
+    if (!$customerName || $customerName === 'Cliente') $customerName = trim((string)($bill['customer_name'] ?? '')) ?: 'Cliente';
+    if ($phone === '') $phone = trim((string)($bill['phone'] ?? ''));
+    if ($customerId <= 0) $customerId = (int)($bill['customer_id'] ?? 0);
+    if (!$firstBillUrl) $firstBillUrl = trim((string)($bill['bill_url'] ?? ''));
+
+    $billIds[] = (int)($bill['bill_id'] ?? 0);
+    $total += $amount;
+    $sent += (int)$bill['sent_num'];
+    $attempts += (int)$bill['attempts_num'];
+    $maxDays = max($maxDays, (int)$bill['days_overdue']);
+
+    $dueAt = $bill['due_at'] ?? null;
+    if ($dueAt && (!$oldestDue || strtotime((string)$dueAt) < strtotime((string)$oldestDue))) $oldestDue = $dueAt;
+    if ($last && (!$lastReminder || strtotime((string)$last) > strtotime((string)$lastReminder))) $lastReminder = $last;
+}
+unset($bill);
+
+$profileHref = $customerId > 0 ? 'https://app.vindi.com.br/admin/customers/' . rawurlencode((string)$customerId) . '#tab-bills' : '';
+$monthLabel = $month !== '' ? rdMonthLabel($month) : 'Todos os meses';
+?>
+
+<div class="det-wrap report-detail-wrap">
+  <style>
+    .report-detail-wrap{font-family:'Nunito',sans-serif;max-width:1100px;margin:10px auto;padding:0 12px;color:#0f172a;}
+    .det-top{background:rgba(255,255,255,.94);border:2px solid #eef2f6;border-radius:18px;padding:14px 16px;display:flex;align-items:center;gap:14px;box-shadow:0 8px 20px rgba(15,23,42,.06);}
+    .det-back{width:42px;height:42px;border-radius:50%;background:#f4f7fa;display:flex;align-items:center;justify-content:center;text-decoration:none;color:#0f172a;transition:.2s;flex:0 0 auto;border:1px solid rgba(15,23,42,.06);}
+    .det-back:hover{background:#e2e8f0;transform:translateX(-3px);}
+    .det-head{min-width:0;display:flex;flex-direction:column;gap:6px;}
+    .det-title{font-weight:1000;font-size:18px;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:10px;}
+    .det-sub{display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-weight:900;color:#64748b;font-size:13px;}
+    .det-chip{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;border:1px solid #eef2f6;background:#fff;color:#334155;font-weight:1000;}
+    .det-chip i{color:#38b6ff;}
+    .det-top-actions{margin-left:auto;display:flex;align-items:center;gap:8px;flex:0 0 auto;flex-wrap:wrap;justify-content:flex-end;}
+    .det-btn{height:42px;border:1px solid #e6eef7;border-radius:14px;background:#fff;color:#0f172a;padding:0 14px;display:inline-flex;align-items:center;gap:8px;text-decoration:none;font-weight:1000;transition:.2s;}
+    .det-btn:hover{border-color:#bfebff;color:#12628f;transform:translateY(-1px);}
+    .det-btn.primary{background:#38b6ff;color:#fff;border-color:#38b6ff;box-shadow:0 4px 12px rgba(56,182,255,.28);}
+    .det-card{margin-top:18px;background:#fff;border:2px solid #eef2f6;border-radius:18px;padding:18px;box-shadow:0 8px 18px rgba(15,23,42,.05);}
+    .det-card-title{font-weight:1000;color:#38b6ff;margin-bottom:12px;display:flex;align-items:center;gap:10px;font-size:14px;}
+    .summary-grid{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:12px;}
+    .summary-box{border:1px solid #eef2f6;border-radius:16px;padding:14px;background:linear-gradient(180deg,#fff 0%,#fbfdff 100%);}
+    .summary-box span{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:1000;text-transform:uppercase;color:#64748b;}
+    .summary-box span i{width:28px;height:28px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;background:#eef8ff;color:#12628f;}
+    .summary-box strong{display:block;margin-top:10px;font-size:22px;font-weight:1000;color:#0f172a;line-height:1.05;}
+    .bill-list{display:grid;gap:12px;}
+    .bill-card{border:1px solid #e6eef7;border-radius:18px;padding:14px;background:#fff;display:grid;grid-template-columns:minmax(180px,.75fr) minmax(0,1.35fr) minmax(180px,.7fr);gap:14px;align-items:start;}
+    .bill-id{display:inline-flex;align-items:center;gap:8px;width:max-content;max-width:100%;padding:7px 11px;border-radius:999px;background:#eef8ff;color:#12628f;font-weight:1000;text-decoration:none;font-size:12px;}
+    .bill-amount{font-size:21px;font-weight:1000;margin-top:10px;color:#0f172a;}
+    .bill-muted{display:flex;align-items:flex-start;gap:8px;color:#64748b;font-weight:900;font-size:12px;margin-top:8px;line-height:1.3;}
+    .bill-muted i{color:#38b6ff;margin-top:1px;}
+    .bill-label{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:1000;text-transform:uppercase;color:#64748b;margin-bottom:8px;}
+    .bill-label i{color:#38b6ff;}
+    .bill-items{white-space:pre-wrap;word-break:break-word;font-size:14px;font-weight:900;line-height:1.42;color:#0f172a;}
+    .bill-side{display:grid;gap:8px;justify-items:end;text-align:right;}
+    .mini-chip{display:inline-flex;align-items:center;gap:8px;padding:7px 11px;border-radius:999px;background:#f4f7fa;border:1px solid #e6eef7;font-size:12px;font-weight:1000;color:#334155;}
+    .mini-chip i{color:#38b6ff;}
+    .timeline{display:grid;gap:10px;}
+    .log-row{display:grid;grid-template-columns:36px 1fr auto;gap:12px;align-items:center;border:1px solid #eef2f6;border-radius:16px;padding:10px 12px;background:#fff;}
+    .log-icon{width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:#d1fae5;color:#065f46;}
+    .log-icon.fail{background:#fee2e2;color:#991b1b;}
+    .log-main strong{display:block;font-weight:1000;color:#0f172a;font-size:13px;}
+    .log-main span{display:block;color:#64748b;font-size:12px;font-weight:800;margin-top:2px;}
+    .empty{color:#64748b;font-size:13px;font-weight:800;text-align:center;padding:28px 12px;background:#f4f7fa;border-radius:16px;}
+    @media(max-width:900px){.summary-grid{grid-template-columns:repeat(2,minmax(150px,1fr));}.bill-card{grid-template-columns:1fr;}.bill-side{justify-items:start;text-align:left;}.det-top{align-items:flex-start;}.det-top-actions{margin-left:0;width:100%;justify-content:flex-start;}}
+    @media(max-width:560px){.report-detail-wrap{padding:0 8px;}.det-top{flex-wrap:wrap;border-radius:16px;}.det-title{white-space:normal;font-size:16px;}.summary-grid{grid-template-columns:1fr;}.det-btn{width:100%;justify-content:center;}.log-row{grid-template-columns:36px 1fr;}.log-row .mini-chip{grid-column:1 / -1;justify-content:center;}}
+  </style>
+
+  <div class="det-top">
+    <a class="det-back" href="<?=h($backHref)?>" title="Voltar">
+      <i class="fa-solid fa-arrow-left"></i>
+    </a>
+    <div class="det-head">
+      <div class="det-title">
+        <i class="fa-solid fa-user" style="color:#38b6ff"></i>
+        <?=h($customerName)?>
+      </div>
+      <div class="det-sub">
+        <span class="det-chip"><i class="fa-regular fa-calendar"></i> <?=h($monthLabel)?></span>
+        <?php if ($customerId > 0): ?><span class="det-chip"><i class="fa-solid fa-id-card"></i> ID <?=h($customerId)?></span><?php endif; ?>
+        <span class="det-chip"><i class="fa-solid fa-phone"></i> <?=h($phone ?: 'Telefone nao salvo')?></span>
+      </div>
+    </div>
+    <div class="det-top-actions">
+      <?php if ($profileHref): ?>
+        <a class="det-btn primary" href="<?=h($profileHref)?>" target="_blank" rel="noopener"><i class="fa-solid fa-user"></i> Perfil</a>
+      <?php endif; ?>
+      <?php if ($firstBillUrl): ?>
+        <a class="det-btn" href="<?=h($firstBillUrl)?>" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square"></i> Vindi</a>
+      <?php endif; ?>
+    </div>
+  </div>
+
+  <?php if ($error): ?>
+    <div class="det-card"><div class="empty"><?=h($error)?></div></div>
+  <?php else: ?>
+    <div class="det-card">
+      <div class="det-card-title"><i class="fa-solid fa-chart-simple"></i> Resumo</div>
+      <div class="summary-grid">
+        <div class="summary-box"><span><i class="fa-solid fa-coins"></i> Total</span><strong><?=h(rdMoneyBr($total))?></strong></div>
+        <div class="summary-box"><span><i class="fa-solid fa-file-invoice"></i> Faturas</span><strong><?=count($bills)?></strong></div>
+        <div class="summary-box"><span><i class="fa-solid fa-triangle-exclamation"></i> Maior atraso</span><strong><?=h($maxDays)?> dia(s)</strong></div>
+        <div class="summary-box"><span><i class="fa-brands fa-whatsapp"></i> Recobrancas</span><strong><?=h($sent)?></strong></div>
+      </div>
+    </div>
+
+    <div class="det-card">
+      <div class="det-card-title"><i class="fa-solid fa-file-invoice-dollar"></i> Faturas em aberto</div>
+      <?php if (!$bills): ?>
+        <div class="empty">Nenhuma fatura aberta para este cliente nesse filtro.</div>
+      <?php else: ?>
+        <div class="bill-list">
+          <?php foreach ($bills as $bill):
+            $billId = (int)($bill['bill_id'] ?? 0);
+            $billUrl = trim((string)($bill['bill_url'] ?? ''));
+            $last = $bill['last_reminder_calc'] ?? null;
+          ?>
+            <div class="bill-card">
+              <div>
+                <?php if ($billUrl): ?>
+                  <a class="bill-id" href="<?=h($billUrl)?>" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square"></i> Bill <?=h($billId)?></a>
+                <?php else: ?>
+                  <span class="bill-id"><i class="fa-solid fa-file-invoice"></i> Bill <?=h($billId)?></span>
+                <?php endif; ?>
+                <div class="bill-amount"><?=h(rdMoneyBr($bill['amount_num']))?></div>
+                <div class="bill-muted"><i class="fa-regular fa-calendar"></i><span><?=h(rdDateBr($bill['due_at'] ?? null))?> | <?=h($bill['days_overdue'])?> dia(s) vencida</span></div>
+              </div>
+              <div>
+                <div class="bill-label"><i class="fa-solid fa-list-check"></i> O que esta devendo</div>
+                <div class="bill-items"><?=h(trim((string)($bill['items_text'] ?? '')) ?: 'Sem itens informados')?></div>
+              </div>
+              <div class="bill-side">
+                <span class="mini-chip"><i class="fa-brands fa-whatsapp"></i> <?=h($bill['sent_num'])?> envio(s)</span>
+                <span class="mini-chip"><i class="fa-solid fa-rotate"></i> <?=h($bill['attempts_num'])?> tentativa(s)</span>
+                <span class="mini-chip"><i class="fa-regular fa-clock"></i> <?=h($last ? rdDateTimeBr($last) : 'Sem envio')?></span>
+              </div>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+    </div>
+
+    <div class="det-card">
+      <div class="det-card-title"><i class="fa-solid fa-paper-plane"></i> Ultimas recobrancas</div>
+      <?php if (!$recentLogs): ?>
+        <div class="empty">Nenhuma recobranca registrada para essas faturas.</div>
+      <?php else: ?>
+        <div class="timeline">
+          <?php foreach ($recentLogs as $log): ?>
+            <div class="log-row">
+              <span class="log-icon <?=((int)($log['ok'] ?? 0) === 1) ? '' : 'fail'?>">
+                <i class="fa-solid <?=((int)($log['ok'] ?? 0) === 1) ? 'fa-check' : 'fa-xmark'?>"></i>
+              </span>
+              <div class="log-main">
+                <strong>Bill <?=h($log['bill_id'] ?? '-')?></strong>
+                <span><?=h(trim((string)($log['message'] ?? '')) ?: 'Registro de envio')?></span>
+              </div>
+              <span class="mini-chip"><i class="fa-regular fa-clock"></i> <?=h(rdDateTimeBr($log['created_at'] ?? null))?></span>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+    </div>
+  <?php endif; ?>
+</div>
