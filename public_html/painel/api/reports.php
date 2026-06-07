@@ -200,6 +200,29 @@ function reportsRowFromVindiBill(array $bill, array $local = []): array
     ];
 }
 
+function reportsNewPdo(array $cfg): PDO
+{
+    $host = cfg($cfg, 'DB_HOST');
+    $name = cfg($cfg, 'DB_NAME');
+    $user = cfg($cfg, 'DB_USER');
+    $pass = cfg($cfg, 'DB_PASS');
+    $dsn = "mysql:host={$host};dbname={$name};charset=utf8mb4";
+    return new PDO($dsn, $user, $pass, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_TIMEOUT => 10,
+    ]);
+}
+
+function reportsEnsurePdo(PDO &$pdo, array $cfg): void
+{
+    try {
+        $pdo->query('SELECT 1');
+    } catch (Throwable $e) {
+        $pdo = reportsNewPdo($cfg);
+    }
+}
+
 function reportsEnsureBillRemindersStorage(PDO $pdo): void
 {
     $pdo->exec("
@@ -258,12 +281,9 @@ function reportsEnsureBillRemindersStorage(PDO $pdo): void
     }
 }
 
-function reportsUpsertLocalBills(PDO $pdo, array $rows): int
+function reportsUpsertStatement(PDO $pdo): PDOStatement
 {
-    if (!$rows) return 0;
-    reportsEnsureBillRemindersStorage($pdo);
-
-    $stmt = $pdo->prepare("
+    return $pdo->prepare("
         INSERT INTO bill_reminders (
             bill_id, customer_id, customer_name, phone, bill_url, items_text,
             amount, due_at, active, blocked, status, next_reminder_at
@@ -283,12 +303,20 @@ function reportsUpsertLocalBills(PDO $pdo, array $rows): int
             next_reminder_at = COALESCE(next_reminder_at, VALUES(next_reminder_at)),
             updated_at = NOW()
     ");
+}
+
+function reportsUpsertLocalBills(PDO &$pdo, array $rows, array $cfg): int
+{
+    if (!$rows) return 0;
+    reportsEnsurePdo($pdo, $cfg);
+    reportsEnsureBillRemindersStorage($pdo);
+    $stmt = reportsUpsertStatement($pdo);
 
     $saved = 0;
     foreach ($rows as $row) {
         $billId = (int)($row['bill_id'] ?? 0);
         if ($billId <= 0) continue;
-        $stmt->execute([
+        $params = [
             $billId,
             ((int)($row['customer_id'] ?? 0)) ?: null,
             (string)($row['customer_name'] ?? 'Cliente'),
@@ -300,7 +328,19 @@ function reportsUpsertLocalBills(PDO $pdo, array $rows): int
             (int)($row['blocked'] ?? 0),
             (string)($row['status'] ?? 'pending'),
             $row['next_reminder_at'] ?? null,
-        ]);
+        ];
+
+        try {
+            $stmt->execute($params);
+        } catch (Throwable $e) {
+            if (strpos($e->getMessage(), '2006') === false && stripos($e->getMessage(), 'server has gone away') === false) {
+                throw $e;
+            }
+            $pdo = reportsNewPdo($cfg);
+            reportsEnsureBillRemindersStorage($pdo);
+            $stmt = reportsUpsertStatement($pdo);
+            $stmt->execute($params);
+        }
         $saved++;
     }
 
@@ -476,7 +516,6 @@ try {
     if ($sync && $apiKey !== '') {
         $vindiMeta['enabled'] = true;
         $base = cfg($cfg, 'VINDI_API_BASE', 'https://app.vindi.com.br/api/v1');
-        $vindiRowsForSave = [];
         $windows = reportsMonthWindows($syncFrom, $syncTo);
 
         foreach ($windows as $window) {
@@ -503,13 +542,21 @@ try {
                     break;
                 }
 
+                $pageRowsForSave = [];
                 foreach ($bills as $bill) {
                     if (!is_array($bill)) continue;
                     $billId = (int)($bill['id'] ?? 0);
                     if ($billId <= 0) continue;
                     $merged = reportsRowFromVindiBill($bill, $localByBill[$billId] ?? []);
                     $rowsByBill[$billId] = $merged;
-                    $vindiRowsForSave[$billId] = $merged;
+                    $localByBill[$billId] = $merged;
+                    $pageRowsForSave[$billId] = $merged;
+                }
+
+                if ($pageRowsForSave) {
+                    $savedNow = reportsUpsertLocalBills($pdo, array_values($pageRowsForSave), $cfg);
+                    $savedLocal += $savedNow;
+                    $vindiMeta['saved_local'] = $savedLocal;
                 }
 
                 $reportedTotal = (int)($resp['total'] ?? 0);
@@ -526,10 +573,6 @@ try {
             $vindiMeta['stopped_by'] = 'date_windows_done';
         }
 
-        if ($vindiRowsForSave) {
-            $savedLocal = reportsUpsertLocalBills($pdo, array_values($vindiRowsForSave));
-            $vindiMeta['saved_local'] = $savedLocal;
-        }
     } elseif ($sync && $apiKey === '') {
         $vindiMeta['enabled'] = false;
         $vindiMeta['stopped_by'] = 'not_configured';
@@ -537,6 +580,7 @@ try {
     }
 
     $bills = reportsFilterRowsByText(array_values($rowsByBill), $q);
+    reportsEnsurePdo($pdo, $cfg);
     $logMap = reportsFetchLogMap($pdo, array_column($bills, 'bill_id'));
 
     $groups = [];
