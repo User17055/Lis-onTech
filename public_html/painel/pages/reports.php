@@ -98,19 +98,21 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     }
     .month-board{
       background:#fff;border:2px solid var(--border-color);border-radius:var(--radius-card);box-shadow:var(--shadow-soft);
-      padding:14px;margin:0 0 18px;display:grid;gap:12px;
+      padding:12px 14px;margin:0 0 18px;display:grid;gap:0;
     }
+    .month-board.expanded{gap:12px;}
     .month-board-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
     .month-board-title{display:flex;align-items:center;gap:9px;color:var(--text-main);font-size:14px;font-weight:900;}
     .month-board-title i{color:var(--primary);}
-    .month-years{display:grid;gap:12px;max-height:236px;overflow:hidden;transition:max-height .2s ease;}
-    .month-board.expanded .month-years{max-height:760px;overflow:auto;padding-right:4px;}
+    .month-board-title small{color:var(--text-muted);font-size:12px;font-weight:900;margin-left:4px;}
+    .month-years{display:none;gap:12px;max-height:360px;overflow:auto;padding-right:4px;}
+    .month-board.expanded .month-years{display:grid;}
     .month-year{display:grid;gap:8px;}
     .month-year-label{color:var(--text-muted);font-size:12px;font-weight:900;}
-    .month-grid{display:grid;grid-template-columns:repeat(6,minmax(92px,1fr));gap:8px;}
+    .month-grid{display:grid;grid-template-columns:repeat(6,minmax(86px,1fr));gap:8px;}
     .month-btn{
-      min-height:48px;border:2px solid var(--border-color);border-radius:14px;background:#fff;color:var(--text-main);
-      display:flex;align-items:center;justify-content:space-between;gap:8px;text-align:left;padding:8px 10px;font-family:'Nunito',sans-serif;font-weight:900;cursor:pointer;
+      min-height:42px;border:2px solid var(--border-color);border-radius:12px;background:#fff;color:var(--text-main);
+      display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;text-align:left;padding:8px 10px;font-family:'Nunito',sans-serif;font-weight:900;cursor:pointer;
       box-shadow:var(--shadow-soft);transition:.18s;
     }
     .month-btn:hover{transform:translateY(-1px);border-color:#bfe8ff;color:#12628f;}
@@ -128,6 +130,19 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .leader-name{font-weight:900;font-size:16px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .leader-sub{display:block;color:var(--text-muted);font-size:12px;font-weight:800;margin-top:3px;}
     .pill{display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border-radius:999px;background:var(--bg-panel);border:2px solid var(--border-color);font-size:12px;font-weight:900;white-space:nowrap;}
+    .row-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;}
+    .row-time{font-size:12px;color:var(--text-muted);font-weight:900;white-space:nowrap;}
+    .btn-icon{
+      width:36px;height:36px;border:0;border-radius:50%;background:var(--primary);color:#fff;text-decoration:none;
+      display:inline-flex;align-items:center;justify-content:center;box-shadow:0 4px 10px rgba(56,182,255,.28);cursor:pointer;transition:.2s;
+    }
+    .btn-icon:hover{transform:translateY(-2px);background:var(--primary-hover);color:#fff;}
+    .btn-mini{
+      min-height:34px;border:2px solid var(--border-color);border-radius:999px;background:#fff;color:var(--text-main);padding:0 12px;
+      display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:'Nunito',sans-serif;font-weight:900;font-size:12px;text-decoration:none;cursor:pointer;transition:.18s;
+    }
+    .btn-mini:hover{border-color:#bfe8ff;color:#12628f;transform:translateY(-1px);}
+    .btn-mini.primary{background:#eef8ff;border-color:#bfe8ff;color:#12628f;}
     table{width:100%;border-collapse:separate;border-spacing:0 10px;}
     thead th{color:var(--text-muted);font-size:12px;text-transform:uppercase;font-weight:900;padding:0 16px;text-align:left;}
     thead th:last-child, tbody td:last-child{text-align:right;}
@@ -145,7 +160,16 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .customer-name{font-size:15px;font-weight:900;display:block;}
     .muted{color:var(--text-muted);font-size:12px;font-weight:800;margin-top:3px;display:block;}
     .detail-row td{padding:0 16px 18px;background:#fff;border:none;}
-    .detail-panel{border:2px solid #e6eef7;border-radius:16px;background:#fbfdff;padding:14px;display:grid;gap:10px;}
+    .detail-panel{border:2px solid #e6eef7;border-radius:16px;background:#fbfdff;padding:14px;display:grid;gap:12px;}
+    .detail-top{
+      display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#fff;border:1px solid var(--border-color);
+      border-radius:14px;padding:12px 14px;
+    }
+    .detail-title{display:flex;align-items:center;gap:10px;min-width:0;}
+    .detail-title i{width:34px;height:34px;border-radius:10px;background:#eef8ff;color:#12628f;display:inline-flex;align-items:center;justify-content:center;flex:0 0 34px;}
+    .detail-title strong{display:block;font-size:15px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .detail-title span{display:block;color:var(--text-muted);font-size:12px;font-weight:800;margin-top:2px;}
+    .detail-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end;}
     .bill-line{
       background:#fff;border:1px solid var(--border-color);border-radius:16px;padding:14px;display:grid;
       grid-template-columns:minmax(190px,.8fr) minmax(0,1.4fr) minmax(210px,.8fr);
@@ -189,7 +213,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       .summary-grid,.leader-strip,.bill-line{grid-template-columns:1fr;}
       .month-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
       .month-board-head{align-items:stretch;flex-direction:column;}
-      #btnAllMonths{width:100%;justify-content:center;}
+      #btnAllMonths,#btnToggleMonths{width:100%;justify-content:center;}
       .month-board{padding:12px;border-radius:16px;}
       .metric{min-height:82px;}
       .btn-primary{width:100%;}
@@ -211,6 +235,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       tbody td:first-child,
       tbody td:last-child{border:0;padding:7px 0;border-radius:0;text-align:left;}
       tbody td:last-child{text-align:left;}
+      .row-actions{justify-content:space-between;}
       .pill{white-space:normal;}
       .detail-row td{padding:0 0 14px;}
       .detail-panel{padding:10px;border-radius:14px;}
@@ -245,10 +270,14 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
 
     <div class="month-board" id="monthBoard">
       <div class="month-board-head">
-        <div class="month-board-title"><i class="fa-regular fa-calendar"></i> Meses com faturas</div>
+        <div class="month-board-title">
+          <i class="fa-regular fa-calendar"></i>
+          <span id="monthFilterTitle">Todos os meses</span>
+          <small id="monthFilterCount"></small>
+        </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button type="button" class="btn-secondary" id="btnAllMonths" style="height:36px;padding:0 14px;"><i class="fa-solid fa-layer-group"></i> Todos</button>
-          <button type="button" class="btn-secondary" id="btnToggleMonths" style="height:36px;padding:0 14px;"><i class="fa-solid fa-chevron-down"></i> Ver mais</button>
+          <button type="button" class="btn-secondary" id="btnAllMonths" style="height:36px;padding:0 14px;"><i class="fa-solid fa-layer-group"></i> Limpar</button>
+          <button type="button" class="btn-secondary" id="btnToggleMonths" style="height:36px;padding:0 14px;"><i class="fa-regular fa-calendar-days"></i> Filtrar mes</button>
         </div>
       </div>
       <div class="month-years" id="monthYears">
@@ -352,6 +381,22 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       return 'Local';
     }
 
+    function customerLocalHref(row){
+      const customerId = String(row?.customer_id || '').replace(/\D+/g, '');
+      if (!customerId) return '';
+      const url = new URL('/painel/index.php', location.origin);
+      url.searchParams.set('pagina', 'customer');
+      url.searchParams.set('customer_id', customerId);
+      if (row?.customer_name) url.searchParams.set('name', String(row.customer_name));
+      return url.toString();
+    }
+
+    function customerProfileHref(row){
+      const customerId = String(row?.customer_id || '').replace(/\D+/g, '');
+      if (!customerId) return '';
+      return `https://app.vindi.com.br/admin/customers/${encodeURIComponent(customerId)}#tab-bills`;
+    }
+
     function renderLeader(row){
       const box = $rep('leaderStrip');
       if (!row) {
@@ -380,7 +425,26 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     function renderBills(row){
       const bills = Array.isArray(row.bills) ? row.bills : [];
       if (!bills.length) return '<div class="empty">Sem parcelas/faturas no detalhe.</div>';
-      return bills.map(bill => {
+      const profileHref = customerProfileHref(row);
+      const localHref = customerLocalHref(row);
+      const firstBillUrl = String(bills.find(bill => bill && bill.bill_url)?.bill_url || '');
+      const top = `
+        <div class="detail-top">
+          <div class="detail-title">
+            <i class="fa-solid fa-user"></i>
+            <div>
+              <strong>${esc(row.customer_name || 'Cliente')}</strong>
+              <span>${brNumber(row.open_bills)} fatura(s) | ${brMoney(row.total_amount)} | ${brNumber(row.reminders_sent)} recobranca(s)</span>
+            </div>
+          </div>
+          <div class="detail-actions">
+            ${profileHref ? `<a class="btn-mini primary" href="${esc(profileHref)}" target="_blank" rel="noopener" onclick="event.stopPropagation();"><i class="fa-solid fa-user"></i> Perfil</a>` : ''}
+            ${localHref ? `<a class="btn-mini" href="${esc(localHref)}" onclick="event.stopPropagation(); window.LisOnPageLoader?.show();"><i class="fa-solid fa-file-invoice"></i> Faturas</a>` : ''}
+            ${firstBillUrl ? `<a class="btn-mini" href="${esc(firstBillUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation();"><i class="fa-solid fa-arrow-up-right-from-square"></i> Vindi</a>` : ''}
+          </div>
+        </div>
+      `;
+      const lines = bills.map(bill => {
         const billUrl = String(bill.bill_url || '');
         const billLabel = billUrl
           ? `<a class="bill-tag" href="${esc(billUrl)}" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square"></i> Bill ${esc(bill.bill_id)}</a>`
@@ -407,6 +471,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
           </div>
         `;
       }).join('');
+      return top + lines;
     }
 
     function renderRows(){
@@ -420,6 +485,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         const key = String(row.customer_key || idx);
         const open = repState.expanded.has(key);
         const hot = idx === 0 ? 'hot' : '';
+        const profileHref = customerProfileHref(row);
+        const localHref = customerLocalHref(row);
         return `
           <tr class="rep-row ${open ? 'open' : ''}" data-key="${esc(key)}">
             <td>
@@ -435,7 +502,14 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
             <td><span class="pill"><i class="fa-solid fa-file-invoice"></i> ${brNumber(row.open_bills)}</span></td>
             <td><span class="pill"><i class="fa-regular fa-calendar"></i> ${esc(brDate(row.oldest_due_at))}</span></td>
             <td><span class="pill"><i class="fa-solid fa-paper-plane"></i> ${brNumber(row.reminders_sent)}</span></td>
-            <td><span class="pill"><i class="fa-solid ${open ? 'fa-chevron-up' : 'fa-chevron-down'}"></i> ${open ? 'Fechar' : 'Abrir'}</span></td>
+            <td>
+              <div class="row-actions">
+                ${profileHref ? `<a href="${esc(profileHref)}" class="btn-mini" target="_blank" rel="noopener" onclick="event.stopPropagation();"><i class="fa-solid fa-user"></i> Perfil</a>` : (localHref ? `<a href="${esc(localHref)}" class="btn-mini" onclick="event.stopPropagation(); window.LisOnPageLoader?.show();"><i class="fa-solid fa-file-invoice"></i> Faturas</a>` : `<span class="row-time">Sem perfil</span>`)}
+                <button type="button" class="btn-icon" title="${open ? 'Fechar detalhes' : 'Abrir detalhes'}">
+                  <i class="fa-solid ${open ? 'fa-chevron-up' : 'fa-chevron-right'}"></i>
+                </button>
+              </div>
+            </td>
           </tr>
           ${open ? `<tr class="detail-row"><td colspan="6"><div class="detail-panel">${renderBills(row)}</div></td></tr>` : ''}
         `;
@@ -500,6 +574,14 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       select.value = selectedMonth;
 
       if (!board) return;
+      const selectedRow = rows.find(row => String(row.value || '') === selectedMonth);
+      const title = $rep('monthFilterTitle');
+      const count = $rep('monthFilterCount');
+      if (title) title.textContent = selectedRow ? (selectedRow.label || selectedRow.value) : 'Todos os meses';
+      if (count) {
+        if (selectedRow) count.textContent = `${brNumber(selectedRow.total || 0)} fatura(s)`;
+        else count.textContent = rows.length ? `${brNumber(rows.length)} mes(es)` : '';
+      }
       if (!rows.length) {
         board.innerHTML = '<div class="empty">Nenhum mes com fatura aberta.</div>';
         return;
@@ -535,9 +617,9 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       if (monthBoard) monthBoard.classList.toggle('expanded', monthsExpanded);
       if (toggle) {
         toggle.innerHTML = monthsExpanded
-          ? '<i class="fa-solid fa-chevron-up"></i> Ver menos'
-          : '<i class="fa-solid fa-chevron-down"></i> Ver mais';
-        toggle.style.display = rows.length > 12 ? 'inline-flex' : 'none';
+          ? '<i class="fa-solid fa-chevron-up"></i> Fechar filtro'
+          : '<i class="fa-regular fa-calendar-days"></i> Filtrar mes';
+        toggle.style.display = rows.length ? 'inline-flex' : 'none';
       }
     }
 
@@ -622,11 +704,13 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       const btn = event.target.closest('button[data-month]');
       if (!btn) return;
       selectedMonth = btn.getAttribute('data-month') || '';
+      monthsExpanded = false;
       repState.expanded.clear();
       loadReports(false);
     });
     $rep('btnAllMonths').addEventListener('click', () => {
       selectedMonth = '';
+      monthsExpanded = false;
       repState.expanded.clear();
       loadReports(false);
     });
@@ -634,8 +718,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       monthsExpanded = !monthsExpanded;
       $rep('monthBoard').classList.toggle('expanded', monthsExpanded);
       $rep('btnToggleMonths').innerHTML = monthsExpanded
-        ? '<i class="fa-solid fa-chevron-up"></i> Ver menos'
-        : '<i class="fa-solid fa-chevron-down"></i> Ver mais';
+        ? '<i class="fa-solid fa-chevron-up"></i> Fechar filtro'
+        : '<i class="fa-regular fa-calendar-days"></i> Filtrar mes';
     });
     $rep('repQ').addEventListener('keydown', (event) => {
       if (event.key === 'Enter') {
