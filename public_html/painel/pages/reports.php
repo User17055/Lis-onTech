@@ -181,6 +181,31 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .customer-name{font-size:15px;font-weight:900;display:block;}
     .muted{color:var(--text-muted);font-size:12px;font-weight:800;margin-top:3px;display:block;}
     .mark-reason{display:inline-flex;align-items:center;gap:6px;margin-top:5px;color:#991b1b;font-size:12px;font-weight:900;}
+    .report-context-menu{
+      position:fixed;z-index:1000;min-width:190px;background:#fff;border:2px solid var(--border-color);border-radius:8px;padding:6px;
+      box-shadow:0 18px 38px rgba(15,23,42,.16);display:none;
+    }
+    .report-context-menu.open{display:grid;gap:4px;}
+    .report-context-menu button{
+      border:0;background:#fff;color:var(--text-main);height:38px;border-radius:7px;padding:0 10px;display:flex;align-items:center;gap:10px;
+      font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;text-align:left;cursor:pointer;
+    }
+    .report-context-menu button:hover{background:#eef8ff;color:#12628f;}
+    .report-context-menu button.danger{color:#991b1b;}
+    .report-context-menu button.danger:hover{background:#fee2e2;color:#991b1b;}
+    .mark-modal{position:fixed;inset:0;z-index:1100;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(15,23,42,.36);}
+    .mark-modal.open{display:flex;}
+    .mark-card{width:min(460px,100%);background:#fff;border:2px solid var(--border-color);border-radius:12px;box-shadow:0 24px 48px rgba(15,23,42,.2);overflow:hidden;}
+    .mark-card-head{display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:2px solid var(--border-color);}
+    .mark-card-head i{width:36px;height:36px;border-radius:10px;background:#fee2e2;color:#991b1b;display:inline-flex;align-items:center;justify-content:center;flex:0 0 36px;}
+    .mark-card-title{font-size:15px;font-weight:1000;color:var(--text-main);display:block;}
+    .mark-card-sub{font-size:12px;font-weight:900;color:var(--text-muted);display:block;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:330px;}
+    .mark-card-body{padding:16px 18px;display:grid;gap:8px;}
+    .mark-card-body label{font-size:12px;font-weight:1000;color:var(--text-muted);text-transform:uppercase;}
+    .mark-card-body textarea{width:100%;min-height:110px;box-sizing:border-box;border:2px solid var(--border-color);border-radius:8px;resize:vertical;padding:12px;font-family:'Nunito',sans-serif;font-weight:800;color:var(--text-main);outline:none;}
+    .mark-card-body textarea:focus{border-color:var(--primary);box-shadow:0 0 0 4px rgba(59,130,246,.1);}
+    .mark-error{min-height:18px;color:#991b1b;font-size:12px;font-weight:900;}
+    .mark-card-actions{display:flex;justify-content:flex-end;gap:10px;padding:0 18px 18px;}
     .detail-row td{padding:0 16px 18px;background:#fff;border:none;}
     .detail-panel{border:2px solid #e6eef7;border-radius:16px;background:#fbfdff;padding:14px;display:grid;gap:12px;}
     .detail-top{
@@ -242,6 +267,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       .btn-primary{width:100%;}
       .btn-secondary{width:100%;}
       .meta-chip{width:100%;box-sizing:border-box;}
+      .mark-card-sub{max-width:230px;}
     }
     @media(max-width:620px){
       .summary-grid{grid-template-columns:1fr 1fr;}
@@ -365,8 +391,35 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     </div>
   </div>
 
+  <div id="reportContextMenu" class="report-context-menu">
+    <button type="button" data-context-action="mark"><i class="fa-solid fa-flag"></i> <span id="contextMarkLabel">Marcar</span></button>
+    <button type="button" class="danger" data-context-action="unmark"><i class="fa-solid fa-flag"></i> Desmarcar</button>
+    <button type="button" data-context-action="details"><i class="fa-solid fa-chevron-right"></i> Abrir detalhes</button>
+  </div>
+
+  <div id="markModal" class="mark-modal" aria-hidden="true">
+    <div class="mark-card" role="dialog" aria-modal="true" aria-labelledby="markModalTitle">
+      <div class="mark-card-head">
+        <i class="fa-solid fa-flag"></i>
+        <div style="min-width:0;">
+          <span id="markModalTitle" class="mark-card-title">Marcar cliente</span>
+          <span id="markModalClient" class="mark-card-sub">Cliente</span>
+        </div>
+      </div>
+      <div class="mark-card-body">
+        <label for="markReason">Motivo</label>
+        <textarea id="markReason" placeholder="Ex: protestado, franquia, financeiro confirmou..."></textarea>
+        <div id="markError" class="mark-error"></div>
+      </div>
+      <div class="mark-card-actions">
+        <button type="button" class="btn-secondary" id="markCancel" style="height:40px;padding:0 14px;">Cancelar</button>
+        <button type="button" class="btn-primary" id="markSave" style="height:40px;padding:0 16px;"><i class="fa-solid fa-check"></i> Salvar</button>
+      </div>
+    </div>
+  </div>
+
   <script>
-    const repState = { rows: [], expanded: new Set() };
+    const repState = { rows: [], expanded: new Set(), contextRowKey: '' };
     const $rep = (id) => document.getElementById(id);
     let reportsLoading = false;
     const reportUrlParams = new URLSearchParams(location.search);
@@ -511,14 +564,84 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       return repState.rows.find(row => String(row.customer_key || '') === String(key));
     }
 
-    async function saveMark(row, action){
+    function closeContextMenu(){
+      const menu = $rep('reportContextMenu');
+      if (menu) menu.classList.remove('open');
+      repState.contextRowKey = '';
+    }
+
+    function openContextMenu(event, row){
+      const menu = $rep('reportContextMenu');
+      if (!menu || !row) return;
+      repState.contextRowKey = String(row.customer_key || '');
+      const marked = !!row?.mark?.marked;
+      const markLabel = $rep('contextMarkLabel');
+      if (markLabel) markLabel.textContent = marked ? 'Editar motivo' : 'Marcar';
+      const unmark = menu.querySelector('[data-context-action="unmark"]');
+      if (unmark) unmark.style.display = marked ? 'flex' : 'none';
+      menu.classList.add('open');
+      const rect = menu.getBoundingClientRect();
+      const left = Math.min(event.clientX, window.innerWidth - rect.width - 10);
+      const top = Math.min(event.clientY, window.innerHeight - rect.height - 10);
+      menu.style.left = `${Math.max(10, left)}px`;
+      menu.style.top = `${Math.max(10, top)}px`;
+    }
+
+    function openMarkModal(row){
+      return new Promise((resolve) => {
+        const modal = $rep('markModal');
+        const input = $rep('markReason');
+        const error = $rep('markError');
+        const client = $rep('markModalClient');
+        const title = $rep('markModalTitle');
+        const save = $rep('markSave');
+        const cancel = $rep('markCancel');
+        if (!modal || !input || !save || !cancel) {
+          resolve(null);
+          return;
+        }
+        const cleanup = (value) => {
+          modal.classList.remove('open');
+          modal.setAttribute('aria-hidden', 'true');
+          save.onclick = null;
+          cancel.onclick = null;
+          modal.onclick = null;
+          document.removeEventListener('keydown', onKey);
+          resolve(value);
+        };
+        const onKey = (event) => {
+          if (event.key === 'Escape') cleanup(null);
+          if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') save.click();
+        };
+        if (title) title.textContent = row?.mark?.marked ? 'Editar marcacao' : 'Marcar cliente';
+        if (client) client.textContent = row?.customer_name || 'Cliente';
+        if (error) error.textContent = '';
+        input.value = row?.mark?.reason || '';
+        save.onclick = () => {
+          const reason = input.value.trim();
+          if (!reason) {
+            if (error) error.textContent = 'Informe o motivo da marcacao.';
+            input.focus();
+            return;
+          }
+          cleanup(reason);
+        };
+        cancel.onclick = () => cleanup(null);
+        modal.onclick = (event) => {
+          if (event.target === modal) cleanup(null);
+        };
+        document.addEventListener('keydown', onKey);
+        modal.classList.add('open');
+        modal.setAttribute('aria-hidden', 'false');
+        setTimeout(() => input.focus(), 40);
+      });
+    }
+
+    async function saveMark(row, action, reason=''){
       const key = String(row?.customer_key || '');
       if (!key) return;
-      let reason = '';
+      reason = String(reason || '').trim();
       if (action === 'mark') {
-        reason = window.prompt('Motivo da marcacao:', row?.mark?.reason || '');
-        if (reason === null) return;
-        reason = reason.trim();
         if (!reason) {
           setStatus('Informe o motivo da marcacao', true);
           return;
@@ -544,6 +667,12 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       }
       setStatus(action === 'mark' ? 'Cliente marcado' : 'Marcacao removida');
       await loadReports(false, true);
+    }
+
+    async function beginMarkFlow(row){
+      const reason = await openMarkModal(row);
+      if (reason === null) return;
+      await saveMark(row, 'mark', reason);
     }
 
     function renderLeader(row){
@@ -661,9 +790,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
             <td><span class="pill"><i class="fa-solid fa-paper-plane"></i> ${brNumber(row.reminders_sent)}</span></td>
             <td>
               <div class="row-actions">
-                <button type="button" class="btn-mini ${marked ? 'danger' : ''}" data-mark-action="${marked ? 'unmark' : 'mark'}" data-key="${esc(key)}">
-                  <i class="fa-solid fa-flag"></i> ${marked ? 'Desmarcar' : 'Marcar'}
-                </button>
+                <span class="row-time">${marked ? 'Marcado' : 'Detalhes'}</span>
                 <a href="${esc(detailsHref)}" class="btn-icon" onclick="event.stopPropagation(); window.LisOnPageLoader?.show();" title="Abrir detalhes">
                   <i class="fa-solid fa-chevron-right"></i>
                 </a>
@@ -946,9 +1073,12 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         btnSync.disabled = true;
         if (sync) btnSync.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sincronizando';
       }
-      $rep('repBody').innerHTML = `
-        <tr><td colspan="6" style="text-align:center;padding:38px;"><div class="spinner"></div><div class="muted" style="margin-top:12px;">${sync ? 'Puxando Vindi e salvando no banco local...' : 'Carregando relatorios locais...'}</div></td></tr>
-      `;
+      const shouldShowLoader = sync || repState.rows.length === 0;
+      if (shouldShowLoader) {
+        $rep('repBody').innerHTML = `
+          <tr><td colspan="6" style="text-align:center;padding:38px;"><div class="spinner"></div><div class="muted" style="margin-top:12px;">${sync ? 'Puxando Vindi e salvando no banco local...' : 'Carregando relatorios locais...'}</div></td></tr>
+        `;
+      }
       try {
         const q = $rep('repQ').value.trim();
         const data = await fetchReportsData({q, month: selectedMonth, local_limit: 20000, mark_filter: markFilter, prefix_filter: prefixFilter});
@@ -958,7 +1088,9 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         setStatus((sync ? 'Sincronizado em ' : 'Atualizado em ') + new Date().toLocaleString('pt-BR'));
       } catch (e) {
         setStatus(e.message || 'Erro ao carregar', true);
-        $rep('repBody').innerHTML = `<tr><td colspan="6"><div class="empty">${esc(e.message || 'Erro ao carregar relatorios.')}</div></td></tr>`;
+        if (repState.rows.length === 0) {
+          $rep('repBody').innerHTML = `<tr><td colspan="6"><div class="empty">${esc(e.message || 'Erro ao carregar relatorios.')}</div></td></tr>`;
+        }
       } finally {
         reportsLoading = false;
         if (btnLoad) btnLoad.disabled = false;
@@ -976,10 +1108,13 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         e.stopPropagation();
         const row = findRowByKey(markBtn.getAttribute('data-key'));
         if (row) {
-          saveMark(row, markBtn.getAttribute('data-mark-action')).catch(err => setStatus(err.message, true));
+          const action = markBtn.getAttribute('data-mark-action');
+          const run = action === 'mark' ? beginMarkFlow(row) : saveMark(row, 'unmark');
+          run.catch(err => setStatus(err.message, true));
         }
         return;
       }
+      closeContextMenu();
       if (e.target.closest('a,button,input,select,textarea')) return;
       const row = e.target.closest('tr.rep-row[data-href]');
       if (!row) return;
@@ -988,6 +1123,36 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       window.LisOnPageLoader?.show();
       window.location.href = href;
     });
+
+    $rep('repBody').addEventListener('contextmenu', (event) => {
+      const tr = event.target.closest('tr.rep-row[data-key]');
+      if (!tr) return;
+      const row = findRowByKey(tr.getAttribute('data-key'));
+      if (!row) return;
+      event.preventDefault();
+      openContextMenu(event, row);
+    });
+
+    $rep('reportContextMenu').addEventListener('click', (event) => {
+      const btn = event.target.closest('[data-context-action]');
+      if (!btn) return;
+      const action = btn.getAttribute('data-context-action');
+      const row = findRowByKey(repState.contextRowKey);
+      closeContextMenu();
+      if (!row) return;
+      if (action === 'details') {
+        window.LisOnPageLoader?.show();
+        window.location.href = reportDetailsHref(row);
+        return;
+      }
+      const run = action === 'unmark' ? saveMark(row, 'unmark') : beginMarkFlow(row);
+      run.catch(err => setStatus(err.message, true));
+    });
+
+    document.addEventListener('click', (event) => {
+      if (!event.target.closest('#reportContextMenu')) closeContextMenu();
+    });
+    window.addEventListener('scroll', closeContextMenu, true);
 
     $rep('btnLoadReports').onclick = () => loadReports(false);
     $rep('btnSyncReports').onclick = () => loadReports(true);

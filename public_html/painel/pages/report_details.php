@@ -314,6 +314,19 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
     .det-btn.primary{background:#38b6ff;color:#fff;border-color:#38b6ff;box-shadow:0 4px 12px rgba(56,182,255,.28);}
     .det-btn.danger{border-color:#fecaca;background:#fee2e2;color:#991b1b;}
     .det-btn:disabled{opacity:.55;cursor:not-allowed;transform:none;}
+    .mark-modal{position:fixed;inset:0;z-index:1100;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(15,23,42,.36);}
+    .mark-modal.open{display:flex;}
+    .mark-card{width:min(460px,100%);background:#fff;border:2px solid #eef2f6;border-radius:12px;box-shadow:0 24px 48px rgba(15,23,42,.2);overflow:hidden;}
+    .mark-card-head{display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:2px solid #eef2f6;}
+    .mark-card-head i{width:36px;height:36px;border-radius:10px;background:#fee2e2;color:#991b1b;display:inline-flex;align-items:center;justify-content:center;flex:0 0 36px;}
+    .mark-card-title{font-size:15px;font-weight:1000;color:#0f172a;display:block;}
+    .mark-card-sub{font-size:12px;font-weight:900;color:#64748b;display:block;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:330px;}
+    .mark-card-body{padding:16px 18px;display:grid;gap:8px;}
+    .mark-card-body label{font-size:12px;font-weight:1000;color:#64748b;text-transform:uppercase;}
+    .mark-card-body textarea{width:100%;min-height:110px;box-sizing:border-box;border:2px solid #eef2f6;border-radius:8px;resize:vertical;padding:12px;font-family:'Nunito',sans-serif;font-weight:800;color:#0f172a;outline:none;}
+    .mark-card-body textarea:focus{border-color:#38b6ff;box-shadow:0 0 0 4px rgba(59,130,246,.1);}
+    .mark-error{min-height:18px;color:#991b1b;font-size:12px;font-weight:900;}
+    .mark-card-actions{display:flex;justify-content:flex-end;gap:10px;padding:0 18px 18px;}
     .det-card{margin-top:18px;background:#fff;border:2px solid #eef2f6;border-radius:18px;padding:18px;box-shadow:0 8px 18px rgba(15,23,42,.05);}
     .det-card-title{font-weight:1000;color:#38b6ff;margin-bottom:12px;display:flex;align-items:center;gap:10px;font-size:14px;}
     .summary-grid{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:12px;}
@@ -347,7 +360,7 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
     .log-main span{display:block;color:#64748b;font-size:12px;font-weight:800;margin-top:2px;}
     .empty{color:#64748b;font-size:13px;font-weight:800;text-align:center;padding:28px 12px;background:#f4f7fa;border-radius:16px;}
     @media(max-width:900px){.summary-grid{grid-template-columns:repeat(2,minmax(150px,1fr));}.bill-card{grid-template-columns:1fr;}.bill-side{justify-items:start;text-align:left;}.det-top{align-items:flex-start;}.det-top-actions{margin-left:0;width:100%;justify-content:flex-start;}}
-    @media(max-width:560px){.report-detail-wrap{padding:0 8px;}.det-top{flex-wrap:wrap;border-radius:16px;}.det-title{white-space:normal;font-size:16px;}.summary-grid{grid-template-columns:1fr;}.det-btn{width:100%;justify-content:center;}.log-row{grid-template-columns:36px 1fr;}.log-row .mini-chip{grid-column:1 / -1;justify-content:center;}}
+    @media(max-width:560px){.report-detail-wrap{padding:0 8px;}.det-top{flex-wrap:wrap;border-radius:16px;}.det-title{white-space:normal;font-size:16px;}.summary-grid{grid-template-columns:1fr;}.det-btn{width:100%;justify-content:center;}.log-row{grid-template-columns:36px 1fr;}.log-row .mini-chip{grid-column:1 / -1;justify-content:center;}.mark-card-sub{max-width:230px;}}
   </style>
 
   <div class="det-top <?=!empty($mark['marked']) ? 'marked' : ''?>">
@@ -374,6 +387,27 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
       <?php if ($firstBillUrl): ?>
         <a class="det-btn" href="<?=h($firstBillUrl)?>" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square"></i> Vindi</a>
       <?php endif; ?>
+    </div>
+  </div>
+
+  <div id="markModal" class="mark-modal" aria-hidden="true">
+    <div class="mark-card" role="dialog" aria-modal="true" aria-labelledby="markModalTitle">
+      <div class="mark-card-head">
+        <i class="fa-solid fa-flag"></i>
+        <div style="min-width:0;">
+          <span id="markModalTitle" class="mark-card-title"><?=!empty($mark['marked']) ? 'Editar marcacao' : 'Marcar cliente'?></span>
+          <span class="mark-card-sub"><?=h($customerName)?></span>
+        </div>
+      </div>
+      <div class="mark-card-body">
+        <label for="markReason">Motivo</label>
+        <textarea id="markReason" placeholder="Ex: protestado, franquia, financeiro confirmou..."></textarea>
+        <div id="markError" class="mark-error"></div>
+      </div>
+      <div class="mark-card-actions">
+        <button type="button" class="det-btn" id="markCancel" style="height:40px;">Cancelar</button>
+        <button type="button" class="det-btn primary" id="markSave" style="height:40px;"><i class="fa-solid fa-check"></i> Salvar</button>
+      </div>
     </div>
   </div>
 
@@ -457,18 +491,56 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
       const customerId = <?=json_encode($customerId)?>;
       const customerName = <?=json_encode($customerName, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)?>;
       const currentReason = <?=json_encode((string)($mark['reason'] ?? ''), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)?>;
+      const modal = document.getElementById('markModal');
+      const reasonInput = document.getElementById('markReason');
+      const errorBox = document.getElementById('markError');
+      const saveBtn = document.getElementById('markSave');
+      const cancelBtn = document.getElementById('markCancel');
+      const openModal = () => new Promise((resolve) => {
+        if (!modal || !reasonInput || !saveBtn || !cancelBtn) {
+          resolve(null);
+          return;
+        }
+        const cleanup = (value) => {
+          modal.classList.remove('open');
+          modal.setAttribute('aria-hidden', 'true');
+          saveBtn.onclick = null;
+          cancelBtn.onclick = null;
+          modal.onclick = null;
+          document.removeEventListener('keydown', onKey);
+          resolve(value);
+        };
+        const onKey = (event) => {
+          if (event.key === 'Escape') cleanup(null);
+          if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') saveBtn.click();
+        };
+        if (errorBox) errorBox.textContent = '';
+        reasonInput.value = currentReason;
+        saveBtn.onclick = () => {
+          const reason = reasonInput.value.trim();
+          if (!reason) {
+            if (errorBox) errorBox.textContent = 'Informe o motivo da marcacao.';
+            reasonInput.focus();
+            return;
+          }
+          cleanup(reason);
+        };
+        cancelBtn.onclick = () => cleanup(null);
+        modal.onclick = (event) => {
+          if (event.target === modal) cleanup(null);
+        };
+        document.addEventListener('keydown', onKey);
+        modal.classList.add('open');
+        modal.setAttribute('aria-hidden', 'false');
+        setTimeout(() => reasonInput.focus(), 40);
+      });
       btn.addEventListener('click', async () => {
         const action = btn.getAttribute('data-action') || 'mark';
         let reason = '';
         if (action === 'mark') {
-          const input = window.prompt('Motivo da marcacao:', currentReason);
+          const input = await openModal();
           if (input === null) return;
           reason = input;
-          reason = reason.trim();
-          if (!reason) {
-            alert('Informe o motivo da marcacao.');
-            return;
-          }
         }
         btn.disabled = true;
         try {
