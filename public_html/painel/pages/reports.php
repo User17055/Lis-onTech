@@ -336,7 +336,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
           <small id="monthFilterCount"></small>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button type="button" class="btn-secondary" id="btnAllMonths" style="height:36px;padding:0 14px;"><i class="fa-solid fa-layer-group"></i> Limpar</button>
+          <button type="button" class="btn-secondary" id="btnAllMonths" style="height:36px;padding:0 14px;"><i class="fa-solid fa-filter-circle-xmark"></i> Limpar filtros</button>
           <button type="button" class="btn-secondary" id="btnToggleMonths" style="height:36px;padding:0 14px;"><i class="fa-regular fa-calendar-days"></i> Filtrar mes</button>
         </div>
       </div>
@@ -408,7 +408,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       </div>
       <div class="mark-card-body">
         <label for="markReason">Motivo</label>
-        <textarea id="markReason" placeholder="Ex: protestado, franquia, financeiro confirmou..."></textarea>
+        <textarea id="markReason" placeholder="Protestado, franquia, financeiro confirmou..."></textarea>
         <div id="markError" class="mark-error"></div>
       </div>
       <div class="mark-card-actions">
@@ -422,6 +422,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     const repState = { rows: [], expanded: new Set(), contextRowKey: '' };
     const $rep = (id) => document.getElementById(id);
     let reportsLoading = false;
+    let reportsRequestId = 0;
     const reportUrlParams = new URLSearchParams(location.search);
     let selectedMonth = reportUrlParams.get('month') || '';
     let markFilter = reportUrlParams.get('mark_filter') || 'all';
@@ -564,6 +565,32 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       return repState.rows.find(row => String(row.customer_key || '') === String(key));
     }
 
+    function syncFilterControls(){
+      if ($rep('markFilter')) $rep('markFilter').value = markFilter;
+      if ($rep('prefixFilter')) $rep('prefixFilter').value = prefixFilter;
+      if ($rep('monthFilter')) $rep('monthFilter').value = selectedMonth;
+    }
+
+    function clearAllFilters(){
+      selectedMonth = '';
+      markFilter = 'all';
+      prefixFilter = 'all';
+      monthsExpanded = false;
+      const q = $rep('repQ');
+      if (q) q.value = '';
+      syncFilterControls();
+      const board = $rep('monthBoard');
+      if (board) board.classList.remove('expanded');
+      repState.expanded.clear();
+      closeContextMenu();
+    }
+
+    function keepMarkedRowVisible(action){
+      if (action === 'mark' && markFilter === 'unmarked') markFilter = 'all';
+      if (action === 'unmark' && markFilter === 'marked') markFilter = 'all';
+      syncFilterControls();
+    }
+
     function closeContextMenu(){
       const menu = $rep('reportContextMenu');
       if (menu) menu.classList.remove('open');
@@ -665,6 +692,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       if (!resp.ok || !data || data.ok === false) {
         throw new Error(data?.error || text.slice(0, 160) || 'Falha ao salvar marcacao');
       }
+      keepMarkedRowVisible(action);
       setStatus(action === 'mark' ? 'Cliente marcado' : 'Marcacao removida');
       await loadReports(false, true);
     }
@@ -972,6 +1000,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
 
     async function syncReportsChunked(){
       if (reportsLoading) return;
+      const requestId = ++reportsRequestId;
       reportsLoading = true;
       const btnLoad = $rep('btnLoadReports');
       const btnSync = $rep('btnSyncReports');
@@ -1005,6 +1034,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
             max_pages: 6,
             status_limit: 0
           }, 30000);
+          if (requestId !== reportsRequestId) return;
           const vm = lastData?.meta?.vindi || {};
           totals.bills_read += Number(vm.bills_read || 0);
           totals.saved_local += Number(vm.saved_local || lastData?.meta?.saved_local || 0);
@@ -1025,6 +1055,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
           max_pages: 1,
           status_limit: 80
         }, 30000);
+        if (requestId !== reportsRequestId) return;
         const finalVm = lastData?.meta?.vindi || {};
         totals.bills_read += Number(finalVm.bills_read || 0);
         totals.saved_local += Number(finalVm.saved_local || lastData?.meta?.saved_local || 0);
@@ -1045,14 +1076,17 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         syncUrlState();
         setStatus('Sincronizado em ' + new Date().toLocaleString('pt-BR'));
       } catch (e) {
+        if (requestId !== reportsRequestId) return;
         setStatus(e.message || 'Erro ao sincronizar', true);
         await loadReports(false, true);
       } finally {
-        reportsLoading = false;
-        if (btnLoad) btnLoad.disabled = false;
-        if (btnSync) {
-          btnSync.disabled = false;
-          btnSync.innerHTML = originalSync;
+        if (requestId === reportsRequestId) {
+          reportsLoading = false;
+          if (btnLoad) btnLoad.disabled = false;
+          if (btnSync) {
+            btnSync.disabled = false;
+            btnSync.innerHTML = originalSync;
+          }
         }
       }
     }
@@ -1063,6 +1097,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         return;
       }
       if (reportsLoading && !force) return;
+      const requestId = ++reportsRequestId;
       reportsLoading = true;
       const btnLoad = $rep('btnLoadReports');
       const btnSync = $rep('btnSyncReports');
@@ -1083,20 +1118,24 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         const q = $rep('repQ').value.trim();
         const data = await fetchReportsData({q, month: selectedMonth, local_limit: 20000, mark_filter: markFilter, prefix_filter: prefixFilter});
         if (!data) return;
+        if (requestId !== reportsRequestId) return;
         applyData(data);
         syncUrlState();
         setStatus((sync ? 'Sincronizado em ' : 'Atualizado em ') + new Date().toLocaleString('pt-BR'));
       } catch (e) {
+        if (requestId !== reportsRequestId) return;
         setStatus(e.message || 'Erro ao carregar', true);
         if (repState.rows.length === 0) {
           $rep('repBody').innerHTML = `<tr><td colspan="6"><div class="empty">${esc(e.message || 'Erro ao carregar relatorios.')}</div></td></tr>`;
         }
       } finally {
-        reportsLoading = false;
-        if (btnLoad) btnLoad.disabled = false;
-        if (btnSync) {
-          btnSync.disabled = false;
-          btnSync.innerHTML = originalSync;
+        if (requestId === reportsRequestId) {
+          reportsLoading = false;
+          if (btnLoad) btnLoad.disabled = false;
+          if (btnSync) {
+            btnSync.disabled = false;
+            btnSync.innerHTML = originalSync;
+          }
         }
       }
     }
@@ -1159,17 +1198,20 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     $rep('markFilter').addEventListener('change', () => {
       markFilter = $rep('markFilter').value;
       repState.expanded.clear();
-      loadReports(false);
+      closeContextMenu();
+      loadReports(false, true);
     });
     $rep('prefixFilter').addEventListener('change', () => {
       prefixFilter = $rep('prefixFilter').value;
       repState.expanded.clear();
-      loadReports(false);
+      closeContextMenu();
+      loadReports(false, true);
     });
     $rep('monthFilter').addEventListener('change', () => {
       selectedMonth = $rep('monthFilter').value;
       repState.expanded.clear();
-      loadReports(false);
+      closeContextMenu();
+      loadReports(false, true);
     });
     $rep('monthYears').addEventListener('click', (event) => {
       const btn = event.target.closest('button[data-month]');
@@ -1177,13 +1219,12 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       selectedMonth = btn.getAttribute('data-month') || '';
       monthsExpanded = false;
       repState.expanded.clear();
-      loadReports(false);
+      closeContextMenu();
+      loadReports(false, true);
     });
     $rep('btnAllMonths').addEventListener('click', () => {
-      selectedMonth = '';
-      monthsExpanded = false;
-      repState.expanded.clear();
-      loadReports(false);
+      clearAllFilters();
+      loadReports(false, true);
     });
     $rep('btnToggleMonths').addEventListener('click', () => {
       monthsExpanded = !monthsExpanded;
@@ -1195,7 +1236,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     $rep('repQ').addEventListener('keydown', (event) => {
       if (event.key === 'Enter') {
         repState.expanded.clear();
-        loadReports(false);
+        closeContextMenu();
+        loadReports(false, true);
       }
     });
 

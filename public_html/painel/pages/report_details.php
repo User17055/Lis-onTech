@@ -401,7 +401,7 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
       </div>
       <div class="mark-card-body">
         <label for="markReason">Motivo</label>
-        <textarea id="markReason" placeholder="Ex: protestado, franquia, financeiro confirmou..."></textarea>
+        <textarea id="markReason" placeholder="Protestado, franquia, financeiro confirmou..."></textarea>
         <div id="markError" class="mark-error"></div>
       </div>
       <div class="mark-card-actions">
