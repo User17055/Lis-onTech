@@ -340,30 +340,20 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
     .summary-box.danger::before,.summary-box.danger .summary-fill{background:#ef4444;}
     .summary-box.warn::before,.summary-box.warn .summary-fill{background:#f59e0b;}
     .summary-box.ok::before,.summary-box.ok .summary-fill{background:#10b981;}
-    .debt-summary{min-height:32px;border:1px solid #e6eef7;border-radius:999px;background:#fff;display:inline-flex;align-items:center;overflow:hidden;box-shadow:0 3px 8px rgba(15,23,42,.035);}
-    .debt-part{height:32px;display:inline-flex;align-items:center;gap:6px;padding:0 11px;font-size:12px;font-weight:900;line-height:1;white-space:nowrap;border-right:1px solid #eef2f6;}
-    .debt-part:last-child{border-right:0;}
-    .debt-part.amount{color:#991b1b;}
-    .debt-part.bills{color:#1d4ed8;}
-    .debt-part.days{color:#b45309;}
-    .debt-part i{font-size:11px;opacity:.9;}
-    .detail-table{width:100%;border-collapse:separate;border-spacing:0 12px;}
-    .detail-table thead th{color:#64748b;font-size:13px;text-transform:uppercase;font-weight:1000;padding:0 30px;text-align:left;}
-    .detail-table tbody tr{background:#fff;box-shadow:0 4px 6px -1px rgba(0,0,0,.05),0 2px 4px -1px rgba(0,0,0,.03);border:2px solid #eef2f6;border-radius:20px;transition:.2s;cursor:pointer;}
-    .detail-table tbody tr:hover{transform:translateY(-2px);box-shadow:0 10px 15px -3px rgba(59,130,246,.15);border-color:#dbeafe;}
-    .detail-table tbody td{padding:18px 30px;vertical-align:middle;border-top:2px solid #eef2f6;border-bottom:2px solid #eef2f6;}
-    .detail-table tbody td:first-child{border-top-left-radius:20px;border-bottom-left-radius:20px;border-left:2px solid #eef2f6;}
-    .detail-table tbody td:last-child{border-top-right-radius:20px;border-bottom-right-radius:20px;border-right:2px solid #eef2f6;}
-    .bill-dot{width:10px;height:10px;background:#38b6ff;border-radius:50%;box-shadow:0 0 0 3px #dbeafe;}
-    .bill-doc{font-size:13px;color:#38b6ff;font-weight:800;margin-top:4px;display:inline-block;background:#eff6ff;padding:2px 8px;border-radius:10px;text-decoration:none;}
-    .bill-doc:hover{text-decoration:underline;}
-    .bill-name{font-weight:1000;font-size:15px;color:#0f172a;display:block;}
-    .bill-row-sub{display:block;color:#64748b;font-size:12px;font-weight:800;margin-top:5px;max-width:420px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .debt-brief{
+      width:max-content;max-width:100%;display:inline-grid;grid-template-columns:auto auto;align-items:center;gap:4px 10px;
+      padding:8px 12px;border:1px solid #e6eef7;border-radius:14px;background:linear-gradient(180deg,#fff,#fbfdff);
+      box-shadow:0 4px 10px rgba(15,23,42,.035);
+    }
+    .debt-brief strong{grid-column:1 / -1;color:#991b1b;font-size:15px;font-weight:1000;line-height:1;}
+    .debt-brief span{display:inline-flex;align-items:center;gap:5px;color:#64748b;font-size:11px;font-weight:900;white-space:nowrap;line-height:1;}
+    .debt-brief i{font-size:10px;color:#38b6ff;}
     .detail-date{font-size:13px;color:#64748b;font-weight:800;white-space:nowrap;}
     .btn-icon{color:#94a3b8;width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:.2s;text-decoration:none;border:2px solid transparent;background:transparent;}
     .btn-icon:hover{background:#f1f5f9;color:#38b6ff;border-color:#dbeafe;}
     .bill-list{display:grid;gap:12px;}
-    .bill-card{border:1px solid #e6eef7;border-radius:18px;padding:14px;background:#fff;display:grid;grid-template-columns:minmax(180px,.75fr) minmax(0,1.35fr) minmax(180px,.7fr);gap:14px;align-items:start;}
+    .bill-card{border:1px solid #e6eef7;border-radius:18px;padding:16px;background:#fff;display:grid;grid-template-columns:minmax(190px,.85fr) minmax(0,1.35fr) minmax(190px,.75fr);gap:16px;align-items:start;box-shadow:0 4px 10px rgba(15,23,42,.035);}
+    .bill-card:hover{border-color:#dbeafe;box-shadow:0 10px 15px -3px rgba(59,130,246,.12);}
     .bill-id{display:inline-flex;align-items:center;gap:8px;width:max-content;max-width:100%;padding:7px 11px;border-radius:999px;background:#eef8ff;color:#12628f;font-weight:1000;text-decoration:none;font-size:12px;}
     .bill-amount{font-size:21px;font-weight:1000;margin-top:10px;color:#0f172a;}
     .bill-muted{display:flex;align-items:flex-start;gap:8px;color:#64748b;font-weight:900;font-size:12px;margin-top:8px;line-height:1.3;}
@@ -381,8 +371,8 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
     .log-main strong{display:block;font-weight:1000;color:#0f172a;font-size:13px;}
     .log-main span{display:block;color:#64748b;font-size:12px;font-weight:800;margin-top:2px;}
     .empty{color:#64748b;font-size:13px;font-weight:800;text-align:center;padding:28px 12px;background:#f4f7fa;border-radius:16px;}
-    @media(max-width:900px){.summary-grid{grid-template-columns:repeat(2,minmax(150px,1fr));}.bill-card{grid-template-columns:1fr;}.bill-side{justify-items:start;text-align:left;}.det-top{align-items:flex-start;}.det-top-actions{margin-left:0;width:100%;justify-content:flex-start;}.detail-table{min-width:820px;}.det-table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}}
-    @media(max-width:560px){.report-detail-wrap{padding:0 8px;}.det-top{flex-wrap:wrap;border-radius:16px;}.det-title{white-space:normal;font-size:16px;}.summary-grid{grid-template-columns:1fr;}.det-btn{width:100%;justify-content:center;}.log-row{grid-template-columns:36px 1fr;}.log-row .mini-chip{grid-column:1 / -1;justify-content:center;}.mark-card-sub{max-width:230px;}.debt-summary{display:flex;width:max-content;max-width:100%;}.debt-part{padding:0 9px;}}
+    @media(max-width:900px){.summary-grid{grid-template-columns:repeat(2,minmax(150px,1fr));}.bill-card{grid-template-columns:1fr;}.bill-side{justify-items:start;text-align:left;}.det-top{align-items:flex-start;}.det-top-actions{margin-left:0;width:100%;justify-content:flex-start;}}
+    @media(max-width:560px){.report-detail-wrap{padding:0 8px;}.det-top{flex-wrap:wrap;border-radius:16px;}.det-title{white-space:normal;font-size:16px;}.summary-grid{grid-template-columns:1fr;}.det-btn{width:100%;justify-content:center;}.log-row{grid-template-columns:36px 1fr;}.log-row .mini-chip{grid-column:1 / -1;justify-content:center;}.mark-card-sub{max-width:230px;}.debt-brief{width:100%;}.debt-brief strong{font-size:14px;}}
   </style>
 
   <div class="det-top <?=!empty($mark['marked']) ? 'marked' : ''?>">
@@ -451,53 +441,39 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
       <?php if (!$bills): ?>
         <div class="empty">Nenhuma fatura aberta para este cliente nesse filtro.</div>
       <?php else: ?>
-        <div class="det-table-scroll">
-          <table class="detail-table">
-            <thead>
-              <tr>
-                <th style="width:20px"></th>
-                <th>Parcela / Fatura</th>
-                <th>Status</th>
-                <th style="text-align:right;">Detalhes</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php foreach ($bills as $bill):
-                $billId = (int)($bill['bill_id'] ?? 0);
-                $billUrl = trim((string)($bill['bill_url'] ?? ''));
-                $last = $bill['last_reminder_calc'] ?? null;
-                $items = trim((string)($bill['items_text'] ?? '')) ?: 'Sem itens informados';
-              ?>
-                <tr data-href="<?=h($billUrl)?>" onclick="if(this.dataset.href){window.open(this.dataset.href,'_blank','noopener')}" title="<?=h($billUrl ? 'Abrir na Vindi' : 'Fatura local')?>">
-                  <td style="text-align:center;"><div class="bill-dot"></div></td>
-                  <td>
-                    <?php if ($billUrl): ?>
-                      <a class="bill-doc" href="<?=h($billUrl)?>" target="_blank" rel="noopener" onclick="event.stopPropagation();">Bill <?=h($billId)?></a>
-                    <?php else: ?>
-                      <span class="bill-doc">Bill <?=h($billId)?></span>
-                    <?php endif; ?>
-                    <span class="bill-row-sub"><?=h($items)?></span>
-                  </td>
-                  <td>
-                    <span class="debt-summary">
-                      <span class="debt-part amount"><i class="fa-solid fa-coins"></i> <?=h(rdMoneyBr($bill['amount_num']))?></span>
-                      <span class="debt-part days"><i class="fa-regular fa-calendar"></i> <?=h((int)$bill['days_overdue'])?>d</span>
-                    </span>
-                  </td>
-                  <td style="text-align:right;">
-                    <div style="display:flex;align-items:center;justify-content:flex-end;gap:15px;">
-                      <span class="detail-date"><?=h(rdDateBr($bill['due_at'] ?? null))?> | <?=h($bill['sent_num'])?> rec.</span>
-                      <?php if ($billUrl): ?>
-                        <a href="<?=h($billUrl)?>" class="btn-icon" target="_blank" rel="noopener" onclick="event.stopPropagation();"><i class="fa-solid fa-chevron-right"></i></a>
-                      <?php else: ?>
-                        <span class="btn-icon"><i class="fa-solid fa-chevron-right"></i></span>
-                      <?php endif; ?>
-                    </div>
-                  </td>
-                </tr>
-              <?php endforeach; ?>
-            </tbody>
-          </table>
+        <div class="bill-list">
+          <?php foreach ($bills as $bill):
+            $billId = (int)($bill['bill_id'] ?? 0);
+            $billUrl = trim((string)($bill['bill_url'] ?? ''));
+            $last = $bill['last_reminder_calc'] ?? null;
+          ?>
+            <div class="bill-card">
+              <div class="bill-head">
+                <?php if ($billUrl): ?>
+                  <a class="bill-id" href="<?=h($billUrl)?>" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square"></i> Bill <?=h($billId)?></a>
+                <?php else: ?>
+                  <span class="bill-id"><i class="fa-solid fa-file-invoice"></i> Bill <?=h($billId)?></span>
+                <?php endif; ?>
+                <span class="debt-brief">
+                  <strong><?=h(rdMoneyBr($bill['amount_num']))?></strong>
+                  <span><i class="fa-regular fa-calendar"></i> <?=h((int)$bill['days_overdue'])?> dia(s)</span>
+                  <span><i class="fa-brands fa-whatsapp"></i> <?=h($bill['sent_num'])?> rec.</span>
+                </span>
+                <div class="bill-muted"><i class="fa-regular fa-calendar"></i><span>Venceu em <?=h(rdDateBr($bill['due_at'] ?? null))?></span></div>
+              </div>
+              <div>
+                <div class="bill-label"><i class="fa-solid fa-list-check"></i> O que esta devendo</div>
+                <div class="bill-items"><?=h(trim((string)($bill['items_text'] ?? '')) ?: 'Sem itens informados')?></div>
+              </div>
+              <div class="bill-side">
+                <span class="mini-chip"><i class="fa-solid fa-rotate"></i> <?=h($bill['attempts_num'])?> tentativa(s)</span>
+                <span class="mini-chip"><i class="fa-regular fa-clock"></i> <?=h($last ? rdDateTimeBr($last) : 'Sem envio')?></span>
+                <?php if ($billUrl): ?>
+                  <a class="mini-chip" href="<?=h($billUrl)?>" target="_blank" rel="noopener" style="text-decoration:none;"><i class="fa-solid fa-arrow-up-right-from-square"></i> Vindi</a>
+                <?php endif; ?>
+              </div>
+            </div>
+          <?php endforeach; ?>
         </div>
       <?php endif; ?>
     </div>
