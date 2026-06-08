@@ -184,6 +184,13 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .b-paid{background:#d9f8f771;color:#0e7490;}
     .b-pending{background:#fff4d671;color:#b45309;}
     .b-marked{background:#fee2e2;color:#991b1b;}
+    .report-mini-stack{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+    .report-mini{min-height:28px;padding:0 10px;border-radius:var(--radius-pill);display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:800;line-height:1;white-space:nowrap;}
+    .report-mini.amount{background:#fee2e271;color:#991b1b;}
+    .report-mini.bills{background:#e8f1ff71;color:#1d4ed8;}
+    .report-mini.days{background:#fff4d671;color:#b45309;}
+    .report-mini.marked{background:#fee2e2;color:#991b1b;}
+    .report-mini i{font-size:11px;}
     .detail-date{font-size:13px;color:var(--text-muted);font-weight:600;white-space:nowrap;}
     .mark-reason{display:block;margin-top:6px;color:#991b1b;font-size:12px;font-weight:900;}
     .report-context-menu{
@@ -805,9 +812,14 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         const doc = row.customer_id ? `DOC: ${row.customer_id}` : (row.phone ? `TEL: ${row.phone}` : 'DOC: -');
         const dotColor = marked ? 'var(--red-text)' : 'var(--primary)';
         const dotBg = marked ? 'var(--red-bg)' : 'var(--blue-bg)';
-        const statusHtml = marked
-          ? '<span class="badge b-marked"><i class="fa-solid fa-flag"></i> MARCADO</span>'
-          : '<span class="badge b-pending"><i class="fa-solid fa-triangle-exclamation"></i> DEVENDO</span>';
+        const statusHtml = `
+          <span class="report-mini-stack">
+            <span class="report-mini amount"><i class="fa-solid fa-coins"></i> ${brMoney(row.total_amount)}</span>
+            <span class="report-mini bills"><i class="fa-solid fa-file-invoice"></i> ${brNumber(row.open_bills)}</span>
+            <span class="report-mini days"><i class="fa-regular fa-calendar"></i> ${brNumber(row.max_days_overdue)}d</span>
+            ${marked ? '<span class="report-mini marked"><i class="fa-solid fa-flag"></i></span>' : ''}
+          </span>
+        `;
         return `
           <tr class="rep-row ${marked ? 'marked' : ''}" data-key="${esc(key)}" data-href="${esc(detailsHref)}" title="Clique para abrir detalhes">
             <td style="text-align:center;">
@@ -816,7 +828,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
             <td>
               <span class="customer-name">${esc(row.customer_name || 'Cliente')}</span>
               <span class="bill-id">${esc(doc)}</span>
-              <span class="row-sub">${brMoney(row.total_amount)} | ${brNumber(row.open_bills)} fatura(s)${prefix ? ` | (${esc(prefix)})` : ''}</span>
+              ${prefix ? `<span class="row-sub">(${esc(prefix)})</span>` : ''}
               ${marked && reason ? `<span class="mark-reason"><i class="fa-solid fa-flag"></i> ${esc(reason)}</span>` : ''}
             </td>
             <td>
@@ -824,7 +836,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
             </td>
             <td style="text-align:right;">
               <div style="display:flex; align-items:center; justify-content:flex-end; gap:15px;">
-                <span class="detail-date">${esc(brDate(row.oldest_due_at))} | ${brNumber(row.max_days_overdue)} dia(s) | ${brNumber(row.reminders_sent)} rec.</span>
+                <span class="detail-date">${esc(brDate(row.oldest_due_at))} | ${brNumber(row.reminders_sent)} rec.</span>
                 <a href="${esc(detailsHref)}" class="btn-icon" onclick="event.stopPropagation(); window.LisOnPageLoader?.show();">
                   <i class="fa-solid fa-chevron-right"></i>
                 </a>
