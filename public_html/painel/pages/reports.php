@@ -80,9 +80,11 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     }
     .btn-secondary:hover{transform:translateY(-2px);border-color:#dbeafe;color:var(--primary);}
     .btn-primary:disabled,.btn-secondary:disabled{opacity:.55;cursor:not-allowed;transform:none;}
-    .toggle-wrapper{height:45px;display:flex;align-items:center;gap:8px;padding:0 14px;border:2px solid var(--border-color);border-radius:999px;background:#fff;box-shadow:var(--shadow-soft);}
-    .custom-check{accent-color:var(--primary);width:18px;height:18px;cursor:pointer;}
-    .toggle-wrapper label{font-size:13px;font-weight:900;color:var(--text-muted);cursor:pointer;white-space:nowrap;}
+    .filter-select{
+      width:auto;min-width:150px;height:45px;border:2px solid var(--border-color);border-radius:999px;background:#fff;color:var(--text-main);
+      padding:0 14px;font-family:'Nunito',sans-serif;font-weight:900;box-shadow:var(--shadow-soft);outline:none;cursor:pointer;
+    }
+    .filter-select:focus{border-color:var(--primary);box-shadow:0 0 0 4px rgba(59,130,246,.1);}
     .summary-grid{display:grid;grid-template-columns:repeat(5,minmax(150px,1fr));gap:14px;margin-bottom:18px;}
     .metric{
       background:#fff;border:2px solid var(--border-color);border-radius:var(--radius-card);padding:16px 18px;box-shadow:var(--shadow-soft);
@@ -159,11 +161,15 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     }
     .btn-mini:hover{border-color:#bfe8ff;color:#12628f;transform:translateY(-1px);}
     .btn-mini.primary{background:#eef8ff;border-color:#bfe8ff;color:#12628f;}
+    .btn-mini.danger{background:#fff;border-color:#fecaca;color:#991b1b;}
+    .btn-mini.danger:hover{background:#fee2e2;border-color:#fecaca;color:#991b1b;}
     table{width:100%;border-collapse:separate;border-spacing:0 12px;}
     thead th{color:var(--text-muted);font-size:13px;text-transform:uppercase;font-weight:800;padding:0 20px;text-align:left;}
     thead th:last-child, tbody td:last-child{text-align:right;}
     tbody tr.rep-row{background:#fff;box-shadow:var(--shadow-soft);border:2px solid var(--border-color);border-radius:var(--radius-card);transition:.2s;cursor:pointer;}
     tbody tr.rep-row:hover{transform:translateY(-2px);box-shadow:var(--shadow-hover);border-color:#dbeafe;}
+    tbody tr.rep-row.marked{background:#fff7f7;border-color:#fecaca;}
+    tbody tr.rep-row.marked:hover{border-color:#fca5a5;box-shadow:0 10px 15px -3px rgba(239,68,68,.12);}
     tbody tr.rep-row.open{box-shadow:var(--shadow-hover);}
     tbody td{padding:18px 20px;border-top:2px solid var(--border-color);border-bottom:2px solid var(--border-color);font-size:13px;font-weight:800;vertical-align:middle;}
     tbody td:first-child{border-left:2px solid var(--border-color);border-top-left-radius:var(--radius-card);border-bottom-left-radius:var(--radius-card);}
@@ -171,8 +177,10 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .customer-cell{display:grid;grid-template-columns:10px 1fr;gap:14px;align-items:center;}
     .status-strip{width:10px;height:46px;border-radius:99px;background:var(--primary);box-shadow:0 0 0 4px #eff6ff;}
     .status-strip.hot{background:#ef4444;box-shadow:0 0 0 4px #fee2e2;}
+    .status-strip.marked{background:#ef4444;box-shadow:0 0 0 4px #fee2e2;}
     .customer-name{font-size:15px;font-weight:900;display:block;}
     .muted{color:var(--text-muted);font-size:12px;font-weight:800;margin-top:3px;display:block;}
+    .mark-reason{display:inline-flex;align-items:center;gap:6px;margin-top:5px;color:#991b1b;font-size:12px;font-weight:900;}
     .detail-row td{padding:0 16px 18px;background:#fff;border:none;}
     .detail-panel{border:2px solid #e6eef7;border-radius:16px;background:#fbfdff;padding:14px;display:grid;gap:12px;}
     .detail-top{
@@ -224,6 +232,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       .toolbar{border-radius:8px;align-items:stretch;flex-direction:column;}
       .search-box{min-width:0;width:100%;}
       .month-control{width:100%;flex:auto;}
+      .filter-select{width:100%;}
       .summary-grid,.leader-strip,.bill-line{grid-template-columns:1fr;}
       .month-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
       .month-board-head{align-items:stretch;flex-direction:column;}
@@ -278,10 +287,17 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       <select id="monthFilter" class="form-control month-control is-hidden" title="Filtrar por mes">
         <option value="">Todos os meses</option>
       </select>
-      <div class="toggle-wrapper" title="Oculta clientes ou itens que comecam com (P)">
-        <input type="checkbox" id="hideProtested" class="custom-check">
-        <label for="hideProtested">Ocultar (P)</label>
-      </div>
+      <select id="markFilter" class="filter-select" title="Filtrar marcacoes">
+        <option value="all">Todos</option>
+        <option value="marked">Marcados</option>
+        <option value="unmarked">Nao marcados</option>
+      </select>
+      <select id="prefixFilter" class="filter-select" title="Filtrar prefixo">
+        <option value="all">Todos prefixos</option>
+        <option value="p">(P)</option>
+        <option value="f">(F)</option>
+        <option value="none">Sem prefixo</option>
+      </select>
       <button id="btnLoadReports" class="btn-primary" type="button"><i class="fa-solid fa-rotate"></i> Atualizar</button>
       <button id="btnSyncReports" class="btn-secondary" type="button"><i class="fa-solid fa-cloud-arrow-down"></i> Sincronizar Vindi</button>
     </div>
@@ -355,10 +371,14 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     let reportsLoading = false;
     const reportUrlParams = new URLSearchParams(location.search);
     let selectedMonth = reportUrlParams.get('month') || '';
-    let hideProtested = reportUrlParams.get('hide_protested') === '1';
+    let markFilter = reportUrlParams.get('mark_filter') || 'all';
+    let prefixFilter = reportUrlParams.get('prefix_filter') || 'all';
     let monthsExpanded = false;
     $rep('repQ').value = reportUrlParams.get('q') || '';
-    $rep('hideProtested').checked = hideProtested;
+    $rep('markFilter').value = ['all','marked','unmarked'].includes(markFilter) ? markFilter : 'all';
+    $rep('prefixFilter').value = ['all','p','f','none'].includes(prefixFilter) ? prefixFilter : 'all';
+    markFilter = $rep('markFilter').value;
+    prefixFilter = $rep('prefixFilter').value;
 
     function esc(value){
       return String(value ?? '').replace(/[&<>"']/g, m => ({
@@ -471,7 +491,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       const q = $rep('repQ')?.value?.trim() || '';
       if (q) url.searchParams.set('q', q);
       if (selectedMonth) url.searchParams.set('month', selectedMonth);
-      if (hideProtested) url.searchParams.set('hide_protested', '1');
+      if (markFilter !== 'all') url.searchParams.set('mark_filter', markFilter);
+      if (prefixFilter !== 'all') url.searchParams.set('prefix_filter', prefixFilter);
       return url.toString();
     }
 
@@ -484,6 +505,45 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       if (selectedMonth) url.searchParams.set('month', selectedMonth);
       url.searchParams.set('back', currentReportsHref());
       return url.toString();
+    }
+
+    function findRowByKey(key){
+      return repState.rows.find(row => String(row.customer_key || '') === String(key));
+    }
+
+    async function saveMark(row, action){
+      const key = String(row?.customer_key || '');
+      if (!key) return;
+      let reason = '';
+      if (action === 'mark') {
+        reason = window.prompt('Motivo da marcacao:', row?.mark?.reason || '');
+        if (reason === null) return;
+        reason = reason.trim();
+        if (!reason) {
+          setStatus('Informe o motivo da marcacao', true);
+          return;
+        }
+      }
+      const resp = await fetch('/painel/api/report_mark.php', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          action,
+          mark_key: key,
+          customer_id: row.customer_id || 0,
+          customer_name: row.customer_name || '',
+          reason
+        })
+      });
+      const text = await resp.text();
+      let data = null;
+      try { data = JSON.parse(text); } catch(e) {}
+      if (!resp.ok || !data || data.ok === false) {
+        throw new Error(data?.error || text.slice(0, 160) || 'Falha ao salvar marcacao');
+      }
+      setStatus(action === 'mark' ? 'Cliente marcado' : 'Marcacao removida');
+      await loadReports(false, true);
     }
 
     function renderLeader(row){
@@ -580,14 +640,18 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         const key = String(row.customer_key || idx);
         const hot = idx === 0 ? 'hot' : '';
         const detailsHref = reportDetailsHref(row);
+        const marked = !!row?.mark?.marked;
+        const reason = String(row?.mark?.reason || '').trim();
+        const prefix = String(row.prefix || '').toUpperCase();
         return `
-          <tr class="rep-row" data-key="${esc(key)}" data-href="${esc(detailsHref)}" title="Clique para abrir detalhes">
+          <tr class="rep-row ${marked ? 'marked' : ''}" data-key="${esc(key)}" data-href="${esc(detailsHref)}" title="Clique para abrir detalhes">
             <td>
               <div class="customer-cell">
-                <span class="status-strip ${hot}"></span>
+                <span class="status-strip ${marked ? 'marked' : hot}"></span>
                 <div>
                   <span class="customer-name">${esc(row.customer_name || 'Cliente')}</span>
-                  <span class="muted">${row.phone ? 'Tel ' + esc(row.phone) : 'Telefone nao salvo'} | ${brNumber(row.max_days_overdue)} dia(s) max.</span>
+                  <span class="muted">${row.phone ? 'Tel ' + esc(row.phone) : 'Telefone nao salvo'} | ${brNumber(row.max_days_overdue)} dia(s) max.${prefix ? ` | (${esc(prefix)})` : ''}</span>
+                  ${marked && reason ? `<span class="mark-reason"><i class="fa-solid fa-flag"></i> ${esc(reason)}</span>` : ''}
                 </div>
               </div>
             </td>
@@ -597,7 +661,9 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
             <td><span class="pill"><i class="fa-solid fa-paper-plane"></i> ${brNumber(row.reminders_sent)}</span></td>
             <td>
               <div class="row-actions">
-                <span class="row-time">Detalhes</span>
+                <button type="button" class="btn-mini ${marked ? 'danger' : ''}" data-mark-action="${marked ? 'unmark' : 'mark'}" data-key="${esc(key)}">
+                  <i class="fa-solid fa-flag"></i> ${marked ? 'Desmarcar' : 'Marcar'}
+                </button>
                 <a href="${esc(detailsHref)}" class="btn-icon" onclick="event.stopPropagation(); window.LisOnPageLoader?.show();" title="Abrir detalhes">
                   <i class="fa-solid fa-chevron-right"></i>
                 </a>
@@ -627,8 +693,15 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         `<span class="meta-chip"><i class="fa-solid fa-database"></i> Local ${brNumber(meta.local_rows || 0)}</span>`,
         `<span class="meta-chip"><i class="fa-solid fa-file-invoice"></i> ${brNumber(meta.merged_bills || 0)} faturas</span>`
       ];
-      if (meta.hide_protested) {
-        chips.push(`<span class="meta-chip warn"><i class="fa-solid fa-eye-slash"></i> Sem (P)</span>`);
+      if (meta.mark_filter && meta.mark_filter !== 'all') {
+        chips.push(`<span class="meta-chip warn"><i class="fa-solid fa-flag"></i> ${meta.mark_filter === 'marked' ? 'Marcados' : 'Nao marcados'}</span>`);
+      }
+      if (meta.prefix_filter && meta.prefix_filter !== 'all') {
+        const label = meta.prefix_filter === 'none' ? 'Sem prefixo' : `(${String(meta.prefix_filter).toUpperCase()})`;
+        chips.push(`<span class="meta-chip warn"><i class="fa-solid fa-filter"></i> ${esc(label)}</span>`);
+      }
+      if (Number(meta.marked_customers || 0) > 0) {
+        chips.push(`<span class="meta-chip danger"><i class="fa-solid fa-flag"></i> ${brNumber(meta.marked_customers)} marcados</span>`);
       }
       if (meta.sync && vindi.enabled) {
         chips.push(`<span class="meta-chip ok"><i class="fa-solid fa-cloud-arrow-down"></i> Vindi ${brNumber(vindi.bills_read || 0)}</span>`);
@@ -732,8 +805,10 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       else url.searchParams.delete('q');
       if (selectedMonth) url.searchParams.set('month', selectedMonth);
       else url.searchParams.delete('month');
-      if (hideProtested) url.searchParams.set('hide_protested', '1');
-      else url.searchParams.delete('hide_protested');
+      if (markFilter !== 'all') url.searchParams.set('mark_filter', markFilter);
+      else url.searchParams.delete('mark_filter');
+      if (prefixFilter !== 'all') url.searchParams.set('prefix_filter', prefixFilter);
+      else url.searchParams.delete('prefix_filter');
       history.replaceState(null, '', url.toString());
     }
 
@@ -796,7 +871,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
             month: selectedMonth,
             local_limit: 20000,
             sync: 1,
-            hide_protested: hideProtested ? 1 : 0,
+            mark_filter: markFilter,
+            prefix_filter: prefixFilter,
             sync_from: isoDate(start),
             sync_to: isoDate(syncTo),
             max_pages: 6,
@@ -815,7 +891,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
           month: selectedMonth,
           local_limit: 20000,
           sync: 1,
-          hide_protested: hideProtested ? 1 : 0,
+          mark_filter: markFilter,
+          prefix_filter: prefixFilter,
           sync_from: isoDate(new Date()),
           sync_to: isoDate(new Date()),
           max_pages: 1,
@@ -874,7 +951,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       `;
       try {
         const q = $rep('repQ').value.trim();
-        const data = await fetchReportsData({q, month: selectedMonth, local_limit: 20000, hide_protested: hideProtested ? 1 : 0});
+        const data = await fetchReportsData({q, month: selectedMonth, local_limit: 20000, mark_filter: markFilter, prefix_filter: prefixFilter});
         if (!data) return;
         applyData(data);
         syncUrlState();
@@ -893,6 +970,16 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     }
 
     $rep('repBody').addEventListener('click', (e) => {
+      const markBtn = e.target.closest('[data-mark-action]');
+      if (markBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const row = findRowByKey(markBtn.getAttribute('data-key'));
+        if (row) {
+          saveMark(row, markBtn.getAttribute('data-mark-action')).catch(err => setStatus(err.message, true));
+        }
+        return;
+      }
       if (e.target.closest('a,button,input,select,textarea')) return;
       const row = e.target.closest('tr.rep-row[data-href]');
       if (!row) return;
@@ -904,8 +991,13 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
 
     $rep('btnLoadReports').onclick = () => loadReports(false);
     $rep('btnSyncReports').onclick = () => loadReports(true);
-    $rep('hideProtested').addEventListener('change', () => {
-      hideProtested = $rep('hideProtested').checked;
+    $rep('markFilter').addEventListener('change', () => {
+      markFilter = $rep('markFilter').value;
+      repState.expanded.clear();
+      loadReports(false);
+    });
+    $rep('prefixFilter').addEventListener('change', () => {
+      prefixFilter = $rep('prefixFilter').value;
       repState.expanded.clear();
       loadReports(false);
     });

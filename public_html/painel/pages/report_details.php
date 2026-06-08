@@ -124,6 +124,33 @@ function rdSafeBackHref(): string {
     return $fallback;
 }
 
+function rdCustomerKey(int $customerId, string $phone, string $name): string {
+    if ($customerId > 0) return 'id:' . $customerId;
+    $digits = preg_replace('/\D+/', '', $phone) ?? '';
+    if ($digits !== '') return 'phone:' . $digits;
+    return 'name:' . strtolower(trim($name ?: 'Cliente'));
+}
+
+function rdFetchMark(PDO $pdo, string $markKey): array {
+    if ($markKey === '' || !rdTableExists($pdo, 'report_customer_marks')) {
+        return ['marked' => false, 'reason' => '', 'updated_at' => null];
+    }
+    $st = $pdo->prepare("
+        SELECT reason, updated_at
+        FROM report_customer_marks
+        WHERE mark_key = ? AND active = 1
+        LIMIT 1
+    ");
+    $st->execute([$markKey]);
+    $row = $st->fetch(PDO::FETCH_ASSOC);
+    if (!$row) return ['marked' => false, 'reason' => '', 'updated_at' => null];
+    return [
+        'marked' => true,
+        'reason' => trim((string)($row['reason'] ?? '')),
+        'updated_at' => $row['updated_at'] ?? null,
+    ];
+}
+
 $backHref = rdSafeBackHref();
 $customerId = (int)($_GET['customer_id'] ?? 0);
 $name = trim((string)($_GET['name'] ?? ''));
@@ -258,6 +285,8 @@ unset($bill);
 $profileHref = $customerId > 0 ? 'https://app.vindi.com.br/admin/customers/' . rawurlencode((string)$customerId) . '#tab-bills' : '';
 $monthLabel = $month !== '' ? rdMonthLabel($month) : 'Todos os meses';
 $countBills = count($bills);
+$markKey = rdCustomerKey($customerId, $phone, $customerName);
+$mark = rdFetchMark($pdo, $markKey);
 $totalFill = $total > 0 ? 100 : 0;
 $billFill = $countBills > 0 ? 100 : 0;
 $daysFill = min(100, $maxDays > 0 ? max(12, ($maxDays / 180) * 100) : 0);
@@ -268,6 +297,7 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
   <style>
     .report-detail-wrap{font-family:'Nunito',sans-serif;max-width:1100px;margin:10px auto;padding:0 12px;color:#0f172a;}
     .det-top{background:rgba(255,255,255,.94);border:2px solid #eef2f6;border-radius:18px;padding:14px 16px;display:flex;align-items:center;gap:14px;box-shadow:0 8px 20px rgba(15,23,42,.06);}
+    .det-top.marked{background:#fff7f7;border-color:#fecaca;}
     .det-back{width:42px;height:42px;border-radius:50%;background:#f4f7fa;display:flex;align-items:center;justify-content:center;text-decoration:none;color:#0f172a;transition:.2s;flex:0 0 auto;border:1px solid rgba(15,23,42,.06);}
     .det-back:hover{background:#e2e8f0;transform:translateX(-3px);}
     .det-head{min-width:0;display:flex;flex-direction:column;gap:6px;}
@@ -276,10 +306,14 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
     .det-sub{display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-weight:900;color:#64748b;font-size:13px;}
     .det-chip{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;border:1px solid #eef2f6;background:#fff;color:#334155;font-weight:1000;}
     .det-chip i{color:#38b6ff;}
+    .det-chip.marked{border-color:#fecaca;background:#fee2e2;color:#991b1b;}
+    .det-chip.marked i{color:#991b1b;}
     .det-top-actions{margin-left:auto;display:flex;align-items:center;gap:8px;flex:0 0 auto;flex-wrap:wrap;justify-content:flex-end;}
     .det-btn{height:42px;border:1px solid #e6eef7;border-radius:14px;background:#fff;color:#0f172a;padding:0 14px;display:inline-flex;align-items:center;gap:8px;text-decoration:none;font-weight:1000;transition:.2s;}
     .det-btn:hover{border-color:#bfebff;color:#12628f;transform:translateY(-1px);}
     .det-btn.primary{background:#38b6ff;color:#fff;border-color:#38b6ff;box-shadow:0 4px 12px rgba(56,182,255,.28);}
+    .det-btn.danger{border-color:#fecaca;background:#fee2e2;color:#991b1b;}
+    .det-btn:disabled{opacity:.55;cursor:not-allowed;transform:none;}
     .det-card{margin-top:18px;background:#fff;border:2px solid #eef2f6;border-radius:18px;padding:18px;box-shadow:0 8px 18px rgba(15,23,42,.05);}
     .det-card-title{font-weight:1000;color:#38b6ff;margin-bottom:12px;display:flex;align-items:center;gap:10px;font-size:14px;}
     .summary-grid{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:12px;}
@@ -316,7 +350,7 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
     @media(max-width:560px){.report-detail-wrap{padding:0 8px;}.det-top{flex-wrap:wrap;border-radius:16px;}.det-title{white-space:normal;font-size:16px;}.summary-grid{grid-template-columns:1fr;}.det-btn{width:100%;justify-content:center;}.log-row{grid-template-columns:36px 1fr;}.log-row .mini-chip{grid-column:1 / -1;justify-content:center;}}
   </style>
 
-  <div class="det-top">
+  <div class="det-top <?=!empty($mark['marked']) ? 'marked' : ''?>">
     <a class="det-back" href="<?=h($backHref)?>" title="Voltar">
       <i class="fa-solid fa-arrow-left"></i>
     </a>
@@ -329,9 +363,11 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
         <span class="det-chip"><i class="fa-regular fa-calendar"></i> <?=h($monthLabel)?></span>
         <?php if ($customerId > 0): ?><span class="det-chip"><i class="fa-solid fa-id-card"></i> ID <?=h($customerId)?></span><?php endif; ?>
         <span class="det-chip"><i class="fa-solid fa-phone"></i> <?=h($phone ?: 'Telefone nao salvo')?></span>
+        <?php if (!empty($mark['marked'])): ?><span class="det-chip marked"><i class="fa-solid fa-flag"></i> <?=h($mark['reason'] ?: 'Marcado')?></span><?php endif; ?>
       </div>
     </div>
     <div class="det-top-actions">
+      <button type="button" class="det-btn <?=!empty($mark['marked']) ? 'danger' : ''?>" id="btnReportMark" data-action="<?=!empty($mark['marked']) ? 'unmark' : 'mark'?>"><i class="fa-solid fa-flag"></i> <?=!empty($mark['marked']) ? 'Desmarcar' : 'Marcar'?></button>
       <?php if ($profileHref): ?>
         <a class="det-btn primary" href="<?=h($profileHref)?>" target="_blank" rel="noopener"><i class="fa-solid fa-user"></i> Perfil</a>
       <?php endif; ?>
@@ -412,4 +448,55 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
       <?php endif; ?>
     </div>
   <?php endif; ?>
+
+  <script>
+    (() => {
+      const btn = document.getElementById('btnReportMark');
+      if (!btn) return;
+      const markKey = <?=json_encode($markKey, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)?>;
+      const customerId = <?=json_encode($customerId)?>;
+      const customerName = <?=json_encode($customerName, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)?>;
+      const currentReason = <?=json_encode((string)($mark['reason'] ?? ''), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)?>;
+      btn.addEventListener('click', async () => {
+        const action = btn.getAttribute('data-action') || 'mark';
+        let reason = '';
+        if (action === 'mark') {
+          const input = window.prompt('Motivo da marcacao:', currentReason);
+          if (input === null) return;
+          reason = input;
+          reason = reason.trim();
+          if (!reason) {
+            alert('Informe o motivo da marcacao.');
+            return;
+          }
+        }
+        btn.disabled = true;
+        try {
+          const resp = await fetch('/painel/api/report_mark.php', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+              action,
+              mark_key: markKey,
+              customer_id: customerId,
+              customer_name: customerName,
+              reason
+            })
+          });
+          const text = await resp.text();
+          let data = null;
+          try { data = JSON.parse(text); } catch(e) {}
+          if (!resp.ok || !data || data.ok === false) {
+            throw new Error(data?.error || text.slice(0, 160) || 'Falha ao salvar marcacao');
+          }
+          window.location.reload();
+        } catch (e) {
+          alert(e.message || 'Falha ao salvar marcacao');
+        } finally {
+          btn.disabled = false;
+        }
+      });
+    })();
+  </script>
 </div>

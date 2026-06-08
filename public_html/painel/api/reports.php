@@ -84,6 +84,45 @@ function reportsCustomerKey(array $row): string
     return 'name:' . strtolower(trim((string)($row['customer_name'] ?? 'Cliente')));
 }
 
+function reportsEnsureMarksStorage(PDO $pdo): void
+{
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS report_customer_marks (
+            mark_key VARCHAR(220) NOT NULL,
+            customer_id BIGINT UNSIGNED NULL,
+            customer_name VARCHAR(180) NULL,
+            reason TEXT NULL,
+            active TINYINT(1) NOT NULL DEFAULT 1,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (mark_key),
+            KEY idx_report_customer_marks_active (active),
+            KEY idx_report_customer_marks_customer (customer_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    ");
+}
+
+function reportsFetchMarks(PDO $pdo): array
+{
+    if (!reportsTableExists($pdo, 'report_customer_marks')) return [];
+    reportsEnsureMarksStorage($pdo);
+
+    $map = [];
+    $st = $pdo->query("
+        SELECT mark_key, customer_id, customer_name, reason, active, updated_at
+        FROM report_customer_marks
+        WHERE active = 1
+    ");
+    foreach ($st->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
+        $map[(string)$row['mark_key']] = [
+            'marked' => true,
+            'reason' => trim((string)($row['reason'] ?? '')),
+            'updated_at' => $row['updated_at'] ?? null,
+        ];
+    }
+    return $map;
+}
+
 function reportsCurlGetWithHeaders(string $url, string $apiKey): array
 {
     if (!function_exists('curl_init')) {
@@ -465,37 +504,46 @@ function reportsMonthLabel(string $month): string
     return ($names[$m[2]] ?? $m[2]) . ' ' . $m[1];
 }
 
-function reportsProtestedSql(PDO $pdo, string $alias = ''): string
+function reportsPrefixSql(PDO $pdo, string $prefixFilter, string $alias = ''): string
 {
+    $prefixFilter = strtolower(trim($prefixFilter));
+    if (!in_array($prefixFilter, ['p', 'f', 'none'], true)) return '1=1';
+
     $prefix = $alias !== '' ? rtrim($alias, '.') . '.' : '';
     $parts = [];
     if (reportsColumnExists($pdo, 'bill_reminders', 'customer_name')) {
-        $parts[] = "LOWER(TRIM(COALESCE({$prefix}customer_name, ''))) LIKE '(p)%'";
+        $parts[] = "LOWER(TRIM(COALESCE({$prefix}customer_name, ''))) LIKE '({$prefixFilter})%'";
     }
     if (reportsColumnExists($pdo, 'bill_reminders', 'items_text')) {
-        $parts[] = "LOWER(TRIM(COALESCE({$prefix}items_text, ''))) LIKE '(p)%'";
+        $parts[] = "LOWER(TRIM(COALESCE({$prefix}items_text, ''))) LIKE '({$prefixFilter})%'";
     }
-    return $parts ? '(' . implode(' OR ', $parts) . ')' : '0=1';
+    if (!$parts) return $prefixFilter === 'none' ? '1=1' : '0=1';
+
+    $sql = '(' . implode(' OR ', $parts) . ')';
+    return $prefixFilter === 'none' ? "NOT {$sql}" : $sql;
 }
 
-function reportsIsProtestedRow(array $row): bool
+function reportsRowPrefix(array $row): string
 {
     foreach (['customer_name', 'items_text'] as $key) {
         $value = trim((string)($row[$key] ?? ''));
-        if (preg_match('/^\([Pp]\)/', $value)) return true;
+        if (preg_match('/^\(([PpFf])\)/', $value, $m)) return strtolower($m[1]);
     }
-    return false;
+    return '';
 }
 
-function reportsFilterProtested(array $rows, bool $hideProtested): array
+function reportsFilterByPrefix(array $rows, string $prefixFilter): array
 {
-    if (!$hideProtested) return $rows;
-    return array_values(array_filter($rows, function (array $row): bool {
-        return !reportsIsProtestedRow($row);
+    $prefixFilter = strtolower(trim($prefixFilter));
+    if (!in_array($prefixFilter, ['p', 'f', 'none'], true)) return $rows;
+    return array_values(array_filter($rows, function (array $row) use ($prefixFilter): bool {
+        $prefix = reportsRowPrefix($row);
+        if ($prefixFilter === 'none') return $prefix === '';
+        return $prefix === $prefixFilter;
     }));
 }
 
-function reportsAvailableMonths(PDO $pdo, bool $hideProtested = false): array
+function reportsAvailableMonths(PDO $pdo, string $prefixFilter = 'all'): array
 {
     if (!reportsTableExists($pdo, 'bill_reminders') || !reportsColumnExists($pdo, 'bill_reminders', 'due_at')) {
         return [];
@@ -508,8 +556,8 @@ function reportsAvailableMonths(PDO $pdo, bool $hideProtested = false): array
     if (reportsColumnExists($pdo, 'bill_reminders', 'status')) {
         $where[] = "LOWER(COALESCE(NULLIF(status, ''), 'unpaid')) IN ('unpaid','pending','overdue')";
     }
-    if ($hideProtested) {
-        $where[] = 'NOT ' . reportsProtestedSql($pdo, '');
+    if (in_array($prefixFilter, ['p', 'f', 'none'], true)) {
+        $where[] = reportsPrefixSql($pdo, $prefixFilter, '');
     }
 
     $stmt = $pdo->query("
@@ -573,7 +621,7 @@ function reportsFilterRowsByMonth(array $rows, string $month): array
     }));
 }
 
-function reportsFetchLocalBills(PDO $pdo, string $q, int $limit, string $month = '', bool $hideProtested = false): array
+function reportsFetchLocalBills(PDO $pdo, string $q, int $limit, string $month = '', string $prefixFilter = 'all'): array
 {
     if (!reportsTableExists($pdo, 'bill_reminders')) return [];
 
@@ -602,8 +650,8 @@ function reportsFetchLocalBills(PDO $pdo, string $q, int $limit, string $month =
         $where[] = 'br.due_at IS NOT NULL AND br.due_at < :visible_end';
         $params[':visible_end'] = reportsVisibleEndExclusive();
     }
-    if ($hideProtested) {
-        $where[] = 'NOT ' . reportsProtestedSql($pdo, 'br');
+    if (in_array($prefixFilter, ['p', 'f', 'none'], true)) {
+        $where[] = reportsPrefixSql($pdo, $prefixFilter, 'br');
     }
     if ($q !== '') {
         $search = [];
@@ -721,7 +769,10 @@ function reportsMonthWindows(string $from, string $to): array
 try {
     $q = trim((string)($_GET['q'] ?? ''));
     $sync = (string)($_GET['sync'] ?? '0') === '1';
-    $hideProtested = (string)($_GET['hide_protested'] ?? '0') === '1';
+    $prefixFilter = strtolower(trim((string)($_GET['prefix_filter'] ?? 'all')));
+    if (!in_array($prefixFilter, ['all', 'p', 'f', 'none'], true)) $prefixFilter = 'all';
+    $markFilter = strtolower(trim((string)($_GET['mark_filter'] ?? 'all')));
+    if (!in_array($markFilter, ['all', 'marked', 'unmarked'], true)) $markFilter = 'all';
     $month = trim((string)($_GET['month'] ?? ''));
     if (!preg_match('/^\d{4}-\d{2}$/', $month)) $month = '';
     if ($month !== '' && $month > date('Y-m')) $month = '';
@@ -736,7 +787,10 @@ try {
     $savedLocal = 0;
     $statusRefresh = ['checked' => 0, 'settled' => 0, 'settled_ids' => []];
 
-    $localRows = reportsFetchLocalBills($pdo, $q, $localLimit, $month, $hideProtested);
+    reportsEnsureMarksStorage($pdo);
+    $markMap = reportsFetchMarks($pdo);
+
+    $localRows = reportsFetchLocalBills($pdo, $q, $localLimit, $month, $prefixFilter);
     $localByBill = [];
     foreach ($localRows as $row) {
         $billId = (int)($row['bill_id'] ?? 0);
@@ -836,17 +890,17 @@ try {
         $vindiMeta['error'] = 'VINDI_API_KEY nao configurada';
     }
 
-    $bills = reportsFilterProtested(
+    $bills = reportsFilterByPrefix(
         reportsFilterRowsByMonth(
             reportsFilterVisibleMonths(
                 reportsFilterRowsByText(array_values($rowsByBill), $q)
             ),
             $month
         ),
-        $hideProtested
+        $prefixFilter
     );
     reportsEnsurePdo($pdo, $cfg);
-    $availableMonths = reportsAvailableMonths($pdo, $hideProtested);
+    $availableMonths = reportsAvailableMonths($pdo, $prefixFilter);
     $logMap = reportsFetchLogMap($pdo, array_column($bills, 'bill_id'));
 
     $groups = [];
@@ -869,6 +923,8 @@ try {
                 'customer_id' => (int)($bill['customer_id'] ?? 0),
                 'customer_name' => trim((string)($bill['customer_name'] ?? '')) ?: 'Cliente',
                 'phone' => trim((string)($bill['phone'] ?? '')),
+                'mark' => $markMap[$key] ?? ['marked' => false, 'reason' => '', 'updated_at' => null],
+                'prefix' => '',
                 'total_amount' => 0.0,
                 'open_bills' => 0,
                 'overdue_bills' => 0,
@@ -883,6 +939,8 @@ try {
         }
 
         $days = reportsDaysOverdue($bill['due_at'] ?? null);
+        $rowPrefix = reportsRowPrefix($bill);
+        if ($rowPrefix !== '' && $groups[$key]['prefix'] === '') $groups[$key]['prefix'] = $rowPrefix;
         $groups[$key]['total_amount'] += $amount;
         $groups[$key]['open_bills']++;
         if ($days > 0) $groups[$key]['overdue_bills']++;
@@ -917,7 +975,15 @@ try {
     }
 
     $rows = array_values($groups);
+    if ($markFilter !== 'all') {
+        $rows = array_values(array_filter($rows, function (array $row) use ($markFilter): bool {
+            $marked = !empty($row['mark']['marked']);
+            return $markFilter === 'marked' ? $marked : !$marked;
+        }));
+    }
     usort($rows, function (array $a, array $b): int {
+        $markCmp = (int)!empty($b['mark']['marked']) <=> (int)!empty($a['mark']['marked']);
+        if ($markCmp !== 0) return $markCmp;
         $amountCmp = $b['total_amount'] <=> $a['total_amount'];
         if ($amountCmp !== 0) return $amountCmp;
         $billCmp = $b['open_bills'] <=> $a['open_bills'];
@@ -961,7 +1027,9 @@ try {
             'status_refresh' => $statusRefresh,
             'available_months' => $availableMonths,
             'selected_month' => $month,
-            'hide_protested' => $hideProtested,
+            'prefix_filter' => $prefixFilter,
+            'mark_filter' => $markFilter,
+            'marked_customers' => count($markMap),
         ],
     ]);
 } catch (Throwable $e) {
