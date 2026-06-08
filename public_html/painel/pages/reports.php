@@ -17,7 +17,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       --blue-bg:#dbeafe; --blue-text:#1e40af;
       --yellow-bg:#fef3c7; --yellow-text:#92400e;
       --radius-pill:50px;
-      --radius-card:8px;
+      --radius-card:20px;
       --shadow-soft:0 4px 6px -1px rgba(0,0,0,.05),0 2px 4px -1px rgba(0,0,0,.03);
       --shadow-hover:0 10px 15px -3px rgba(59,130,246,.15);
       font-family:'Nunito',sans-serif;
@@ -52,7 +52,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .status-pill.updated{background:var(--green-bg);color:var(--green-text);border-color:var(--green-bg);transform:scale(1.05);}
     .status-pill.error{background:var(--red-bg);color:var(--red-text);border-color:var(--red-bg);}
     .status-dot{width:8px;height:8px;border-radius:50%;background:var(--primary);display:inline-block;animation:pulse-dot 1.5s infinite;}
-    .rep-container{max-width:1200px;margin:0 auto;padding:0 25px;}
+    .rep-container{max-width:1100px;margin:0 auto;padding:0 25px;}
     .toolbar{
       background:#fff;border:2px solid var(--border-color);border-radius:8px;padding:14px;display:flex;gap:12px;align-items:center;
       box-shadow:var(--shadow-soft);margin-bottom:22px;flex-wrap:wrap;transition:box-shadow .3s;
@@ -148,13 +148,13 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .leader-name{font-weight:900;font-size:16px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .leader-sub{display:block;color:var(--text-muted);font-size:12px;font-weight:800;margin-top:3px;}
     .pill{display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border-radius:999px;background:var(--bg-panel);border:2px solid var(--border-color);font-size:12px;font-weight:900;white-space:nowrap;}
-    .row-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;}
+    .row-actions{display:flex;align-items:center;justify-content:flex-end;gap:15px;}
     .row-time{font-size:12px;color:var(--text-muted);font-weight:900;white-space:nowrap;}
     .btn-icon{
-      width:36px;height:36px;border:0;border-radius:50%;background:var(--primary);color:#fff;text-decoration:none;
-      display:inline-flex;align-items:center;justify-content:center;box-shadow:0 4px 10px rgba(56,182,255,.28);cursor:pointer;transition:.2s;
+      color:#94a3b8;width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;
+      transition:.2s;text-decoration:none;border:2px solid transparent;background:transparent;box-shadow:none;
     }
-    .btn-icon:hover{transform:translateY(-2px);background:var(--primary-hover);color:#fff;}
+    .btn-icon:hover{background:#f1f5f9;color:var(--primary);border-color:#dbeafe;}
     .btn-mini{
       min-height:34px;border:2px solid var(--border-color);border-radius:999px;background:#fff;color:var(--text-main);padding:0 12px;
       display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:'Nunito',sans-serif;font-weight:900;font-size:12px;text-decoration:none;cursor:pointer;transition:.18s;
@@ -164,23 +164,28 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .btn-mini.danger{background:#fff;border-color:#fecaca;color:#991b1b;}
     .btn-mini.danger:hover{background:#fee2e2;border-color:#fecaca;color:#991b1b;}
     table{width:100%;border-collapse:separate;border-spacing:0 12px;}
-    thead th{color:var(--text-muted);font-size:13px;text-transform:uppercase;font-weight:800;padding:0 20px;text-align:left;}
-    thead th:last-child, tbody td:last-child{text-align:right;}
-    tbody tr.rep-row{background:#fff;box-shadow:var(--shadow-soft);border:2px solid var(--border-color);border-radius:var(--radius-card);transition:.2s;cursor:pointer;}
-    tbody tr.rep-row:hover{transform:translateY(-2px);box-shadow:var(--shadow-hover);border-color:#dbeafe;}
+    thead th{color:var(--text-muted);font-size:13px;text-transform:uppercase;font-weight:800;padding:0 30px;text-align:left;}
+    tbody tr{background:white;box-shadow:var(--shadow-soft);border:2px solid var(--border-color);border-radius:var(--radius-card);transition:all .2s ease;cursor:pointer;}
+    tbody tr:hover{transform:translateY(-3px) scale(1.005);box-shadow:var(--shadow-hover);border-color:#dbeafe;}
     tbody tr.rep-row.marked{background:#fff7f7;border-color:#fecaca;}
     tbody tr.rep-row.marked:hover{border-color:#fca5a5;box-shadow:0 10px 15px -3px rgba(239,68,68,.12);}
-    tbody tr.rep-row.open{box-shadow:var(--shadow-hover);}
-    tbody td{padding:18px 20px;border-top:2px solid var(--border-color);border-bottom:2px solid var(--border-color);font-size:13px;font-weight:800;vertical-align:middle;}
-    tbody td:first-child{border-left:2px solid var(--border-color);border-top-left-radius:var(--radius-card);border-bottom-left-radius:var(--radius-card);}
-    tbody td:last-child{border-right:2px solid var(--border-color);border-top-right-radius:var(--radius-card);border-bottom-right-radius:var(--radius-card);}
-    .customer-cell{display:grid;grid-template-columns:10px 1fr;gap:14px;align-items:center;}
-    .status-strip{width:10px;height:46px;border-radius:99px;background:var(--primary);box-shadow:0 0 0 4px #eff6ff;}
-    .status-strip.hot{background:#ef4444;box-shadow:0 0 0 4px #fee2e2;}
-    .status-strip.marked{background:#ef4444;box-shadow:0 0 0 4px #fee2e2;}
-    .customer-name{font-size:15px;font-weight:900;display:block;}
-    .muted{color:var(--text-muted);font-size:12px;font-weight:800;margin-top:3px;display:block;}
-    .mark-reason{display:inline-flex;align-items:center;gap:6px;margin-top:5px;color:#991b1b;font-size:12px;font-weight:900;}
+    tbody td{padding:18px 30px;vertical-align:middle;border-top:2px solid var(--border-color);border-bottom:2px solid var(--border-color);}
+    tbody tr.marked td{background:#fff7f7;}
+    tbody td:first-child{border-top-left-radius:var(--radius-card);border-bottom-left-radius:var(--radius-card);border-left:2px solid var(--border-color);}
+    tbody td:last-child{border-top-right-radius:var(--radius-card);border-bottom-right-radius:var(--radius-card);border-right:2px solid var(--border-color);}
+    .customer-name{font-weight:800;font-size:16px;color:var(--text-main);display:block;text-transform:uppercase;letter-spacing:0;}
+    .bill-id{font-size:13px;color:var(--primary);font-weight:700;margin-top:4px;display:inline-block;background:#eff6ff;padding:2px 8px;border-radius:10px;}
+    .row-sub{display:inline-block;margin-left:8px;color:var(--text-muted);font-size:12px;font-weight:800;}
+    .badge{min-height:30px;padding:0 12px;border-radius:var(--radius-pill);font-family:inherit;font-weight:800;font-size:12px;line-height:1;text-transform:uppercase;letter-spacing:0;display:inline-flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap;}
+    .badge i{font-size:12px;line-height:1;}
+    .b-success{background:#e8f8ef71;color:#087f3f;}
+    .b-error{background:#fde8e871;color:#b42318;}
+    .b-process{background:#e8f1ff71;color:#1d4ed8;}
+    .b-paid{background:#d9f8f771;color:#0e7490;}
+    .b-pending{background:#fff4d671;color:#b45309;}
+    .b-marked{background:#fee2e2;color:#991b1b;}
+    .detail-date{font-size:13px;color:var(--text-muted);font-weight:600;white-space:nowrap;}
+    .mark-reason{display:block;margin-top:6px;color:#991b1b;font-size:12px;font-weight:900;}
     .report-context-menu{
       position:fixed;z-index:1000;min-width:190px;background:#fff;border:2px solid var(--border-color);border-radius:8px;padding:6px;
       box-shadow:0 18px 38px rgba(15,23,42,.16);display:none;
@@ -248,7 +253,6 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       .month-grid{grid-template-columns:repeat(3,minmax(112px,1fr));}
       .bill-line{grid-template-columns:1fr;}
       .bill-side{justify-items:start;text-align:left;grid-template-columns:repeat(3,max-content);align-items:center;overflow-x:auto;}
-      table{min-width:980px;}
       .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
     }
     @media(max-width:680px){
@@ -285,6 +289,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       tbody td:last-child{border:0;padding:7px 0;border-radius:0;text-align:left;}
       tbody td:last-child{text-align:left;}
       .row-actions{justify-content:space-between;}
+      .row-sub{display:block;margin:6px 0 0;}
       .pill{white-space:normal;}
       .detail-row td{padding:0 0 14px;}
       .detail-panel{padding:10px;border-radius:14px;}
@@ -378,12 +383,10 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       <table>
         <thead>
           <tr>
-            <th>Cliente</th>
-            <th>Total</th>
-            <th>Parcelas</th>
-            <th>Mais antiga</th>
-            <th>Recobrancas</th>
-            <th>Detalhe</th>
+            <th style="width:20px"></th>
+            <th>Cliente / Documento</th>
+            <th>Status</th>
+            <th style="text-align:right;">Detalhes</th>
           </tr>
         </thead>
         <tbody id="repBody"></tbody>
@@ -790,36 +793,39 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       const body = $rep('repBody');
       const rows = repState.rows;
       if (!rows.length) {
-        body.innerHTML = `<tr><td colspan="6"><div class="empty">Nenhum cliente devendo encontrado.</div></td></tr>`;
+        body.innerHTML = `<tr style="cursor:default; pointer-events:none;"><td colspan="4" style="text-align:center; padding:40px; color:var(--text-muted); background:transparent; box-shadow:none; border:none; font-weight:600;">Nenhum cliente devendo encontrado.</td></tr>`;
         return;
       }
       body.innerHTML = rows.map((row, idx) => {
         const key = String(row.customer_key || idx);
-        const hot = idx === 0 ? 'hot' : '';
         const detailsHref = reportDetailsHref(row);
         const marked = !!row?.mark?.marked;
         const reason = String(row?.mark?.reason || '').trim();
         const prefix = String(row.prefix || '').toUpperCase();
+        const doc = row.customer_id ? `DOC: ${row.customer_id}` : (row.phone ? `TEL: ${row.phone}` : 'DOC: -');
+        const dotColor = marked ? 'var(--red-text)' : 'var(--primary)';
+        const dotBg = marked ? 'var(--red-bg)' : 'var(--blue-bg)';
+        const statusHtml = marked
+          ? '<span class="badge b-marked"><i class="fa-solid fa-flag"></i> MARCADO</span>'
+          : '<span class="badge b-pending"><i class="fa-solid fa-triangle-exclamation"></i> DEVENDO</span>';
         return `
           <tr class="rep-row ${marked ? 'marked' : ''}" data-key="${esc(key)}" data-href="${esc(detailsHref)}" title="Clique para abrir detalhes">
-            <td>
-              <div class="customer-cell">
-                <span class="status-strip ${marked ? 'marked' : hot}"></span>
-                <div>
-                  <span class="customer-name">${esc(row.customer_name || 'Cliente')}</span>
-                  <span class="muted">${row.phone ? 'Tel ' + esc(row.phone) : 'Telefone nao salvo'} | ${brNumber(row.max_days_overdue)} dia(s) max.${prefix ? ` | (${esc(prefix)})` : ''}</span>
-                  ${marked && reason ? `<span class="mark-reason"><i class="fa-solid fa-flag"></i> ${esc(reason)}</span>` : ''}
-                </div>
-              </div>
+            <td style="text-align:center;">
+              <div style="width:10px; height:10px; background:${dotColor}; border-radius:50%; box-shadow:0 0 0 3px ${dotBg};"></div>
             </td>
-            <td><span class="pill"><i class="fa-solid fa-coins"></i> ${brMoney(row.total_amount)}</span></td>
-            <td><span class="pill"><i class="fa-solid fa-file-invoice"></i> ${brNumber(row.open_bills)}</span></td>
-            <td><span class="pill"><i class="fa-regular fa-calendar"></i> ${esc(brDate(row.oldest_due_at))}</span></td>
-            <td><span class="pill"><i class="fa-solid fa-paper-plane"></i> ${brNumber(row.reminders_sent)}</span></td>
             <td>
-              <div class="row-actions">
-                <span class="row-time">${marked ? 'Marcado' : 'Detalhes'}</span>
-                <a href="${esc(detailsHref)}" class="btn-icon" onclick="event.stopPropagation(); window.LisOnPageLoader?.show();" title="Abrir detalhes">
+              <span class="customer-name">${esc(row.customer_name || 'Cliente')}</span>
+              <span class="bill-id">${esc(doc)}</span>
+              <span class="row-sub">${brMoney(row.total_amount)} | ${brNumber(row.open_bills)} fatura(s)${prefix ? ` | (${esc(prefix)})` : ''}</span>
+              ${marked && reason ? `<span class="mark-reason"><i class="fa-solid fa-flag"></i> ${esc(reason)}</span>` : ''}
+            </td>
+            <td>
+              ${statusHtml}
+            </td>
+            <td style="text-align:right;">
+              <div style="display:flex; align-items:center; justify-content:flex-end; gap:15px;">
+                <span class="detail-date">${esc(brDate(row.oldest_due_at))} | ${brNumber(row.max_days_overdue)} dia(s) | ${brNumber(row.reminders_sent)} rec.</span>
+                <a href="${esc(detailsHref)}" class="btn-icon" onclick="event.stopPropagation(); window.LisOnPageLoader?.show();">
                   <i class="fa-solid fa-chevron-right"></i>
                 </a>
               </div>
@@ -1011,7 +1017,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       const months = buildSyncMonths();
       let lastData = null;
       const totals = {bills_read: 0, saved_local: 0, pages_read: 0, status_checked: 0, settled_local: 0};
-      $rep('repBody').innerHTML = `<tr><td colspan="6" style="text-align:center;padding:38px;"><div class="spinner"></div><div class="muted" style="margin-top:12px;">Sincronizando Vindi em lotes...</div></td></tr>`;
+      $rep('repBody').innerHTML = `<tr><td colspan="4" style="text-align:center;padding:38px;"><div class="spinner"></div><div class="muted" style="margin-top:12px;">Sincronizando Vindi em lotes...</div></td></tr>`;
 
       try {
         for (let i = 0; i < months.length; i++) {
@@ -1111,7 +1117,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       const shouldShowLoader = sync || repState.rows.length === 0;
       if (shouldShowLoader) {
         $rep('repBody').innerHTML = `
-          <tr><td colspan="6" style="text-align:center;padding:38px;"><div class="spinner"></div><div class="muted" style="margin-top:12px;">${sync ? 'Puxando Vindi e salvando no banco local...' : 'Carregando relatorios locais...'}</div></td></tr>
+          <tr><td colspan="4" style="text-align:center;padding:38px;"><div class="spinner"></div><div class="muted" style="margin-top:12px;">${sync ? 'Puxando Vindi e salvando no banco local...' : 'Carregando relatorios locais...'}</div></td></tr>
         `;
       }
       try {
@@ -1126,7 +1132,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         if (requestId !== reportsRequestId) return;
         setStatus(e.message || 'Erro ao carregar', true);
         if (repState.rows.length === 0) {
-          $rep('repBody').innerHTML = `<tr><td colspan="6"><div class="empty">${esc(e.message || 'Erro ao carregar relatorios.')}</div></td></tr>`;
+          $rep('repBody').innerHTML = `<tr><td colspan="4"><div class="empty">${esc(e.message || 'Erro ao carregar relatorios.')}</div></td></tr>`;
         }
       } finally {
         if (requestId === reportsRequestId) {
