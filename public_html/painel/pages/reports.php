@@ -184,13 +184,14 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .b-paid{background:#d9f8f771;color:#0e7490;}
     .b-pending{background:#fff4d671;color:#b45309;}
     .b-marked{background:#fee2e2;color:#991b1b;}
-    .report-mini-stack{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
-    .report-mini{min-height:28px;padding:0 10px;border-radius:var(--radius-pill);display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:800;line-height:1;white-space:nowrap;}
-    .report-mini.amount{background:#fee2e271;color:#991b1b;}
-    .report-mini.bills{background:#e8f1ff71;color:#1d4ed8;}
-    .report-mini.days{background:#fff4d671;color:#b45309;}
-    .report-mini.marked{background:#fee2e2;color:#991b1b;}
-    .report-mini i{font-size:11px;}
+    .debt-summary{min-height:32px;border:1px solid #e6eef7;border-radius:var(--radius-pill);background:#fff;display:inline-flex;align-items:center;overflow:hidden;box-shadow:0 3px 8px rgba(15,23,42,.035);}
+    .debt-part{height:32px;display:inline-flex;align-items:center;gap:6px;padding:0 11px;font-size:12px;font-weight:900;line-height:1;white-space:nowrap;border-right:1px solid #eef2f6;}
+    .debt-part:last-child{border-right:0;}
+    .debt-part.amount{color:#991b1b;}
+    .debt-part.bills{color:#1d4ed8;}
+    .debt-part.days{color:#b45309;}
+    .debt-part.marked{color:#991b1b;background:#fff7f7;}
+    .debt-part i{font-size:11px;opacity:.9;}
     .detail-date{font-size:13px;color:var(--text-muted);font-weight:600;white-space:nowrap;}
     .mark-reason{display:block;margin-top:6px;color:#991b1b;font-size:12px;font-weight:900;}
     .report-context-menu{
@@ -813,11 +814,11 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         const dotColor = marked ? 'var(--red-text)' : 'var(--primary)';
         const dotBg = marked ? 'var(--red-bg)' : 'var(--blue-bg)';
         const statusHtml = `
-          <span class="report-mini-stack">
-            <span class="report-mini amount"><i class="fa-solid fa-coins"></i> ${brMoney(row.total_amount)}</span>
-            <span class="report-mini bills"><i class="fa-solid fa-file-invoice"></i> ${brNumber(row.open_bills)}</span>
-            <span class="report-mini days"><i class="fa-regular fa-calendar"></i> ${brNumber(row.max_days_overdue)}d</span>
-            ${marked ? '<span class="report-mini marked"><i class="fa-solid fa-flag"></i></span>' : ''}
+          <span class="debt-summary">
+            <span class="debt-part amount"><i class="fa-solid fa-coins"></i> ${brMoney(row.total_amount)}</span>
+            <span class="debt-part bills"><i class="fa-solid fa-file-invoice"></i> ${brNumber(row.open_bills)}</span>
+            <span class="debt-part days"><i class="fa-regular fa-calendar"></i> ${brNumber(row.max_days_overdue)}d</span>
+            ${marked ? '<span class="debt-part marked"><i class="fa-solid fa-flag"></i></span>' : ''}
           </span>
         `;
         return `
