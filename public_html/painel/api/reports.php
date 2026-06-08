@@ -465,7 +465,37 @@ function reportsMonthLabel(string $month): string
     return ($names[$m[2]] ?? $m[2]) . ' ' . $m[1];
 }
 
-function reportsAvailableMonths(PDO $pdo): array
+function reportsProtestedSql(PDO $pdo, string $alias = ''): string
+{
+    $prefix = $alias !== '' ? rtrim($alias, '.') . '.' : '';
+    $parts = [];
+    if (reportsColumnExists($pdo, 'bill_reminders', 'customer_name')) {
+        $parts[] = "LOWER(TRIM(COALESCE({$prefix}customer_name, ''))) LIKE '(p)%'";
+    }
+    if (reportsColumnExists($pdo, 'bill_reminders', 'items_text')) {
+        $parts[] = "LOWER(TRIM(COALESCE({$prefix}items_text, ''))) LIKE '(p)%'";
+    }
+    return $parts ? '(' . implode(' OR ', $parts) . ')' : '0=1';
+}
+
+function reportsIsProtestedRow(array $row): bool
+{
+    foreach (['customer_name', 'items_text'] as $key) {
+        $value = trim((string)($row[$key] ?? ''));
+        if (preg_match('/^\([Pp]\)/', $value)) return true;
+    }
+    return false;
+}
+
+function reportsFilterProtested(array $rows, bool $hideProtested): array
+{
+    if (!$hideProtested) return $rows;
+    return array_values(array_filter($rows, function (array $row): bool {
+        return !reportsIsProtestedRow($row);
+    }));
+}
+
+function reportsAvailableMonths(PDO $pdo, bool $hideProtested = false): array
 {
     if (!reportsTableExists($pdo, 'bill_reminders') || !reportsColumnExists($pdo, 'bill_reminders', 'due_at')) {
         return [];
@@ -477,6 +507,9 @@ function reportsAvailableMonths(PDO $pdo): array
     }
     if (reportsColumnExists($pdo, 'bill_reminders', 'status')) {
         $where[] = "LOWER(COALESCE(NULLIF(status, ''), 'unpaid')) IN ('unpaid','pending','overdue')";
+    }
+    if ($hideProtested) {
+        $where[] = 'NOT ' . reportsProtestedSql($pdo, '');
     }
 
     $stmt = $pdo->query("
@@ -540,7 +573,7 @@ function reportsFilterRowsByMonth(array $rows, string $month): array
     }));
 }
 
-function reportsFetchLocalBills(PDO $pdo, string $q, int $limit, string $month = ''): array
+function reportsFetchLocalBills(PDO $pdo, string $q, int $limit, string $month = '', bool $hideProtested = false): array
 {
     if (!reportsTableExists($pdo, 'bill_reminders')) return [];
 
@@ -568,6 +601,9 @@ function reportsFetchLocalBills(PDO $pdo, string $q, int $limit, string $month =
     if (reportsColumnExists($pdo, 'bill_reminders', 'due_at')) {
         $where[] = 'br.due_at IS NOT NULL AND br.due_at < :visible_end';
         $params[':visible_end'] = reportsVisibleEndExclusive();
+    }
+    if ($hideProtested) {
+        $where[] = 'NOT ' . reportsProtestedSql($pdo, 'br');
     }
     if ($q !== '') {
         $search = [];
@@ -685,6 +721,7 @@ function reportsMonthWindows(string $from, string $to): array
 try {
     $q = trim((string)($_GET['q'] ?? ''));
     $sync = (string)($_GET['sync'] ?? '0') === '1';
+    $hideProtested = (string)($_GET['hide_protested'] ?? '0') === '1';
     $month = trim((string)($_GET['month'] ?? ''));
     if (!preg_match('/^\d{4}-\d{2}$/', $month)) $month = '';
     if ($month !== '' && $month > date('Y-m')) $month = '';
@@ -699,7 +736,7 @@ try {
     $savedLocal = 0;
     $statusRefresh = ['checked' => 0, 'settled' => 0, 'settled_ids' => []];
 
-    $localRows = reportsFetchLocalBills($pdo, $q, $localLimit, $month);
+    $localRows = reportsFetchLocalBills($pdo, $q, $localLimit, $month, $hideProtested);
     $localByBill = [];
     foreach ($localRows as $row) {
         $billId = (int)($row['bill_id'] ?? 0);
@@ -799,9 +836,17 @@ try {
         $vindiMeta['error'] = 'VINDI_API_KEY nao configurada';
     }
 
-    $bills = reportsFilterRowsByMonth(reportsFilterVisibleMonths(reportsFilterRowsByText(array_values($rowsByBill), $q)), $month);
+    $bills = reportsFilterProtested(
+        reportsFilterRowsByMonth(
+            reportsFilterVisibleMonths(
+                reportsFilterRowsByText(array_values($rowsByBill), $q)
+            ),
+            $month
+        ),
+        $hideProtested
+    );
     reportsEnsurePdo($pdo, $cfg);
-    $availableMonths = reportsAvailableMonths($pdo);
+    $availableMonths = reportsAvailableMonths($pdo, $hideProtested);
     $logMap = reportsFetchLogMap($pdo, array_column($bills, 'bill_id'));
 
     $groups = [];
@@ -916,6 +961,7 @@ try {
             'status_refresh' => $statusRefresh,
             'available_months' => $availableMonths,
             'selected_month' => $month,
+            'hide_protested' => $hideProtested,
         ],
     ]);
 } catch (Throwable $e) {

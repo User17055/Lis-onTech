@@ -80,6 +80,9 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     }
     .btn-secondary:hover{transform:translateY(-2px);border-color:#dbeafe;color:var(--primary);}
     .btn-primary:disabled,.btn-secondary:disabled{opacity:.55;cursor:not-allowed;transform:none;}
+    .toggle-wrapper{height:45px;display:flex;align-items:center;gap:8px;padding:0 14px;border:2px solid var(--border-color);border-radius:999px;background:#fff;box-shadow:var(--shadow-soft);}
+    .custom-check{accent-color:var(--primary);width:18px;height:18px;cursor:pointer;}
+    .toggle-wrapper label{font-size:13px;font-weight:900;color:var(--text-muted);cursor:pointer;white-space:nowrap;}
     .summary-grid{display:grid;grid-template-columns:repeat(5,minmax(150px,1fr));gap:14px;margin-bottom:18px;}
     .metric{
       background:#fff;border:2px solid var(--border-color);border-radius:var(--radius-card);padding:16px 18px;box-shadow:var(--shadow-soft);
@@ -275,6 +278,10 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       <select id="monthFilter" class="form-control month-control is-hidden" title="Filtrar por mes">
         <option value="">Todos os meses</option>
       </select>
+      <div class="toggle-wrapper" title="Oculta clientes ou itens que comecam com (P)">
+        <input type="checkbox" id="hideProtested" class="custom-check">
+        <label for="hideProtested">Ocultar (P)</label>
+      </div>
       <button id="btnLoadReports" class="btn-primary" type="button"><i class="fa-solid fa-rotate"></i> Atualizar</button>
       <button id="btnSyncReports" class="btn-secondary" type="button"><i class="fa-solid fa-cloud-arrow-down"></i> Sincronizar Vindi</button>
     </div>
@@ -348,8 +355,10 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     let reportsLoading = false;
     const reportUrlParams = new URLSearchParams(location.search);
     let selectedMonth = reportUrlParams.get('month') || '';
+    let hideProtested = reportUrlParams.get('hide_protested') === '1';
     let monthsExpanded = false;
     $rep('repQ').value = reportUrlParams.get('q') || '';
+    $rep('hideProtested').checked = hideProtested;
 
     function esc(value){
       return String(value ?? '').replace(/[&<>"']/g, m => ({
@@ -462,6 +471,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       const q = $rep('repQ')?.value?.trim() || '';
       if (q) url.searchParams.set('q', q);
       if (selectedMonth) url.searchParams.set('month', selectedMonth);
+      if (hideProtested) url.searchParams.set('hide_protested', '1');
       return url.toString();
     }
 
@@ -617,6 +627,9 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         `<span class="meta-chip"><i class="fa-solid fa-database"></i> Local ${brNumber(meta.local_rows || 0)}</span>`,
         `<span class="meta-chip"><i class="fa-solid fa-file-invoice"></i> ${brNumber(meta.merged_bills || 0)} faturas</span>`
       ];
+      if (meta.hide_protested) {
+        chips.push(`<span class="meta-chip warn"><i class="fa-solid fa-eye-slash"></i> Sem (P)</span>`);
+      }
       if (meta.sync && vindi.enabled) {
         chips.push(`<span class="meta-chip ok"><i class="fa-solid fa-cloud-arrow-down"></i> Vindi ${brNumber(vindi.bills_read || 0)}</span>`);
         chips.push(`<span class="meta-chip"><i class="fa-solid fa-floppy-disk"></i> Salvas ${brNumber(vindi.saved_local || meta.saved_local || 0)}</span>`);
@@ -719,6 +732,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       else url.searchParams.delete('q');
       if (selectedMonth) url.searchParams.set('month', selectedMonth);
       else url.searchParams.delete('month');
+      if (hideProtested) url.searchParams.set('hide_protested', '1');
+      else url.searchParams.delete('hide_protested');
       history.replaceState(null, '', url.toString());
     }
 
@@ -781,6 +796,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
             month: selectedMonth,
             local_limit: 20000,
             sync: 1,
+            hide_protested: hideProtested ? 1 : 0,
             sync_from: isoDate(start),
             sync_to: isoDate(syncTo),
             max_pages: 6,
@@ -799,6 +815,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
           month: selectedMonth,
           local_limit: 20000,
           sync: 1,
+          hide_protested: hideProtested ? 1 : 0,
           sync_from: isoDate(new Date()),
           sync_to: isoDate(new Date()),
           max_pages: 1,
@@ -857,7 +874,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       `;
       try {
         const q = $rep('repQ').value.trim();
-        const data = await fetchReportsData({q, month: selectedMonth, local_limit: 20000});
+        const data = await fetchReportsData({q, month: selectedMonth, local_limit: 20000, hide_protested: hideProtested ? 1 : 0});
         if (!data) return;
         applyData(data);
         syncUrlState();
@@ -887,6 +904,11 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
 
     $rep('btnLoadReports').onclick = () => loadReports(false);
     $rep('btnSyncReports').onclick = () => loadReports(true);
+    $rep('hideProtested').addEventListener('change', () => {
+      hideProtested = $rep('hideProtested').checked;
+      repState.expanded.clear();
+      loadReports(false);
+    });
     $rep('monthFilter').addEventListener('change', () => {
       selectedMonth = $rep('monthFilter').value;
       repState.expanded.clear();
