@@ -395,7 +395,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
           <tr>
             <th style="width:20px"></th>
             <th>Cliente / Documento</th>
-            <th>Status</th>
+            <th>Dívida</th>
             <th style="text-align:right;">Detalhes</th>
           </tr>
         </thead>
