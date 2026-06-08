@@ -98,13 +98,13 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .metric:hover{background:#fff;transform:none;box-shadow:none;border-color:transparent;}
     .metric-label{display:flex;align-items:center;gap:7px;color:#526985;font-size:11px;font-weight:1000;text-transform:uppercase;white-space:nowrap;}
     .metric-label i{width:24px;height:24px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;background:#eef8ff;color:#12628f;font-size:11px;flex:0 0 24px;}
-    .metric.danger .metric-label i{background:var(--red-bg);color:var(--red-text);}
+    .metric.danger .metric-label i{background:#eef8ff;color:#12628f;}
     .metric.warn .metric-label i{background:var(--yellow-bg);color:var(--yellow-text);}
     .metric.ok .metric-label i{background:var(--green-bg);color:var(--green-text);}
     .metric strong{display:block;font-size:19px;font-weight:1000;line-height:1.05;color:#0f172a;}
     .metric-track{height:3px;border-radius:999px;background:#f1f5f9;overflow:hidden;border:0;}
     .metric-fill{display:block;height:100%;width:0;border-radius:999px;background:var(--primary);transition:width .35s ease;}
-    .metric.danger::before,.metric.danger .metric-fill{background:#ef4444;}
+    .metric.danger::before,.metric.danger .metric-fill{background:var(--primary);}
     .metric.warn::before,.metric.warn .metric-fill{background:#f59e0b;}
     .metric.ok::before,.metric.ok .metric-fill{background:#10b981;}
     .leader-strip{
@@ -167,21 +167,21 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .btn-mini.danger{background:#fff;border-color:#fecaca;color:#991b1b;}
     .btn-mini.danger:hover{background:#fee2e2;border-color:#fecaca;color:#991b1b;}
     .report-list-panel{
-      background:#fff;border:1px solid #dfe8f2;border-radius:10px;padding:12px;box-shadow:var(--shadow-soft);
+      background:#fff;border:1px solid #dfe8f2;border-radius:16px;padding:14px;box-shadow:0 4px 12px rgba(15,23,42,.045);
     }
     .report-list-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 8px;padding:0 2px;}
     .report-list-title strong{font-size:13px;font-weight:1000;color:#0f172a;text-transform:uppercase;}
     .report-list-title span{font-size:12px;font-weight:900;color:#64748b;}
-    table{width:100%;border-collapse:separate;border-spacing:0 8px;}
-    thead th{color:#526985;font-size:12px;text-transform:uppercase;font-weight:1000;padding:0 18px 0;text-align:left;}
-    tbody tr{background:white;box-shadow:none;border:1px solid #e6eef7;border-radius:8px;transition:border-color .18s ease, background .18s ease;cursor:pointer;}
-    tbody tr:hover{transform:none;box-shadow:none;border-color:#bcd7ee;background:#fbfdff;}
+    table{width:100%;border-collapse:separate;border-spacing:0 10px;}
+    thead th{color:#526985;font-size:12px;text-transform:uppercase;font-weight:1000;padding:0 22px 2px;text-align:left;}
+    tbody tr{background:white;box-shadow:0 3px 8px rgba(15,23,42,.04);border:1px solid #e6eef7;border-radius:14px;transition:.18s ease;cursor:pointer;}
+    tbody tr:hover{transform:translateY(-1px);box-shadow:0 8px 16px rgba(15,23,42,.07);border-color:#cfe3f5;background:#fff;}
     tbody tr.rep-row.marked{background:#fff7f7;border-color:#fecaca;}
-    tbody tr.rep-row.marked:hover{border-color:#fca5a5;box-shadow:none;}
-    tbody td{padding:14px 18px;vertical-align:middle;border-top:1px solid #e6eef7;border-bottom:1px solid #e6eef7;background:#fff;}
+    tbody tr.rep-row.marked:hover{border-color:#fca5a5;box-shadow:0 8px 16px rgba(239,68,68,.1);}
+    tbody td{padding:17px 22px;vertical-align:middle;border-top:1px solid #e6eef7;border-bottom:1px solid #e6eef7;background:#fff;}
     tbody tr.marked td{background:#fff7f7;}
-    tbody td:first-child{border-top-left-radius:8px;border-bottom-left-radius:8px;border-left:1px solid #e6eef7;}
-    tbody td:last-child{border-top-right-radius:8px;border-bottom-right-radius:8px;border-right:1px solid #e6eef7;}
+    tbody td:first-child{border-top-left-radius:14px;border-bottom-left-radius:14px;border-left:1px solid #e6eef7;}
+    tbody td:last-child{border-top-right-radius:14px;border-bottom-right-radius:14px;border-right:1px solid #e6eef7;}
     .customer-name{font-weight:1000;font-size:15px;color:#071832;display:block;text-transform:uppercase;letter-spacing:0;}
     .bill-id{font-size:12px;color:#1d9dff;font-weight:1000;margin-top:6px;display:inline-block;background:#eef8ff;padding:4px 9px;border-radius:999px;line-height:1;}
     .row-sub{display:inline-block;margin-left:8px;color:var(--text-muted);font-size:12px;font-weight:800;}
@@ -194,12 +194,14 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .b-pending{background:#fff4d671;color:#b45309;}
     .b-marked{background:#fee2e2;color:#991b1b;}
     .debt-snapshot{
-      min-width:188px;display:grid;gap:6px;padding:9px 11px;border:1px solid #fde2e2;border-left:3px solid #ef4444;
-      border-radius:8px;background:#fffafa;box-shadow:none;
+      min-width:188px;display:grid;gap:6px;padding:10px 12px;border:1px solid #dbeafe;border-left:4px solid var(--primary);
+      border-radius:12px;background:#f8fbff;box-shadow:none;
     }
     .debt-snapshot.marked{background:#fff7f7;border-color:#fecaca;border-left-color:#991b1b;}
-    .snapshot-value{display:flex;align-items:center;gap:8px;color:#991b1b;font-size:14px;font-weight:1000;line-height:1;}
-    .snapshot-value i{width:22px;height:22px;border-radius:7px;background:#fee2e2;color:#991b1b;display:inline-flex;align-items:center;justify-content:center;font-size:10px;}
+    .snapshot-value{display:flex;align-items:center;gap:8px;color:#12628f;font-size:14px;font-weight:1000;line-height:1;}
+    .snapshot-value i{width:22px;height:22px;border-radius:7px;background:#eef8ff;color:#12628f;display:inline-flex;align-items:center;justify-content:center;font-size:10px;}
+    .debt-snapshot.marked .snapshot-value{color:#991b1b;}
+    .debt-snapshot.marked .snapshot-value i{background:#fee2e2;color:#991b1b;}
     .snapshot-meta{display:flex;align-items:center;gap:10px;color:#64748b;font-size:11px;font-weight:900;line-height:1;white-space:nowrap;}
     .snapshot-meta span{display:inline-flex;align-items:center;gap:5px;}
     .snapshot-meta i{font-size:10px;color:#38b6ff;}
@@ -407,7 +409,6 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       <table>
         <thead>
           <tr>
-            <th style="width:20px"></th>
             <th>Cliente / Documento</th>
             <th>Dívida</th>
             <th style="text-align:right;">Detalhes</th>
@@ -820,7 +821,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       const body = $rep('repBody');
       const rows = repState.rows;
       if (!rows.length) {
-        body.innerHTML = `<tr style="cursor:default; pointer-events:none;"><td colspan="4" style="text-align:center; padding:40px; color:var(--text-muted); background:transparent; box-shadow:none; border:none; font-weight:600;">Nenhum cliente devendo encontrado.</td></tr>`;
+        body.innerHTML = `<tr style="cursor:default; pointer-events:none;"><td colspan="3" style="text-align:center; padding:40px; color:var(--text-muted); background:transparent; box-shadow:none; border:none; font-weight:600;">Nenhum cliente devendo encontrado.</td></tr>`;
         return;
       }
       body.innerHTML = rows.map((row, idx) => {
@@ -830,8 +831,6 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         const reason = String(row?.mark?.reason || '').trim();
         const prefix = String(row.prefix || '').toUpperCase();
         const doc = row.customer_id ? `DOC: ${row.customer_id}` : (row.phone ? `TEL: ${row.phone}` : 'DOC: -');
-        const dotColor = marked ? 'var(--red-text)' : 'var(--primary)';
-        const dotBg = marked ? 'var(--red-bg)' : 'var(--blue-bg)';
         const statusHtml = `
           <span class="debt-snapshot ${marked ? 'marked' : ''}">
             <span class="snapshot-value"><i class="fa-solid fa-coins"></i> ${brMoney(row.total_amount)}</span>
@@ -843,9 +842,6 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         `;
         return `
           <tr class="rep-row ${marked ? 'marked' : ''}" data-key="${esc(key)}" data-href="${esc(detailsHref)}" title="Clique para abrir detalhes">
-            <td style="text-align:center;">
-              <div style="width:10px; height:10px; background:${dotColor}; border-radius:50%; box-shadow:0 0 0 3px ${dotBg};"></div>
-            </td>
             <td>
               <span class="customer-name">${esc(row.customer_name || 'Cliente')}</span>
               <span class="bill-id">${esc(doc)}</span>
@@ -1052,7 +1048,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       const months = buildSyncMonths();
       let lastData = null;
       const totals = {bills_read: 0, saved_local: 0, pages_read: 0, status_checked: 0, settled_local: 0};
-      $rep('repBody').innerHTML = `<tr><td colspan="4" style="text-align:center;padding:38px;"><div class="spinner"></div><div class="muted" style="margin-top:12px;">Sincronizando Vindi em lotes...</div></td></tr>`;
+      $rep('repBody').innerHTML = `<tr><td colspan="3" style="text-align:center;padding:38px;"><div class="spinner"></div><div class="muted" style="margin-top:12px;">Sincronizando Vindi em lotes...</div></td></tr>`;
 
       try {
         for (let i = 0; i < months.length; i++) {
@@ -1152,7 +1148,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       const shouldShowLoader = sync || repState.rows.length === 0;
       if (shouldShowLoader) {
         $rep('repBody').innerHTML = `
-          <tr><td colspan="4" style="text-align:center;padding:38px;"><div class="spinner"></div><div class="muted" style="margin-top:12px;">${sync ? 'Puxando Vindi e salvando no banco local...' : 'Carregando relatorios locais...'}</div></td></tr>
+          <tr><td colspan="3" style="text-align:center;padding:38px;"><div class="spinner"></div><div class="muted" style="margin-top:12px;">${sync ? 'Puxando Vindi e salvando no banco local...' : 'Carregando relatorios locais...'}</div></td></tr>
         `;
       }
       try {
@@ -1167,7 +1163,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         if (requestId !== reportsRequestId) return;
         setStatus(e.message || 'Erro ao carregar', true);
         if (repState.rows.length === 0) {
-          $rep('repBody').innerHTML = `<tr><td colspan="4"><div class="empty">${esc(e.message || 'Erro ao carregar relatorios.')}</div></td></tr>`;
+          $rep('repBody').innerHTML = `<tr><td colspan="3"><div class="empty">${esc(e.message || 'Erro ao carregar relatorios.')}</div></td></tr>`;
         }
       } finally {
         if (requestId === reportsRequestId) {
