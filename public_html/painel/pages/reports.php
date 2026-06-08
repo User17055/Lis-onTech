@@ -184,16 +184,16 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .b-paid{background:#d9f8f771;color:#0e7490;}
     .b-pending{background:#fff4d671;color:#b45309;}
     .b-marked{background:#fee2e2;color:#991b1b;}
-    .debt-brief{
-      width:max-content;max-width:100%;display:inline-grid;grid-template-columns:auto auto;align-items:center;gap:4px 10px;
-      padding:8px 12px;border:1px solid #e6eef7;border-radius:14px;background:linear-gradient(180deg,#fff,#fbfdff);
-      box-shadow:0 4px 10px rgba(15,23,42,.035);
+    .debt-snapshot{
+      min-width:188px;display:grid;gap:7px;padding:10px 12px;border:1px solid #e6eef7;border-left:4px solid #ef4444;
+      border-radius:16px;background:#fff;box-shadow:0 6px 14px rgba(15,23,42,.045);
     }
-    .debt-brief strong{grid-column:1 / -1;color:#991b1b;font-size:14px;font-weight:1000;line-height:1;}
-    .debt-brief span{display:inline-flex;align-items:center;gap:5px;color:#64748b;font-size:11px;font-weight:900;white-space:nowrap;line-height:1;}
-    .debt-brief i{font-size:10px;color:#38b6ff;}
-    .debt-brief.marked{border-color:#fecaca;background:#fff7f7;}
-    .debt-brief.marked strong{color:#991b1b;}
+    .debt-snapshot.marked{background:#fff7f7;border-color:#fecaca;border-left-color:#991b1b;}
+    .snapshot-value{display:flex;align-items:center;gap:8px;color:#991b1b;font-size:15px;font-weight:1000;line-height:1;}
+    .snapshot-value i{width:24px;height:24px;border-radius:8px;background:#fee2e2;color:#991b1b;display:inline-flex;align-items:center;justify-content:center;font-size:11px;}
+    .snapshot-meta{display:flex;align-items:center;gap:10px;color:#64748b;font-size:11px;font-weight:900;line-height:1;white-space:nowrap;}
+    .snapshot-meta span{display:inline-flex;align-items:center;gap:5px;}
+    .snapshot-meta i{font-size:10px;color:#38b6ff;}
     .detail-date{font-size:13px;color:var(--text-muted);font-weight:600;white-space:nowrap;}
     .mark-reason{display:block;margin-top:6px;color:#991b1b;font-size:12px;font-weight:900;}
     .report-context-menu{
@@ -816,10 +816,12 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         const dotColor = marked ? 'var(--red-text)' : 'var(--primary)';
         const dotBg = marked ? 'var(--red-bg)' : 'var(--blue-bg)';
         const statusHtml = `
-          <span class="debt-brief ${marked ? 'marked' : ''}">
-            <strong>${brMoney(row.total_amount)}</strong>
-            <span><i class="fa-solid fa-file-invoice"></i> ${brNumber(row.open_bills)} fatura(s)</span>
-            <span><i class="fa-regular fa-calendar"></i> ${brNumber(row.max_days_overdue)} dia(s)</span>
+          <span class="debt-snapshot ${marked ? 'marked' : ''}">
+            <span class="snapshot-value"><i class="fa-solid fa-coins"></i> ${brMoney(row.total_amount)}</span>
+            <span class="snapshot-meta">
+              <span><i class="fa-solid fa-file-invoice"></i> ${brNumber(row.open_bills)} fatura(s)</span>
+              <span><i class="fa-regular fa-calendar"></i> ${brNumber(row.max_days_overdue)}d</span>
+            </span>
           </span>
         `;
         return `
