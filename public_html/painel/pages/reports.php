@@ -194,12 +194,12 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .b-pending{background:#fff4d671;color:#b45309;}
     .b-marked{background:#fee2e2;color:#991b1b;}
     .debt-snapshot{
-      min-width:188px;display:grid;gap:6px;padding:10px 12px;border:1px solid #dbeafe;border-left:4px solid var(--primary);
-      border-radius:12px;background:#f8fbff;box-shadow:none;
+      min-width:188px;display:grid;gap:6px;padding:4px 0;border:0;border-left:0;
+      border-radius:0;background:transparent;box-shadow:none;
     }
     .debt-snapshot.marked{background:#fff7f7;border-color:#fecaca;border-left-color:#991b1b;}
-    .snapshot-value{display:flex;align-items:center;gap:8px;color:#12628f;font-size:14px;font-weight:1000;line-height:1;}
-    .snapshot-value i{width:22px;height:22px;border-radius:7px;background:#eef8ff;color:#12628f;display:inline-flex;align-items:center;justify-content:center;font-size:10px;}
+    .snapshot-value{display:flex;align-items:center;gap:8px;color:#12628f;font-size:18px;font-weight:1000;line-height:1;}
+    .snapshot-value i{width:auto;height:auto;border-radius:0;background:transparent;color:#12628f;display:inline-flex;align-items:center;justify-content:center;font-size:13px;}
     .debt-snapshot.marked .snapshot-value{color:#991b1b;}
     .debt-snapshot.marked .snapshot-value i{background:#fee2e2;color:#991b1b;}
     .snapshot-meta{display:flex;align-items:center;gap:10px;color:#64748b;font-size:11px;font-weight:900;line-height:1;white-space:nowrap;}
