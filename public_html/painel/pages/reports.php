@@ -421,7 +421,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       </div>
       <div class="mark-card-body">
         <label for="markReason">Motivo</label>
-        <textarea id="markReason" placeholder="Protestado, franquia, financeiro confirmou..."></textarea>
+        <textarea id="markReason" placeholder="Ex: protestado, franquia, financeiro confirmou..."></textarea>
         <div id="markError" class="mark-error"></div>
       </div>
       <div class="mark-card-actions">
