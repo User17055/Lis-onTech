@@ -198,11 +198,11 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       border-radius:0;background:transparent;box-shadow:none;
     }
     .debt-snapshot.marked{background:#fff7f7;border-color:#fecaca;border-left-color:#991b1b;}
-    .snapshot-value{display:flex;align-items:center;gap:8px;color:#12628f;font-size:18px;font-weight:1000;line-height:1;}
-    .snapshot-value i{width:auto;height:auto;border-radius:0;background:transparent;color:#12628f;display:inline-flex;align-items:center;justify-content:center;font-size:13px;}
+    .snapshot-value{display:flex;align-items:center;gap:8px;color:#0f172a;font-size:18px;font-weight:1000;line-height:1;}
+    .snapshot-value i{width:auto;height:auto;border-radius:0;background:transparent;color:#0f172a;display:inline-flex;align-items:center;justify-content:center;font-size:13px;}
     .debt-snapshot.marked .snapshot-value{color:#991b1b;}
     .debt-snapshot.marked .snapshot-value i{background:#fee2e2;color:#991b1b;}
-    .snapshot-meta{display:flex;align-items:center;gap:10px;color:#64748b;font-size:11px;font-weight:900;line-height:1;white-space:nowrap;}
+    .snapshot-meta{display:flex;align-items:center;gap:12px;color:#64748b;font-size:13px;font-weight:900;line-height:1;white-space:nowrap;}
     .snapshot-meta span{display:inline-flex;align-items:center;gap:5px;}
     .snapshot-meta i{font-size:10px;color:#38b6ff;}
     .detail-date{font-size:12px;color:#526985;font-weight:900;white-space:nowrap;}
