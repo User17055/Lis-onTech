@@ -332,14 +332,16 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
     .mark-card-body textarea:focus{border-color:#38b6ff;box-shadow:0 0 0 4px rgba(59,130,246,.1);}
     .mark-error{min-height:18px;color:#991b1b;font-size:12px;font-weight:900;}
     .mark-card-actions{display:flex;justify-content:flex-end;gap:10px;padding:0 18px 18px;}
-    .mark-note{margin-top:12px;background:#fff;border:1px solid #fecaca;border-left:4px solid #991b1b;border-radius:12px;padding:12px 14px;box-shadow:0 4px 12px rgba(15,23,42,.04);display:flex;align-items:center;gap:12px;color:#991b1b;font-weight:900;}
+    .mark-note{width:max-content;max-width:100%;margin-top:12px;background:#fff;border:1px solid #fecaca;border-left:4px solid #991b1b;border-radius:12px;padding:10px 12px;box-shadow:0 4px 12px rgba(15,23,42,.04);display:flex;align-items:center;gap:10px;color:#991b1b;font-weight:900;box-sizing:border-box;}
     .mark-note i{width:30px;height:30px;border-radius:10px;background:#fee2e2;display:inline-flex;align-items:center;justify-content:center;flex:0 0 30px;}
-    .mark-note strong{display:block;font-size:12px;text-transform:uppercase;margin-bottom:2px;}
+    .mark-note strong{display:block;font-size:11px;text-transform:uppercase;margin-bottom:2px;}
     .mark-note span{display:block;color:#7f1d1d;font-size:13px;line-height:1.3;}
     .det-card{margin-top:16px;background:#fff;border:1px solid #e6eef7;border-radius:14px;padding:18px;box-shadow:0 4px 14px rgba(15,23,42,.045);}
     .det-card-title{font-weight:1000;color:#12628f;margin-bottom:14px;display:flex;align-items:center;gap:10px;font-size:15px;}
     .det-card-title i{width:30px;height:30px;border-radius:11px;background:#eef8ff;color:#12628f;display:inline-flex;align-items:center;justify-content:center;}
-    .det-actions-row{display:none;}
+    .det-actions-row{margin:0 0 16px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between;}
+    .det-actions-group{display:flex;gap:12px;flex-wrap:wrap;align-items:center;}
+    .det-actions-right{margin-left:auto;flex:0 0 auto;}
     .detail-info-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:4px;}
     .detail-info-box{border:1px solid #e6eef7;border-radius:12px;background:#f8fbff;padding:13px 14px;min-height:78px;box-sizing:border-box;}
     .detail-info-box span{display:block;color:#64748b;font-size:11px;font-weight:1000;text-transform:uppercase;margin-bottom:7px;}
@@ -397,8 +399,8 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
     .log-main span{display:block;color:#64748b;font-size:12px;font-weight:800;margin-top:2px;}
     .empty{color:#64748b;font-size:13px;font-weight:800;text-align:center;padding:28px 12px;background:#f4f7fa;border-radius:16px;}
     @media(max-width:1040px){.bill-card{grid-template-columns:130px minmax(220px,1fr) repeat(3,minmax(120px,1fr)) 44px;gap:10px;}}
-    @media(max-width:900px){.summary-grid,.detail-info-grid{grid-template-columns:repeat(2,minmax(150px,1fr));}.summary-box:nth-child(2){border-right:0;}.summary-box:nth-child(-n+2){border-bottom:1px solid #e6eef7;}.bill-card{grid-template-columns:1fr 1fr;align-items:start;}.bill-desc{grid-column:1 / -1;}.bill-action{justify-content:flex-start;}.det-top{align-items:flex-start;}.det-top-actions{margin-left:0;width:100%;justify-content:flex-start;}.det-title{flex-wrap:wrap;white-space:normal;}.det-title-text{white-space:normal;}}
-    @media(max-width:560px){.report-detail-wrap{width:calc(100% - 16px);margin-top:10px;}.det-top{flex-wrap:wrap;border-radius:14px;}.det-title{white-space:normal;font-size:16px;}.summary-grid,.detail-info-grid{grid-template-columns:1fr;}.summary-box{border-right:0;border-bottom:1px solid #e6eef7;}.summary-box:last-child{border-bottom:0;}.det-actions-row .det-btn,.det-btn{width:100%;justify-content:center;}.bill-card{grid-template-columns:1fr;padding:14px;}.bill-action .btn-icon{width:100%;border-radius:999px;}.log-row{grid-template-columns:36px 1fr;}.log-row .mini-chip{grid-column:1 / -1;justify-content:center;}.mark-card-sub{max-width:230px;}.debt-snapshot{width:100%;min-width:0;}.snapshot-value{font-size:14px;}.snapshot-meta{flex-wrap:wrap;}}
+    @media(max-width:900px){.summary-grid,.detail-info-grid{grid-template-columns:repeat(2,minmax(150px,1fr));}.summary-box:nth-child(2){border-right:0;}.summary-box:nth-child(-n+2){border-bottom:1px solid #e6eef7;}.bill-card{grid-template-columns:1fr 1fr;align-items:start;}.bill-desc{grid-column:1 / -1;}.bill-action{justify-content:flex-start;}.det-top{align-items:flex-start;}.det-title{flex-wrap:wrap;white-space:normal;}.det-title-text{white-space:normal;}.det-actions-row{align-items:flex-start;}.det-actions-right{margin-left:0;}}
+    @media(max-width:560px){.report-detail-wrap{width:calc(100% - 16px);margin-top:10px;}.det-top{flex-wrap:wrap;border-radius:14px;}.det-title{white-space:normal;font-size:16px;}.summary-grid,.detail-info-grid{grid-template-columns:1fr;}.summary-box{border-right:0;border-bottom:1px solid #e6eef7;}.summary-box:last-child{border-bottom:0;}.det-actions-row,.det-actions-group,.det-actions-right{width:100%;}.det-actions-row .det-btn,.det-btn{width:100%;justify-content:center;}.bill-card{grid-template-columns:1fr;padding:14px;}.bill-action .btn-icon{width:100%;border-radius:999px;}.log-row{grid-template-columns:36px 1fr;}.log-row .mini-chip{grid-column:1 / -1;justify-content:center;}.mark-card-sub{max-width:230px;}.debt-snapshot{width:100%;min-width:0;}.snapshot-value{font-size:14px;}.snapshot-meta{flex-wrap:wrap;}}
   </style>
 
   <div class="det-top <?=!empty($mark['marked']) ? 'marked' : ''?>">
@@ -417,18 +419,6 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
         <span class="det-chip"><i class="fa-solid fa-phone"></i> <?=h($phone ?: 'Telefone nao salvo')?></span>
         <?php if (!empty($mark['marked'])): ?><span class="det-chip marked"><i class="fa-solid fa-flag"></i> Marcado</span><?php endif; ?>
       </div>
-    </div>
-    <div class="det-top-actions">
-      <button type="button" class="det-btn <?=!empty($mark['marked']) ? 'danger' : ''?>" id="btnReportMark" data-action="<?=!empty($mark['marked']) ? 'unmark' : 'mark'?>"><i class="fa-solid fa-flag"></i> <?=!empty($mark['marked']) ? 'Desmarcar' : 'Marcar'?></button>
-      <?php if ($profileHref): ?>
-        <a class="det-btn primary" href="<?=h($profileHref)?>" target="_blank" rel="noopener"><i class="fa-solid fa-user"></i> Perfil</a>
-      <?php endif; ?>
-      <?php if ($localHref): ?>
-        <a class="det-btn" href="<?=h($localHref)?>" onclick="window.LisOnPageLoader?.show();"><i class="fa-solid fa-file-invoice"></i> Faturas</a>
-      <?php endif; ?>
-      <?php if ($firstBillUrl): ?>
-        <a class="det-btn" href="<?=h($firstBillUrl)?>" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square"></i> Vindi</a>
-      <?php endif; ?>
     </div>
   </div>
 
@@ -469,15 +459,20 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
     <div class="det-card">
       <div class="det-card-title"><i class="fa-solid fa-chart-simple"></i> Resumo</div>
       <div class="det-actions-row">
-        <?php if ($profileHref): ?>
-          <a class="det-btn" href="<?=h($profileHref)?>" target="_blank" rel="noopener"><i class="fa-solid fa-user"></i> Perfil Vindi</a>
-        <?php endif; ?>
-        <?php if ($localHref): ?>
-          <a class="det-btn" href="<?=h($localHref)?>" onclick="window.LisOnPageLoader?.show();"><i class="fa-solid fa-file-invoice"></i> Ir para faturas</a>
-        <?php endif; ?>
-        <?php if ($firstBillUrl): ?>
-          <a class="det-btn" href="<?=h($firstBillUrl)?>" target="_blank" rel="noopener"><i class="fa-solid fa-rotate"></i> Abrir primeira bill</a>
-        <?php endif; ?>
+        <div class="det-actions-group">
+          <button type="button" class="det-btn <?=!empty($mark['marked']) ? 'danger' : ''?>" id="btnReportMark" data-action="<?=!empty($mark['marked']) ? 'unmark' : 'mark'?>"><i class="fa-solid fa-flag"></i> <?=!empty($mark['marked']) ? 'Desmarcar' : 'Marcar'?></button>
+          <?php if ($localHref): ?>
+            <a class="det-btn" href="<?=h($localHref)?>" onclick="window.LisOnPageLoader?.show();"><i class="fa-solid fa-file-invoice"></i> Faturas</a>
+          <?php endif; ?>
+          <?php if ($firstBillUrl): ?>
+            <a class="det-btn" href="<?=h($firstBillUrl)?>" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square"></i> Vindi</a>
+          <?php endif; ?>
+        </div>
+        <div class="det-actions-group det-actions-right">
+          <?php if ($profileHref): ?>
+            <a class="det-btn primary" href="<?=h($profileHref)?>" target="_blank" rel="noopener"><i class="fa-solid fa-user"></i> Perfil</a>
+          <?php endif; ?>
+        </div>
       </div>
       <div class="detail-info-grid">
         <div class="detail-info-box">
