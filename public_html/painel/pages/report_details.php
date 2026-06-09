@@ -470,7 +470,7 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
         </div>
         <div class="det-actions-group det-actions-right">
           <?php if ($profileHref): ?>
-            <a class="det-btn primary" href="<?=h($profileHref)?>" target="_blank" rel="noopener"><i class="fa-solid fa-user"></i> Perfil</a>
+            <a class="det-btn" href="<?=h($profileHref)?>" target="_blank" rel="noopener"><i class="fa-solid fa-user"></i> Perfil</a>
           <?php endif; ?>
         </div>
       </div>
