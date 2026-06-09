@@ -430,7 +430,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
   <div id="reportContextMenu" class="report-context-menu">
     <button type="button" data-context-action="mark"><i class="fa-solid fa-flag"></i> <span id="contextMarkLabel">Marcar</span></button>
     <button type="button" class="danger" data-context-action="unmark"><i class="fa-solid fa-flag"></i> Desmarcar</button>
-    <button type="button" data-context-action="local-bills"><i class="fa-solid fa-file-invoice"></i> Abrir faturas</button>
+    <button type="button" data-context-action="vindi-bills"><i class="fa-solid fa-file-invoice"></i> Abrir faturas Vindi</button>
     <button type="button" data-context-action="details"><i class="fa-solid fa-chevron-right"></i> Abrir detalhes</button>
   </div>
 
@@ -679,8 +679,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       if (markLabel) markLabel.textContent = marked ? 'Editar motivo' : 'Marcar';
       const unmark = menu.querySelector('[data-context-action="unmark"]');
       if (unmark) unmark.style.display = marked ? 'flex' : 'none';
-      const localBills = menu.querySelector('[data-context-action="local-bills"]');
-      if (localBills) localBills.style.display = customerLocalHref(row) ? 'flex' : 'none';
+      const vindiBills = menu.querySelector('[data-context-action="vindi-bills"]');
+      if (vindiBills) vindiBills.style.display = customerProfileHref(row) ? 'flex' : 'none';
       menu.classList.add('open');
       const rect = menu.getBoundingClientRect();
       const left = Math.min(event.clientX, window.innerWidth - rect.width - 10);
@@ -1269,11 +1269,10 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       const row = findRowByKey(repState.contextRowKey);
       closeContextMenu();
       if (!row) return;
-      if (action === 'local-bills') {
-        const href = customerLocalHref(row);
+      if (action === 'vindi-bills') {
+        const href = customerProfileHref(row);
         if (!href) return;
-        window.LisOnPageLoader?.show();
-        window.location.href = href;
+        window.open(href, '_blank', 'noopener');
         return;
       }
       if (action === 'details') {
