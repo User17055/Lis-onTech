@@ -86,24 +86,24 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     }
     .filter-select:focus{border-color:#9bdcff;box-shadow:none;}
     .summary-grid{
-      display:grid;grid-template-columns:repeat(4,minmax(220px,1fr));gap:16px;margin-bottom:24px;background:transparent;border:0;
+      display:grid;grid-template-columns:repeat(4,minmax(200px,1fr));gap:14px;margin-bottom:20px;background:transparent;border:0;
       border-radius:0;box-shadow:none;overflow:visible;
     }
     .metric{
-      background:#fff;border:2px solid var(--border-color);border-radius:22px;padding:24px 72px 20px 24px;box-shadow:var(--shadow-soft);
-      display:grid;gap:12px;align-content:center;min-height:154px;box-sizing:border-box;transition:.22s;position:relative;overflow:hidden;
+      background:#fff;border:2px solid var(--border-color);border-radius:20px;padding:20px 64px 17px 21px;box-shadow:var(--shadow-soft);
+      display:grid;gap:10px;align-content:center;min-height:132px;box-sizing:border-box;transition:.22s;position:relative;overflow:hidden;
     }
     .metric:last-child{border-right:2px solid var(--border-color);}
     .metric::before{display:none;}
     .metric:hover{background:#fff;transform:translateY(-3px);box-shadow:var(--shadow-hover);border-color:#dbeafe;}
     .metric-label{display:flex;align-items:center;gap:7px;color:#5a6f8c;font-size:12px;font-weight:1000;text-transform:uppercase;white-space:nowrap;letter-spacing:0;}
-    .metric-label i{position:absolute;right:22px;top:22px;width:46px;height:46px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#eef8ff;color:#12628f;font-size:17px;flex:0 0 46px;}
+    .metric-label i{position:absolute;right:18px;top:18px;width:42px;height:42px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#eef8ff;color:#12628f;font-size:16px;flex:0 0 42px;}
     .metric.danger .metric-label i{background:#eef8ff;color:#12628f;}
     .metric.warn .metric-label i{background:var(--yellow-bg);color:var(--yellow-text);}
     .metric.ok .metric-label i{background:var(--green-bg);color:var(--green-text);}
-    .metric strong{display:block;font-size:30px;font-weight:1000;line-height:1;color:#0f172a;letter-spacing:0;}
-    .metric small{display:block;color:#526985;font-size:13px;font-weight:1000;line-height:1.2;margin-top:-4px;}
-    .metric-track{height:6px;border-radius:999px;background:#f1f5f9;overflow:hidden;border:0;margin-top:2px;}
+    .metric strong{display:block;font-size:27px;font-weight:1000;line-height:1;color:#0f172a;letter-spacing:0;}
+    .metric small{display:block;color:#526985;font-size:12px;font-weight:1000;line-height:1.2;margin-top:-3px;}
+    .metric-track{height:5px;border-radius:999px;background:#f1f5f9;overflow:hidden;border:0;margin-top:1px;}
     .metric-fill{display:block;height:100%;width:0;border-radius:999px;background:var(--primary);transition:width .35s ease;}
     .metric.danger::before,.metric.danger .metric-fill{background:var(--primary);}
     .metric.warn::before,.metric.warn .metric-fill{background:#f59e0b;}
@@ -119,8 +119,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .avatar-initial.hot{background:#38b6ff;color:#fff;box-shadow:0 0 0 4px #e0f5ff;}
     .leader-main .avatar-initial{width:42px;height:42px;border-radius:15px;}
     .month-board{
-      background:#fff;border:2px solid var(--border-color);border-radius:24px;box-shadow:var(--shadow-soft);
-      padding:18px 20px;margin:0 0 24px;display:grid;gap:0;transition:box-shadow .25s,border-color .25s;
+      background:#fff;border:2px solid var(--border-color);border-radius:22px;box-shadow:var(--shadow-soft);
+      padding:16px 18px;margin:0 0 20px;display:grid;gap:0;transition:box-shadow .25s,border-color .25s;
     }
     .month-board:hover{border-color:#dbeafe;box-shadow:var(--shadow-hover);}
     .month-board.expanded{gap:12px;}
@@ -134,8 +134,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .month-year-label{color:var(--text-muted);font-size:12px;font-weight:900;}
     .month-grid{display:grid;grid-template-columns:repeat(4,minmax(118px,1fr));gap:8px;}
     .month-btn{
-      min-height:52px;border:2px solid var(--border-color);border-radius:18px;background:#fff;color:var(--text-main);
-      display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;text-align:left;padding:11px 14px;font-family:'Nunito',sans-serif;font-weight:900;cursor:pointer;
+      min-height:48px;border:2px solid var(--border-color);border-radius:16px;background:#fff;color:var(--text-main);
+      display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;text-align:left;padding:10px 13px;font-family:'Nunito',sans-serif;font-weight:900;cursor:pointer;
       box-shadow:var(--shadow-soft);transition:.18s;
     }
     .month-btn:hover{transform:translateY(-1px);border-color:#bfe8ff;color:#12628f;box-shadow:var(--shadow-hover);}
@@ -169,23 +169,23 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .btn-mini.danger{background:#fff;border-color:#fecaca;color:#991b1b;}
     .btn-mini.danger:hover{background:#fee2e2;border-color:#fecaca;color:#991b1b;}
     .report-list-panel{
-      background:transparent;border:0;border-radius:0;padding:0;box-shadow:none;transition:none;
+      background:#fff;border:2px solid var(--border-color);border-radius:22px;padding:14px 16px 8px;box-shadow:var(--shadow-soft);transition:box-shadow .25s,border-color .25s;
     }
-    .report-list-panel:hover{border-color:transparent;box-shadow:none;}
-    .report-list-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 12px;padding:0 2px;}
+    .report-list-panel:hover{border-color:#dbeafe;box-shadow:var(--shadow-hover);}
+    .report-list-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 8px;padding:3px 2px 7px;border-bottom:1px solid #edf2f7;}
     .report-list-title strong{font-size:15px;font-weight:1000;color:#0f172a;text-transform:uppercase;}
     .report-list-title span{font-size:13px;font-weight:900;color:#64748b;background:#fff;border:1px solid var(--border-color);border-radius:999px;padding:7px 12px;box-shadow:var(--shadow-soft);}
-    table{width:100%;border-collapse:separate;border-spacing:0 14px;}
-    thead th{color:#526985;font-size:12px;text-transform:uppercase;font-weight:1000;padding:0 26px 4px;text-align:left;}
-    tbody tr{background:white;box-shadow:var(--shadow-soft);border:2px solid var(--border-color);border-radius:22px;transition:.22s ease;cursor:pointer;}
-    tbody tr:hover{transform:translateY(-3px);box-shadow:var(--shadow-hover);border-color:#dbeafe;background:#fff;}
+    table{width:100%;border-collapse:separate;border-spacing:0 12px;}
+    thead th{color:#526985;font-size:12px;text-transform:uppercase;font-weight:1000;padding:8px 24px 2px;text-align:left;}
+    tbody tr{background:white;box-shadow:0 3px 8px rgba(15,23,42,.04);border:2px solid var(--border-color);border-radius:20px;transition:.22s ease;cursor:pointer;}
+    tbody tr:hover{transform:translateY(-2px);box-shadow:var(--shadow-hover);border-color:#dbeafe;background:#fff;}
     tbody tr.rep-row.marked{background:#fff7f7;border-color:#fecaca;}
     tbody tr.rep-row.marked:hover{border-color:#fca5a5;box-shadow:0 8px 16px rgba(239,68,68,.1);}
-    tbody td{padding:24px 26px;vertical-align:middle;border-top:2px solid var(--border-color);border-bottom:2px solid var(--border-color);background:#fff;}
+    tbody td{padding:20px 24px;vertical-align:middle;border-top:2px solid var(--border-color);border-bottom:2px solid var(--border-color);background:#fff;}
     tbody tr.marked td{background:#fff7f7;}
-    tbody td:first-child{border-top-left-radius:22px;border-bottom-left-radius:22px;border-left:2px solid var(--border-color);}
-    tbody td:last-child{border-top-right-radius:22px;border-bottom-right-radius:22px;border-right:2px solid var(--border-color);}
-    .customer-name{font-weight:1000;font-size:17px;color:#071832;display:block;text-transform:uppercase;letter-spacing:0;line-height:1.22;}
+    tbody td:first-child{border-top-left-radius:20px;border-bottom-left-radius:20px;border-left:2px solid var(--border-color);}
+    tbody td:last-child{border-top-right-radius:20px;border-bottom-right-radius:20px;border-right:2px solid var(--border-color);}
+    .customer-name{font-weight:1000;font-size:16px;color:#071832;display:block;text-transform:uppercase;letter-spacing:0;line-height:1.22;}
     .bill-id{font-size:13px;color:#1d9dff;font-weight:1000;margin-top:8px;display:inline-block;background:#eef8ff;padding:6px 11px;border-radius:999px;line-height:1;}
     .row-sub{display:inline-block;margin-left:8px;color:var(--text-muted);font-size:13px;font-weight:900;}
     .badge{min-height:34px;padding:0 14px;border-radius:var(--radius-pill);font-family:inherit;font-weight:900;font-size:12px;line-height:1;text-transform:uppercase;letter-spacing:0;display:inline-flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap;}
@@ -197,11 +197,11 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .b-pending{background:#fff4d671;color:#b45309;}
     .b-marked{background:#fee2e2;color:#991b1b;}
     .debt-snapshot{
-      min-width:220px;display:grid;gap:8px;padding:4px 0;border:0;border-left:0;
+      min-width:206px;display:grid;gap:7px;padding:4px 0;border:0;border-left:0;
       border-radius:0;background:transparent;box-shadow:none;
     }
     .debt-snapshot.marked{background:#fff7f7;border-color:#fecaca;border-left-color:#991b1b;}
-    .snapshot-value{display:flex;align-items:center;gap:9px;color:#0f172a;font-size:18px;font-weight:1000;line-height:1;}
+    .snapshot-value{display:flex;align-items:center;gap:9px;color:#0f172a;font-size:17px;font-weight:1000;line-height:1;}
     .snapshot-value i{width:auto;height:auto;border-radius:0;background:transparent;color:#0f172a;display:inline-flex;align-items:center;justify-content:center;font-size:12px;}
     .debt-snapshot.marked .snapshot-value{color:#991b1b;}
     .debt-snapshot.marked .snapshot-value i{background:#fee2e2;color:#991b1b;}
@@ -273,7 +273,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     @keyframes spin{to{transform:rotate(360deg)}}
     @keyframes pulse-dot{0%{opacity:.5;transform:scale(1)}50%{opacity:1;transform:scale(1.3)}100%{opacity:.5;transform:scale(1)}}
     @media(max-width:1060px){
-      .summary-grid{grid-template-columns:repeat(2,minmax(240px,1fr));}
+      .summary-grid{grid-template-columns:repeat(2,minmax(220px,1fr));}
       .leader-strip{grid-template-columns:1fr 1fr;}
       .month-grid{grid-template-columns:repeat(3,minmax(112px,1fr));}
       .bill-line{grid-template-columns:1fr;}
@@ -292,7 +292,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       .month-board-head{align-items:stretch;flex-direction:column;}
       #btnAllMonths,#btnToggleMonths{width:100%;justify-content:center;}
       .month-board{padding:12px;border-radius:18px;}
-      .metric{min-height:82px;}
+      .metric{min-height:122px;}
       .btn-primary{width:100%;}
       .btn-secondary{width:100%;}
       .meta-chip{width:100%;box-sizing:border-box;}
@@ -300,8 +300,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     }
     @media(max-width:620px){
       .summary-grid{grid-template-columns:1fr;}
-      .metric{padding:20px 68px 18px 20px;min-height:132px;}
-      .metric strong{font-size:27px;}
+      .metric{padding:18px 64px 16px 18px;min-height:118px;}
+      .metric strong{font-size:25px;}
       .metric-label{font-size:12px;}
       .metric-label i{width:42px;height:42px;right:18px;top:18px;font-size:16px;}
       .table-scroll{overflow:visible;}
@@ -380,7 +380,6 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       <div class="metric"><span class="metric-label"><i class="fa-solid fa-users"></i> Devedores</span><strong id="mDebtors">0</strong><small>clientes em atraso</small><span class="metric-track"><span class="metric-fill" id="mDebtorsFill"></span></span></div>
       <div class="metric danger"><span class="metric-label"><i class="fa-solid fa-coins"></i> Total</span><strong id="mAmount">R$ 0,00</strong><small>valor vencido em aberto</small><span class="metric-track"><span class="metric-fill" id="mAmountFill"></span></span></div>
       <div class="metric warn"><span class="metric-label"><i class="fa-solid fa-file-invoice"></i> Faturas</span><strong id="mBills">0</strong><small>parcelas/faturas vencidas</small><span class="metric-track"><span class="metric-fill" id="mBillsFill"></span></span></div>
-      <div class="metric"><span class="metric-label"><i class="fa-solid fa-triangle-exclamation"></i> Vencidas</span><strong id="mOverdue">0</strong><small>vencimentos em aberto</small><span class="metric-track"><span class="metric-fill" id="mOverdueFill"></span></span></div>
       <div class="metric ok"><span class="metric-label"><i class="fa-brands fa-whatsapp"></i> Recobrancas</span><strong id="mReminders">0</strong><small>mensagens enviadas</small><span class="metric-track"><span class="metric-fill" id="mRemindersFill"></span></span></div>
     </div>
 
@@ -876,13 +875,11 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       renderMonthOptions(meta.available_months || [], meta.selected_month || selectedMonth);
       const debtors = Number(s.debtors || 0);
       const openBills = Number(s.open_bills || 0);
-      const overdueBills = Number(s.overdue_bills || 0);
       const reminders = Number(s.reminders_sent || 0);
-      const countMax = Math.max(debtors, openBills, overdueBills, reminders, 1);
+      const countMax = Math.max(debtors, openBills, reminders, 1);
       setMetric('mDebtors', 'mDebtorsFill', brNumber(debtors), (debtors / countMax) * 100);
       setMetric('mAmount', 'mAmountFill', brMoney(s.total_amount), Number(s.total_amount || 0) > 0 ? 100 : 0);
       setMetric('mBills', 'mBillsFill', brNumber(openBills), (openBills / countMax) * 100);
-      setMetric('mOverdue', 'mOverdueFill', brNumber(overdueBills), (overdueBills / Math.max(openBills, 1)) * 100);
       setMetric('mReminders', 'mRemindersFill', brNumber(reminders), (reminders / countMax) * 100);
       const chips = [
         `<span class="meta-chip"><i class="fa-solid fa-database"></i> Local ${brNumber(meta.local_rows || 0)}</span>`,
