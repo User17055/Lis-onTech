@@ -318,35 +318,33 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     }
     .window-panel:hover{filter:brightness(.99);}
     .window-copy{display:flex;align-items:center;gap:8px;min-width:0;}
-    .window-copy i{font-size:15px;}
     .window-copy strong{display:block;font-size:13px;font-weight:900;}
     .window-copy span{display:none;}
     .window-panel.open{background:#f4fff9;}
-    .window-panel.open .window-copy i{color:var(--ok);}
     .window-panel.closed{background:#fffaf0;}
-    .window-panel.closed .window-copy i{color:var(--warn);}
     .window-timer{font-size:13px;font-weight:900;white-space:nowrap;color:var(--text);}
     .window-help-btn{
-      width:28px;
-      height:28px;
+      width:30px;
+      height:30px;
       border:1px solid rgba(183,121,31,.22);
-      border-radius:999px;
-      background:rgba(255,255,255,.72);
+      border-radius:10px;
+      background:#fff7e8;
       color:#8a5d1a;
       display:inline-flex;
       align-items:center;
       justify-content:center;
       cursor:pointer;
       transition:.16s;
-      flex:0 0 28px;
+      flex:0 0 30px;
+      box-shadow:0 2px 8px rgba(138,93,26,.08);
     }
     .window-help-btn:hover{background:#fff;border-color:#f3c27a;color:#704712;}
     .window-help-btn svg{width:15px;height:15px;display:block;}
-    .window-panel.open .window-help-btn{border-color:rgba(15,159,110,.22);color:#08734d;}
+    .window-panel.open .window-help-btn{background:#edfff6;border-color:rgba(15,159,110,.22);color:#08734d;}
     .window-panel.open .window-help-btn:hover{border-color:#94d9bc;color:#065f46;}
     .window-help-popover{
       position:absolute;
-      right:18px;
+      left:18px;
       top:calc(100% + 8px);
       width:min(340px,calc(100vw - 36px));
       border:1px solid var(--line);
@@ -361,7 +359,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .window-help-popover::before{
       content:"";
       position:absolute;
-      right:58px;
+      left:10px;
       top:-7px;
       width:12px;
       height:12px;
@@ -950,19 +948,18 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
 
       <div class="window-panel closed" id="windowPanel">
         <div class="window-copy">
-          <i class="fa-solid fa-lock"></i>
+          <button class="window-help-btn" id="windowHelpBtn" type="button" title="Entender status da janela" aria-expanded="false" aria-controls="windowHelpPopover">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none">
+              <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"></circle>
+              <path d="M12 17v-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+              <circle cx="12" cy="8" r="1.2" fill="currentColor"></circle>
+            </svg>
+          </button>
           <div>
             <strong id="windowTitle">Selecione uma conversa</strong>
             <span id="windowSubtitle">O envio de texto livre depende da janela de 24h.</span>
           </div>
         </div>
-        <button class="window-help-btn" id="windowHelpBtn" type="button" title="Entender status da janela" aria-expanded="false" aria-controls="windowHelpPopover">
-          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none">
-            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"></circle>
-            <path d="M12 17v-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
-            <circle cx="12" cy="8" r="1.2" fill="currentColor"></circle>
-          </svg>
-        </button>
         <div class="window-timer" id="windowTimer">--:--:--</div>
         <div class="window-help-popover" id="windowHelpPopover" role="dialog" aria-hidden="true">
           <strong id="windowHelpTitle">Status da janela</strong>
