@@ -313,12 +313,13 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
     .det-status{display:inline-flex;align-items:center;gap:8px;width:max-content;border-radius:999px;border:1px solid #bfebff;background:#eef8ff;color:#12628f;padding:7px 12px;font-size:12px;font-weight:1000;text-transform:uppercase;white-space:nowrap;}
     .det-status i{color:#12628f;}
     .det-top-actions{margin-left:auto;display:flex;align-items:center;gap:8px;flex:0 0 auto;flex-wrap:wrap;justify-content:flex-end;}
-    .det-btn{height:44px;border:2px solid #eef2f6;border-radius:999px;background:#fff;color:#0f172a;padding:0 16px;display:inline-flex;align-items:center;gap:8px;text-decoration:none;font-weight:1000;transition:.2s;font-family:'Nunito',sans-serif;cursor:pointer;box-sizing:border-box;white-space:nowrap;}
+    .det-btn{height:36px;border:2px solid #eef2f6;border-radius:999px;background:#fff;color:#0f172a;padding:0 13px;display:inline-flex;align-items:center;gap:7px;text-decoration:none;font-size:13px;font-weight:1000;transition:.2s;font-family:'Nunito',sans-serif;cursor:pointer;box-sizing:border-box;white-space:nowrap;}
     .det-btn:hover{border-color:#bfebff;color:#12628f;transform:translateY(-1px);}
     .det-btn.primary{background:#38b6ff;color:#fff;border-color:#38b6ff;box-shadow:0 4px 12px rgba(56,182,255,.28);}
     .det-btn.danger{border-color:#fecaca;background:#fff;color:#991b1b;}
     .det-btn.danger:hover{border-color:#fecaca;background:#fee2e2;color:#991b1b;box-shadow:0 6px 14px rgba(153,27,27,.12);}
     .det-btn:disabled{opacity:.55;cursor:not-allowed;transform:none;}
+    .mark-card-actions .det-btn{height:40px;padding:0 14px;}
     .mark-modal{position:fixed;inset:0;z-index:1100;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(15,23,42,.36);}
     .mark-modal.open{display:flex;}
     .mark-card{width:min(460px,100%);background:#fff;border:2px solid #eef2f6;border-radius:12px;box-shadow:0 24px 48px rgba(15,23,42,.2);overflow:hidden;}
