@@ -368,20 +368,22 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
     .detail-date{font-size:13px;color:#64748b;font-weight:800;white-space:nowrap;}
     .btn-icon{color:#94a3b8;width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:.2s;text-decoration:none;border:2px solid transparent;background:transparent;}
     .btn-icon:hover{background:#f1f5f9;color:#38b6ff;border-color:#dbeafe;}
-    .bill-list{display:grid;gap:10px;}
-    .bill-card{border:1px solid #e6eef7;border-radius:14px;background:#fff;display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,340px);overflow:hidden;box-shadow:0 3px 10px rgba(15,23,42,.035);transition:.2s;}
-    .bill-card:hover{border-color:#dbeafe;box-shadow:0 10px 18px -12px rgba(56,182,255,.34);}
-    .bill-main-card{padding:16px 18px;display:grid;gap:12px;}
-    .bill-topline{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
-    .bill-id{display:inline-flex;align-items:center;gap:8px;width:max-content;max-width:100%;padding:7px 11px;border-radius:999px;background:#eef8ff;color:#12628f;font-weight:1000;text-decoration:none;font-size:12px;}
-    .bill-amount{font-size:21px;font-weight:1000;margin-top:10px;color:#0f172a;}
-    .bill-muted{display:flex;align-items:flex-start;gap:8px;color:#64748b;font-weight:900;font-size:12px;margin-top:8px;line-height:1.3;}
-    .bill-muted i{color:#38b6ff;margin-top:1px;}
-    .bill-label{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:1000;text-transform:uppercase;color:#64748b;margin-bottom:8px;}
+    .bill-list{display:grid;gap:8px;}
+    .bill-card{border:1px solid #e6eef7;border-radius:10px;background:#fff;display:grid;grid-template-columns:150px minmax(220px,1fr) 138px 132px 154px 44px;gap:14px;align-items:center;padding:14px 16px;box-shadow:0 2px 8px rgba(15,23,42,.03);transition:.2s;}
+    .bill-card:hover{border-color:#cfe0ff;box-shadow:0 8px 18px -14px rgba(56,182,255,.38);}
+    .bill-id{display:inline-flex;align-items:center;gap:8px;width:max-content;max-width:100%;padding:7px 10px;border-radius:999px;background:#eef8ff;color:#12628f;font-weight:1000;text-decoration:none;font-size:12px;white-space:nowrap;}
+    .bill-desc{min-width:0;}
+    .bill-label{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:1000;text-transform:uppercase;color:#64748b;margin-bottom:6px;}
     .bill-label i{color:#38b6ff;}
-    .bill-items{white-space:pre-wrap;word-break:break-word;font-size:14px;font-weight:900;line-height:1.42;color:#0f172a;background:transparent;border:0;border-radius:0;padding:0;}
-    .bill-side{display:flex;gap:10px;align-items:center;justify-content:flex-end;flex-wrap:wrap;text-align:left;background:#fbfdff;padding:16px 18px;border-left:1px solid #e6eef7;}
-    .bill-side .debt-snapshot{margin-right:0;}
+    .bill-items{white-space:pre-wrap;word-break:break-word;font-size:14px;font-weight:900;line-height:1.35;color:#0f172a;background:transparent;border:0;border-radius:0;padding:0;}
+    .bill-metric{min-width:0;display:grid;gap:4px;}
+    .bill-metric span{display:flex;align-items:center;gap:6px;color:#64748b;font-size:11px;font-weight:1000;text-transform:uppercase;line-height:1.1;}
+    .bill-metric span i{color:#38b6ff;font-size:11px;}
+    .bill-metric strong{color:#0f172a;font-size:14px;font-weight:1000;line-height:1.2;word-break:break-word;}
+    .bill-metric small{color:#64748b;font-size:12px;font-weight:900;line-height:1.2;}
+    .bill-action{display:flex;justify-content:flex-end;}
+    .bill-action .btn-icon{background:#f8fbff;border-color:#e6eef7;color:#12628f;}
+    .bill-action .btn-icon:hover{background:#eef8ff;border-color:#bfebff;color:#12628f;}
     .mini-chip{display:inline-flex;align-items:center;gap:8px;padding:7px 11px;border-radius:999px;background:#f4f7fa;border:1px solid #e6eef7;font-size:12px;font-weight:1000;color:#334155;}
     .mini-chip i{color:#38b6ff;}
     .timeline{display:grid;gap:10px;}
@@ -391,8 +393,9 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
     .log-main strong{display:block;font-weight:1000;color:#0f172a;font-size:13px;}
     .log-main span{display:block;color:#64748b;font-size:12px;font-weight:800;margin-top:2px;}
     .empty{color:#64748b;font-size:13px;font-weight:800;text-align:center;padding:28px 12px;background:#f4f7fa;border-radius:16px;}
-    @media(max-width:900px){.summary-grid,.detail-info-grid{grid-template-columns:repeat(2,minmax(150px,1fr));}.summary-box:nth-child(2){border-right:0;}.summary-box:nth-child(-n+2){border-bottom:1px solid #e6eef7;}.bill-card{grid-template-columns:1fr;}.bill-side{justify-content:flex-start;text-align:left;border-left:0;border-top:1px solid #e6eef7;}.det-top{align-items:flex-start;}.det-top-actions{margin-left:0;width:100%;justify-content:flex-start;}.det-title{flex-wrap:wrap;white-space:normal;}}
-    @media(max-width:560px){.report-detail-wrap{width:calc(100% - 16px);margin-top:10px;}.det-top{flex-wrap:wrap;border-radius:14px;}.det-title{white-space:normal;font-size:16px;}.summary-grid,.detail-info-grid{grid-template-columns:1fr;}.summary-box{border-right:0;border-bottom:1px solid #e6eef7;}.summary-box:last-child{border-bottom:0;}.det-actions-row .det-btn,.det-btn{width:100%;justify-content:center;}.log-row{grid-template-columns:36px 1fr;}.log-row .mini-chip{grid-column:1 / -1;justify-content:center;}.mark-card-sub{max-width:230px;}.debt-snapshot{width:100%;min-width:0;}.snapshot-value{font-size:14px;}.snapshot-meta{flex-wrap:wrap;}.bill-side .debt-snapshot{margin-right:0;}}
+    @media(max-width:1040px){.bill-card{grid-template-columns:130px minmax(220px,1fr) repeat(3,minmax(120px,1fr)) 44px;gap:10px;}}
+    @media(max-width:900px){.summary-grid,.detail-info-grid{grid-template-columns:repeat(2,minmax(150px,1fr));}.summary-box:nth-child(2){border-right:0;}.summary-box:nth-child(-n+2){border-bottom:1px solid #e6eef7;}.bill-card{grid-template-columns:1fr 1fr;align-items:start;}.bill-desc{grid-column:1 / -1;}.bill-action{justify-content:flex-start;}.det-top{align-items:flex-start;}.det-top-actions{margin-left:0;width:100%;justify-content:flex-start;}.det-title{flex-wrap:wrap;white-space:normal;}}
+    @media(max-width:560px){.report-detail-wrap{width:calc(100% - 16px);margin-top:10px;}.det-top{flex-wrap:wrap;border-radius:14px;}.det-title{white-space:normal;font-size:16px;}.summary-grid,.detail-info-grid{grid-template-columns:1fr;}.summary-box{border-right:0;border-bottom:1px solid #e6eef7;}.summary-box:last-child{border-bottom:0;}.det-actions-row .det-btn,.det-btn{width:100%;justify-content:center;}.bill-card{grid-template-columns:1fr;padding:14px;}.bill-action .btn-icon{width:100%;border-radius:999px;}.log-row{grid-template-columns:36px 1fr;}.log-row .mini-chip{grid-column:1 / -1;justify-content:center;}.mark-card-sub{max-width:230px;}.debt-snapshot{width:100%;min-width:0;}.snapshot-value{font-size:14px;}.snapshot-meta{flex-wrap:wrap;}}
   </style>
 
   <div class="det-top <?=!empty($mark['marked']) ? 'marked' : ''?>">
@@ -510,34 +513,44 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
             $billId = (int)($bill['bill_id'] ?? 0);
             $billUrl = trim((string)($bill['bill_url'] ?? ''));
             $last = $bill['last_reminder_calc'] ?? null;
+            $itemsText = trim((string)($bill['items_text'] ?? '')) ?: 'Sem itens informados';
           ?>
             <div class="bill-card">
-              <div class="bill-main-card">
-                <div class="bill-topline">
-                  <?php if ($billUrl): ?>
-                    <a class="bill-id" href="<?=h($billUrl)?>" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square"></i> Bill <?=h($billId)?></a>
-                  <?php else: ?>
-                    <span class="bill-id"><i class="fa-solid fa-file-invoice"></i> Bill <?=h($billId)?></span>
-                  <?php endif; ?>
-                  <div class="bill-muted" style="margin-top:0;"><i class="fa-regular fa-calendar"></i><span>Venceu em <?=h(rdDateBr($bill['due_at'] ?? null))?></span></div>
-                </div>
-                <div>
-                  <div class="bill-label"><i class="fa-solid fa-list-check"></i> O que esta devendo</div>
-                  <div class="bill-items"><?=h(trim((string)($bill['items_text'] ?? '')) ?: 'Sem itens informados')?></div>
-                </div>
-              </div>
-              <div class="bill-side">
-                <span class="debt-snapshot">
-                  <span class="snapshot-value"><i class="fa-solid fa-coins"></i> <?=h(rdMoneyBr($bill['amount_num']))?></span>
-                  <span class="snapshot-meta">
-                    <span><i class="fa-regular fa-calendar"></i> <?=h((int)$bill['days_overdue'])?> dia(s)</span>
-                    <span><i class="fa-brands fa-whatsapp"></i> <?=h($bill['sent_num'])?> rec.</span>
-                  </span>
-                </span>
-                <span class="mini-chip"><i class="fa-solid fa-rotate"></i> <?=h($bill['attempts_num'])?> tentativa(s)</span>
-                <span class="mini-chip"><i class="fa-regular fa-clock"></i> <?=h($last ? rdDateTimeBr($last) : 'Sem envio')?></span>
+              <div>
                 <?php if ($billUrl): ?>
-                  <a class="mini-chip" href="<?=h($billUrl)?>" target="_blank" rel="noopener" style="text-decoration:none;"><i class="fa-solid fa-arrow-up-right-from-square"></i> Vindi</a>
+                  <a class="bill-id" href="<?=h($billUrl)?>" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square"></i> Bill <?=h($billId)?></a>
+                <?php else: ?>
+                  <span class="bill-id"><i class="fa-solid fa-file-invoice"></i> Bill <?=h($billId)?></span>
+                <?php endif; ?>
+              </div>
+
+              <div class="bill-desc">
+                <div class="bill-label"><i class="fa-solid fa-list-check"></i> Descricao</div>
+                <div class="bill-items"><?=h($itemsText)?></div>
+              </div>
+
+              <div class="bill-metric">
+                <span><i class="fa-solid fa-coins"></i> Valor</span>
+                <strong><?=h(rdMoneyBr($bill['amount_num']))?></strong>
+              </div>
+
+              <div class="bill-metric">
+                <span><i class="fa-regular fa-calendar"></i> Vencimento</span>
+                <strong><?=h(rdDateBr($bill['due_at'] ?? null))?></strong>
+                <small><?=h((int)$bill['days_overdue'])?> dia(s) em atraso</small>
+              </div>
+
+              <div class="bill-metric">
+                <span><i class="fa-brands fa-whatsapp"></i> Recobranca</span>
+                <strong><?=h($bill['sent_num'])?> envio(s) · <?=h($bill['attempts_num'])?> tent.</strong>
+                <small><?=h($last ? rdDateTimeBr($last) : 'Sem envio')?></small>
+              </div>
+
+              <div class="bill-action">
+                <?php if ($billUrl): ?>
+                  <a class="btn-icon" href="<?=h($billUrl)?>" target="_blank" rel="noopener" title="Abrir na Vindi"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+                <?php else: ?>
+                  <span class="btn-icon" style="opacity:.35;pointer-events:none;" title="Sem link da Vindi"><i class="fa-solid fa-arrow-up-right-from-square"></i></span>
                 <?php endif; ?>
               </div>
             </div>
