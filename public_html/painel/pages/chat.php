@@ -309,21 +309,23 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .window-panel{
       border-bottom:1px solid var(--line);
       background:#fff;
-      padding:9px 18px;
+      padding:6px 18px;
       display:flex;
       align-items:center;
       justify-content:space-between;
       gap:14px;
+      cursor:pointer;
     }
-    .window-copy{display:flex;align-items:center;gap:10px;min-width:0;}
-    .window-copy i{font-size:16px;}
+    .window-panel:hover{filter:brightness(.99);}
+    .window-copy{display:flex;align-items:center;gap:8px;min-width:0;}
+    .window-copy i{font-size:15px;}
     .window-copy strong{display:block;font-size:13px;font-weight:900;}
-    .window-copy span{display:block;font-size:11px;font-weight:800;color:var(--muted);margin-top:1px;}
+    .window-copy span{display:none;}
     .window-panel.open{background:#f4fff9;}
     .window-panel.open .window-copy i{color:var(--ok);}
     .window-panel.closed{background:#fffaf0;}
     .window-panel.closed .window-copy i{color:var(--warn);}
-    .window-timer{font-size:14px;font-weight:900;white-space:nowrap;color:var(--text);}
+    .window-timer{font-size:13px;font-weight:900;white-space:nowrap;color:var(--text);}
 
     .messages{
       flex:1;
@@ -1628,6 +1630,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         panel.className = 'window-panel closed';
         el('windowTitle').textContent = 'Selecione uma conversa';
         el('windowSubtitle').textContent = 'O envio de texto livre depende da janela de 24h.';
+        panel.dataset.help = 'Abra uma conversa para ver se o texto livre esta disponivel.';
         el('windowTimer').textContent = '--:--:--';
         composer.classList.add('blocked');
         text.disabled = true;
@@ -1642,6 +1645,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         panel.className = 'window-panel open';
         el('windowTitle').textContent = 'Texto livre liberado';
         el('windowSubtitle').textContent = 'Janela aberta pela ultima mensagem recebida do cliente.';
+        panel.dataset.help = 'Janela aberta pela ultima mensagem recebida do cliente. Voce pode enviar texto livre agora.';
         el('windowTimer').textContent = durationText(info.left);
         composer.classList.remove('blocked');
         text.disabled = false;
@@ -1654,6 +1658,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       panel.className = 'window-panel closed';
       el('windowTitle').textContent = 'Janela de texto fechada';
       el('windowSubtitle').textContent = 'Envie um modelo aprovado; texto livre volta quando o cliente responder.';
+      panel.dataset.help = 'Envie um modelo aprovado; texto livre volta quando o cliente responder.';
       el('windowTimer').textContent = 'modelo';
       composer.classList.add('blocked');
       text.disabled = true;
@@ -2000,6 +2005,9 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     el('btnSendTemplateBottom').onclick = sendTemplate;
     el('btnResendCharge').onclick = resendLastCharge;
     el('btnReviewChat').onclick = toggleReviewMode;
+    el('windowPanel').onclick = () => {
+      toast(el('windowPanel').dataset.help || 'Status da janela de conversa.');
+    };
     el('confirmCancel').onclick = () => closeConfirm(false);
     el('confirmOk').onclick = () => closeConfirm(true);
     el('imageViewerClose').onclick = closeImageViewer;
