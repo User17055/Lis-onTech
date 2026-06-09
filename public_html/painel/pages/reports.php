@@ -251,8 +251,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .detail-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end;}
     .bill-line{
       background:#fff;border:2px solid var(--border-color);border-radius:22px;padding:18px;display:grid;
-      grid-template-columns:minmax(190px,.8fr) minmax(0,1.4fr) minmax(210px,.8fr);
-      gap:18px;align-items:stretch;box-shadow:0 6px 14px rgba(15,23,42,.04);transition:.2s;
+      grid-template-columns:minmax(190px,.35fr) minmax(0,1fr);
+      gap:18px;align-items:start;box-shadow:0 6px 14px rgba(15,23,42,.04);transition:.2s;
     }
     .bill-line:hover{border-color:#dbeafe;box-shadow:0 12px 20px -8px rgba(56,182,255,.24);}
     .bill-head{display:grid;gap:8px;align-content:start;}
@@ -264,7 +264,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .bill-label{display:flex;align-items:center;gap:8px;color:var(--text-muted);font-size:12px;font-weight:1000;text-transform:uppercase;}
     .bill-label i{color:var(--primary);}
     .bill-items{white-space:pre-wrap;word-break:break-word;font-size:15px;font-weight:900;line-height:1.42;color:var(--text-main);background:#f8fbff;border:1px solid var(--border-color);border-radius:16px;padding:14px;}
-    .bill-side{display:grid;gap:8px;align-content:start;justify-items:end;text-align:right;}
+    .bill-side{grid-column:1 / -1;display:flex;gap:8px;align-items:center;justify-content:flex-start;flex-wrap:wrap;text-align:left;padding-top:2px;}
     .bill-mini{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;background:var(--bg-panel);border:2px solid var(--border-color);font-size:13px;font-weight:1000;}
     .bill-mini i{color:var(--primary);}
     .bill-mini.ok i{color:var(--green-text);}
@@ -280,7 +280,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       .leader-strip{grid-template-columns:1fr 1fr;}
       .month-grid{grid-template-columns:repeat(3,minmax(112px,1fr));}
       .bill-line{grid-template-columns:1fr;}
-      .bill-side{justify-items:start;text-align:left;grid-template-columns:repeat(3,max-content);align-items:center;overflow-x:auto;}
+      .bill-side{text-align:left;overflow:visible;}
       .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
     }
     @media(max-width:680px){
@@ -322,7 +322,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       .pill{white-space:normal;}
       .detail-row td{padding:0 0 14px;}
       .detail-panel{padding:10px;border-radius:14px;}
-      .bill-side{display:grid;grid-template-columns:1fr;justify-items:stretch;}
+      .bill-side{display:flex;align-items:stretch;}
       .bill-mini{justify-content:center;}
     }
     @media(max-width:390px){

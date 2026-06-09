@@ -359,11 +359,11 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
     .btn-icon:hover{background:#f1f5f9;color:#38b6ff;border-color:#dbeafe;}
     .bill-list{display:grid;gap:14px;}
     .bill-card{
-      border:2px solid #e6eef7;border-radius:22px;background:#fff;display:grid;grid-template-columns:minmax(0,1fr) minmax(240px,.36fr);
+      border:2px solid #e6eef7;border-radius:22px;background:#fff;display:grid;grid-template-columns:1fr;
       overflow:hidden;box-shadow:0 6px 16px rgba(15,23,42,.05);transition:.2s;
     }
     .bill-card:hover{border-color:#dbeafe;box-shadow:0 12px 20px -8px rgba(56,182,255,.26);}
-    .bill-main-card{padding:18px 20px;display:grid;gap:14px;}
+    .bill-main-card{padding:18px 20px 12px;display:grid;gap:14px;}
     .bill-topline{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
     .bill-id{display:inline-flex;align-items:center;gap:8px;width:max-content;max-width:100%;padding:7px 11px;border-radius:999px;background:#eef8ff;color:#12628f;font-weight:1000;text-decoration:none;font-size:12px;}
     .bill-amount{font-size:21px;font-weight:1000;margin-top:10px;color:#0f172a;}
@@ -372,7 +372,8 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
     .bill-label{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:1000;text-transform:uppercase;color:#64748b;margin-bottom:8px;}
     .bill-label i{color:#38b6ff;}
     .bill-items{white-space:pre-wrap;word-break:break-word;font-size:14px;font-weight:900;line-height:1.42;color:#0f172a;background:#f8fbff;border:1px solid #eef2f6;border-radius:14px;padding:12px;}
-    .bill-side{display:grid;gap:10px;align-content:center;justify-items:start;text-align:left;background:#fbfdff;border-left:2px solid #eef2f6;padding:18px;}
+    .bill-side{display:flex;gap:10px;align-items:center;justify-content:flex-start;flex-wrap:wrap;text-align:left;background:#fff;padding:0 20px 18px;border:0;}
+    .bill-side .debt-snapshot{margin-right:auto;}
     .mini-chip{display:inline-flex;align-items:center;gap:8px;padding:7px 11px;border-radius:999px;background:#f4f7fa;border:1px solid #e6eef7;font-size:12px;font-weight:1000;color:#334155;}
     .mini-chip i{color:#38b6ff;}
     .timeline{display:grid;gap:10px;}
@@ -382,7 +383,7 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
     .log-main strong{display:block;font-weight:1000;color:#0f172a;font-size:13px;}
     .log-main span{display:block;color:#64748b;font-size:12px;font-weight:800;margin-top:2px;}
     .empty{color:#64748b;font-size:13px;font-weight:800;text-align:center;padding:28px 12px;background:#f4f7fa;border-radius:16px;}
-    @media(max-width:900px){.summary-grid{grid-template-columns:repeat(2,minmax(150px,1fr));}.bill-card{grid-template-columns:1fr;}.bill-side{border-left:0;border-top:1px solid #eef2f6;justify-items:start;text-align:left;}.det-top{align-items:flex-start;}.det-top-actions{margin-left:0;width:100%;justify-content:flex-start;}}
+    @media(max-width:900px){.summary-grid{grid-template-columns:repeat(2,minmax(150px,1fr));}.bill-card{grid-template-columns:1fr;}.bill-side{justify-content:flex-start;text-align:left;}.det-top{align-items:flex-start;}.det-top-actions{margin-left:0;width:100%;justify-content:flex-start;}}
     @media(max-width:560px){.report-detail-wrap{padding:0 8px;}.det-top{flex-wrap:wrap;border-radius:16px;}.det-title{white-space:normal;font-size:16px;}.summary-grid{grid-template-columns:1fr;}.det-btn{width:100%;justify-content:center;}.log-row{grid-template-columns:36px 1fr;}.log-row .mini-chip{grid-column:1 / -1;justify-content:center;}.mark-card-sub{max-width:230px;}.debt-snapshot{width:100%;min-width:0;}.snapshot-value{font-size:14px;}.snapshot-meta{flex-wrap:wrap;}}
   </style>
 
