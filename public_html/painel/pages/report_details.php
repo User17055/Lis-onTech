@@ -296,7 +296,7 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
 
 <div class="det-wrap report-detail-wrap">
   <style>
-    .report-detail-wrap{font-family:'Nunito',sans-serif;max-width:1180px;margin:24px auto 28px;padding:0 18px;color:#0f172a;}
+    .report-detail-wrap{font-family:'Nunito',sans-serif;width:min(1180px,calc(100% - 36px));max-width:1180px;margin:24px auto 28px;padding:0;color:#0f172a;}
     .det-top{background:#fff;border:2px solid #eef2f6;border-radius:18px;padding:20px;display:flex;align-items:center;gap:18px;box-shadow:0 8px 20px rgba(15,23,42,.06);}
     .det-top.marked{background:#fff;border-color:#fecaca;}
     .det-back{width:46px;height:46px;border-radius:50%;background:#f4f7fa;display:flex;align-items:center;justify-content:center;text-decoration:none;color:#0f172a;transition:.2s;flex:0 0 auto;border:1px solid rgba(15,23,42,.06);}
@@ -313,10 +313,11 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
     .det-status{display:inline-flex;align-items:center;gap:8px;width:max-content;border-radius:999px;border:1px solid #bfebff;background:#eef8ff;color:#12628f;padding:8px 14px;font-size:13px;font-weight:1000;text-transform:uppercase;white-space:nowrap;}
     .det-status i{color:#12628f;}
     .det-top-actions{margin-left:auto;display:flex;align-items:center;gap:8px;flex:0 0 auto;flex-wrap:wrap;justify-content:flex-end;}
-    .det-btn{height:44px;border:2px solid #e6eef7;border-radius:999px;background:#fff;color:#0f172a;padding:0 16px;display:inline-flex;align-items:center;gap:8px;text-decoration:none;font-weight:1000;transition:.2s;font-family:'Nunito',sans-serif;}
+    .det-btn{height:44px;border:2px solid #eef2f6;border-radius:999px;background:#fff;color:#0f172a;padding:0 16px;display:inline-flex;align-items:center;gap:8px;text-decoration:none;font-weight:1000;transition:.2s;font-family:'Nunito',sans-serif;cursor:pointer;box-sizing:border-box;white-space:nowrap;}
     .det-btn:hover{border-color:#bfebff;color:#12628f;transform:translateY(-1px);}
     .det-btn.primary{background:#38b6ff;color:#fff;border-color:#38b6ff;box-shadow:0 4px 12px rgba(56,182,255,.28);}
     .det-btn.danger{border-color:#fecaca;background:#fee2e2;color:#991b1b;}
+    .det-btn.danger:hover{border-color:#fecaca;background:#fee2e2;color:#991b1b;box-shadow:0 6px 14px rgba(153,27,27,.12);}
     .det-btn:disabled{opacity:.55;cursor:not-allowed;transform:none;}
     .mark-modal{position:fixed;inset:0;z-index:1100;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(15,23,42,.36);}
     .mark-modal.open{display:flex;}
@@ -397,7 +398,7 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
     .log-main span{display:block;color:#64748b;font-size:12px;font-weight:800;margin-top:2px;}
     .empty{color:#64748b;font-size:13px;font-weight:800;text-align:center;padding:28px 12px;background:#f4f7fa;border-radius:16px;}
     @media(max-width:900px){.summary-grid,.detail-info-grid{grid-template-columns:repeat(2,minmax(150px,1fr));}.bill-card{grid-template-columns:1fr;}.bill-side{justify-content:flex-start;text-align:left;}.det-top{align-items:flex-start;}.det-top-actions{margin-left:0;width:100%;justify-content:flex-start;}.det-title{flex-wrap:wrap;white-space:normal;}}
-    @media(max-width:560px){.report-detail-wrap{padding:0 8px;margin-top:10px;}.det-top{flex-wrap:wrap;border-radius:16px;}.det-title{white-space:normal;font-size:16px;}.summary-grid,.detail-info-grid{grid-template-columns:1fr;}.det-actions-row .det-btn,.det-btn{width:100%;justify-content:center;}.log-row{grid-template-columns:36px 1fr;}.log-row .mini-chip{grid-column:1 / -1;justify-content:center;}.mark-card-sub{max-width:230px;}.debt-snapshot{width:100%;min-width:0;}.snapshot-value{font-size:14px;}.snapshot-meta{flex-wrap:wrap;}.bill-side .debt-snapshot{margin-right:0;}}
+    @media(max-width:560px){.report-detail-wrap{width:calc(100% - 16px);margin-top:10px;}.det-top{flex-wrap:wrap;border-radius:16px;}.det-title{white-space:normal;font-size:16px;}.summary-grid,.detail-info-grid{grid-template-columns:1fr;}.det-actions-row .det-btn,.det-btn{width:100%;justify-content:center;}.log-row{grid-template-columns:36px 1fr;}.log-row .mini-chip{grid-column:1 / -1;justify-content:center;}.mark-card-sub{max-width:230px;}.debt-snapshot{width:100%;min-width:0;}.snapshot-value{font-size:14px;}.snapshot-meta{flex-wrap:wrap;}.bill-side .debt-snapshot{margin-right:0;}}
   </style>
 
   <div class="det-top <?=!empty($mark['marked']) ? 'marked' : ''?>">

@@ -48,28 +48,28 @@ $run_id = (string) $_GET['id'];
     /* ✅ Isolado: não mexe na sidebar/header */
     .det-wrap {
         font-family: 'Nunito', sans-serif;
-        max-width: 1100px;
-        margin: 10px auto;
-        padding: 0 12px;
+        width: min(1180px, calc(100% - 36px));
+        max-width: 1180px;
+        margin: 24px auto 28px;
+        padding: 0;
         color: #0f172a;
     }
 
     /* Topo */
     .det-top {
-        background: rgba(255, 255, 255, .92);
+        background: #fff;
         border: 2px solid #eef2f6;
         border-radius: 18px;
-        padding: 14px 16px;
+        padding: 20px;
         display: flex;
         align-items: center;
-        gap: 14px;
+        gap: 18px;
         box-shadow: 0 8px 20px rgba(15, 23, 42, .06);
-        backdrop-filter: blur(4px);
     }
 
     .det-back {
-        width: 42px;
-        height: 42px;
+        width: 46px;
+        height: 46px;
         border-radius: 50%;
         background: #f4f7fa;
         display: flex;
@@ -93,15 +93,17 @@ $run_id = (string) $_GET['id'];
         align-items: center;
         gap: 8px;
         flex: 0 0 auto;
+        flex-wrap: wrap;
+        justify-content: flex-end;
     }
 
     .det-delete {
-        height: 42px;
-        border: 1px solid #fecaca;
-        border-radius: 14px;
+        height: 44px;
+        border: 2px solid #fecaca;
+        border-radius: 999px;
         background: #fff;
         color: #991b1b;
-        padding: 0 14px;
+        padding: 0 16px;
         display: none;
         align-items: center;
         gap: 8px;
@@ -125,19 +127,41 @@ $run_id = (string) $_GET['id'];
         min-width: 0;
         display: flex;
         flex-direction: column;
-        gap: 6px;
+        gap: 9px;
+        flex: 1;
     }
 
     .det-title {
         font-weight: 1000;
-        font-size: 18px;
+        font-size: 20px;
         color: #0f172a;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 12px;
+    }
+
+    .det-title-icon {
+        width: 46px;
+        height: 46px;
+        border-radius: 16px;
+        background: #eef8ff;
+        color: #12628f;
+        box-shadow: 0 0 0 5px #f7fbff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        flex: 0 0 auto;
+    }
+
+    .det-title-text {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        min-width: 0;
     }
 
     .det-sub {
@@ -172,18 +196,30 @@ $run_id = (string) $_GET['id'];
         background: #fff;
         border: 2px solid #eef2f6;
         border-radius: 18px;
-        padding: 18px;
+        padding: 20px;
         box-shadow: 0 8px 18px rgba(15, 23, 42, .05);
     }
 
     .det-card-title {
         font-weight: 1000;
         color: #38b6ff;
-        margin-bottom: 12px;
+        margin-bottom: 16px;
         display: flex;
         align-items: center;
         gap: 10px;
-        font-size: 14px;
+        font-size: 15px;
+    }
+
+    .det-card-title i {
+        width: 30px;
+        height: 30px;
+        border-radius: 11px;
+        background: #eef8ff;
+        color: #12628f;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
     }
 
     .det-grid {
@@ -199,18 +235,27 @@ $run_id = (string) $_GET['id'];
     }
 
     .det-box {
-        border: 1px solid #eef2f6;
+        border: 1px solid #e6eef7;
         border-radius: 16px;
-        padding: 12px 14px;
-        background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+        padding: 16px;
+        background: #fff;
+        min-height: 88px;
+        box-sizing: border-box;
     }
 
     .det-label {
         font-size: 12px;
         font-weight: 1000;
         text-transform: uppercase;
-        letter-spacing: .03em;
+        letter-spacing: 0;
         color: #64748b;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .det-label i {
+        color: #38b6ff;
     }
 
     .det-value {
@@ -520,10 +565,10 @@ $run_id = (string) $_GET['id'];
 
     /* ====== ADIÇÕES (Reenvio WhatsApp) - NÃO MEXE NO CSS EXISTENTE ====== */
     .det-actions {
-        margin-top: 14px;
-        margin-bottom: 8px;
+        margin-top: 0;
+        margin-bottom: 16px;
         display: flex;
-        gap: 16px;
+        gap: 12px;
         flex-wrap: wrap;
         align-items: center;
         justify-content: space-between;
@@ -531,7 +576,7 @@ $run_id = (string) $_GET['id'];
 
     .det-actions-group {
         display: flex;
-        gap: 16px;
+        gap: 12px;
         flex-wrap: wrap;
         align-items: center;
     }
@@ -542,13 +587,14 @@ $run_id = (string) $_GET['id'];
     }
 
     .det-btn {
+        height: 44px;
         border: 2px solid #eef2f6;
-        border-radius: 14px;
-        padding: 11px 18px;
+        border-radius: 999px;
+        padding: 0 16px;
         cursor: pointer;
         box-sizing: border-box;
         font-family: inherit;
-        font-size: 14px;
+        font-size: 15px;
         font-weight: 1100;
         line-height: 1;
         display: inline-flex;
@@ -556,12 +602,15 @@ $run_id = (string) $_GET['id'];
         gap: 8px;
         transition: .15s;
         user-select: none;
+        text-decoration: none;
+        white-space: nowrap;
     }
 
     .det-btn.primary {
         background: #38b6ff;
         color: #fff;
         border-color: #38b6ff;
+        box-shadow: 0 4px 12px rgba(56, 182, 255, .28);
     }
 
     .det-btn.primary:hover {
@@ -581,23 +630,29 @@ $run_id = (string) $_GET['id'];
     }
 
     .det-btn.chat {
-        background: #0ea5e9;
+        background: #19aeea;
         color: #fff;
-        border-color: transparent;
+        border-color: #19aeea;
+        box-shadow: 0 6px 14px rgba(25, 174, 234, .22);
     }
 
     .det-btn.chat:hover {
-        background: #0ea5e9;
-        border-color: transparent;
+        background: #19aeea;
+        border-color: #19aeea;
         color: #fff;
         transform: translateY(-1px);
         box-shadow: inset 0 0 0 999px rgba(255, 255, 255, .12);
     }
 
     .det-btn.profile {
-        text-decoration: none;
-        white-space: nowrap;
-        padding: 11px 18px;
+        padding: 0 16px;
+    }
+
+    .det-time-line {
+        margin-top: 14px;
+        color: #64748b;
+        font-size: 13px;
+        font-weight: 1000;
     }
 
     .det-modal {
@@ -707,6 +762,67 @@ $run_id = (string) $_GET['id'];
         color: #64748b;
         cursor: not-allowed;
     }
+
+    @media(max-width:900px) {
+        .det-top {
+            align-items: flex-start;
+        }
+
+        .det-top-actions {
+            margin-left: 0;
+            width: 100%;
+            justify-content: flex-start;
+        }
+
+        .det-title {
+            flex-wrap: wrap;
+            white-space: normal;
+        }
+
+        .det-title-text {
+            white-space: normal;
+        }
+
+        .det-logline {
+            grid-template-columns: 1fr;
+            gap: 6px;
+        }
+    }
+
+    @media(max-width:560px) {
+        .det-wrap {
+            width: calc(100% - 16px);
+            margin-top: 10px;
+        }
+
+        .det-top {
+            flex-wrap: wrap;
+            border-radius: 16px;
+        }
+
+        .det-title {
+            font-size: 16px;
+        }
+
+        .det-actions,
+        .det-actions-group,
+        .det-actions-right {
+            width: 100%;
+            margin-left: 0;
+        }
+
+        .det-btn,
+        .det-delete,
+        .det-tab,
+        .det-copy {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .det-modal-actions .det-btn {
+            width: auto;
+        }
+    }
 </style>
 
 <div class="det-wrap">
@@ -718,7 +834,7 @@ $run_id = (string) $_GET['id'];
 
         <div class="det-head">
             <div class="det-title">
-                <i class="fa-regular fa-file-code" style="color:#38b6ff"></i>
+                <span class="det-title-icon"><i class="fa-regular fa-file-code"></i></span>
                 Execução #<?= htmlspecialchars($run_id, ENT_QUOTES, 'UTF-8'); ?>
                 <span id="titleStatus" style="margin-left:6px;"></span>
             </div>
@@ -794,27 +910,27 @@ $run_id = (string) $_GET['id'];
 
             <div class="det-grid">
                 <div class="det-box">
-                    <div class="det-label">Cliente</div>
+                    <div class="det-label"><i class="fa-solid fa-building"></i> Cliente</div>
                     <div class="det-value" id="detCliente">--</div>
                 </div>
 
                 <div class="det-box">
-                    <div class="det-label">Status</div>
+                    <div class="det-label"><i class="fa-solid fa-signal"></i> Status</div>
                     <div class="det-value" id="detStatus">--</div>
                 </div>
 
                 <div class="det-box">
-                    <div class="det-label">Event Type</div>
+                    <div class="det-label"><i class="fa-solid fa-bolt"></i> Evento</div>
                     <div class="det-value" id="detEventType">--</div>
                 </div>
 
                 <div class="det-box">
-                    <div class="det-label">Bill</div>
+                    <div class="det-label"><i class="fa-solid fa-file-invoice"></i> Bill</div>
                     <div class="det-value" id="detBill">--</div>
                 </div>
             </div>
 
-            <div style="margin-top:12px;" class="det-muted">
+            <div class="det-time-line">
                 Criado: <span id="detCreated">--</span> • Atualizado: <span id="detUpdated">--</span>
             </div>
         </div>
@@ -982,7 +1098,7 @@ $run_id = (string) $_GET['id'];
                 return `<span class="det-pill info"><i class="fa-solid fa-spinner fa-spin"></i> ${esc(st)}</span>`;
             }
             if (st === 'warning') {
-                return `<span class="det-pill.warn"><i class="fa-solid fa-triangle-exclamation"></i> ${esc(st)}</span>`;
+                return `<span class="det-pill warn"><i class="fa-solid fa-triangle-exclamation"></i> ${esc(st)}</span>`;
             }
             if (st === 'error' || st === 'failed' || st === 'canceled') {
                 return `<span class="det-pill danger"><i class="fa-solid fa-xmark"></i> ${esc(st)}</span>`;
