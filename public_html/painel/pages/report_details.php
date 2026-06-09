@@ -295,21 +295,21 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
 
 <div class="det-wrap report-detail-wrap">
   <style>
-    .report-detail-wrap{font-family:'Nunito',sans-serif;max-width:1100px;margin:10px auto;padding:0 12px;color:#0f172a;}
-    .det-top{background:rgba(255,255,255,.94);border:2px solid #eef2f6;border-radius:18px;padding:14px 16px;display:flex;align-items:center;gap:14px;box-shadow:0 8px 20px rgba(15,23,42,.06);}
-    .det-top.marked{background:#fff7f7;border-color:#fecaca;}
-    .det-back{width:42px;height:42px;border-radius:50%;background:#f4f7fa;display:flex;align-items:center;justify-content:center;text-decoration:none;color:#0f172a;transition:.2s;flex:0 0 auto;border:1px solid rgba(15,23,42,.06);}
+    .report-detail-wrap{font-family:'Nunito',sans-serif;max-width:1320px;margin:8px auto 28px;padding:0 18px;color:#0f172a;}
+    .det-top{background:#fff;border:2px solid #eef2f6;border-radius:24px;padding:18px 20px;display:flex;align-items:center;gap:16px;box-shadow:0 8px 20px rgba(15,23,42,.06);}
+    .det-top.marked{background:#fff;border-color:#fecaca;}
+    .det-back{width:46px;height:46px;border-radius:50%;background:#f4f7fa;display:flex;align-items:center;justify-content:center;text-decoration:none;color:#0f172a;transition:.2s;flex:0 0 auto;border:1px solid rgba(15,23,42,.06);}
     .det-back:hover{background:#e2e8f0;transform:translateX(-3px);}
     .det-head{min-width:0;display:flex;flex-direction:column;gap:6px;}
-    .det-title{font-weight:1000;font-size:18px;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:10px;}
-    .avatar-initial{width:44px;height:44px;border-radius:16px;background:#eef8ff;color:#12628f;box-shadow:0 0 0 4px #f4f7fa;display:inline-flex;align-items:center;justify-content:center;font-size:17px;font-weight:1000;letter-spacing:0;text-transform:uppercase;flex:0 0 auto;}
+    .det-title{font-weight:1000;font-size:20px;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:12px;}
+    .avatar-initial{width:48px;height:48px;border-radius:18px;background:#eef8ff;color:#12628f;box-shadow:0 0 0 5px #f7fbff;display:inline-flex;align-items:center;justify-content:center;font-size:18px;font-weight:1000;letter-spacing:0;text-transform:uppercase;flex:0 0 auto;}
     .det-sub{display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-weight:900;color:#64748b;font-size:13px;}
-    .det-chip{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;border:1px solid #eef2f6;background:#fff;color:#334155;font-weight:1000;}
+    .det-chip{display:inline-flex;align-items:center;gap:8px;padding:7px 11px;border-radius:999px;border:1px solid #eef2f6;background:#fff;color:#334155;font-weight:1000;}
     .det-chip i{color:#38b6ff;}
     .det-chip.marked{border-color:#fecaca;background:#fee2e2;color:#991b1b;}
     .det-chip.marked i{color:#991b1b;}
     .det-top-actions{margin-left:auto;display:flex;align-items:center;gap:8px;flex:0 0 auto;flex-wrap:wrap;justify-content:flex-end;}
-    .det-btn{height:42px;border:1px solid #e6eef7;border-radius:14px;background:#fff;color:#0f172a;padding:0 14px;display:inline-flex;align-items:center;gap:8px;text-decoration:none;font-weight:1000;transition:.2s;}
+    .det-btn{height:44px;border:2px solid #e6eef7;border-radius:999px;background:#fff;color:#0f172a;padding:0 16px;display:inline-flex;align-items:center;gap:8px;text-decoration:none;font-weight:1000;transition:.2s;font-family:'Nunito',sans-serif;}
     .det-btn:hover{border-color:#bfebff;color:#12628f;transform:translateY(-1px);}
     .det-btn.primary{background:#38b6ff;color:#fff;border-color:#38b6ff;box-shadow:0 4px 12px rgba(56,182,255,.28);}
     .det-btn.danger{border-color:#fecaca;background:#fee2e2;color:#991b1b;}
@@ -327,25 +327,30 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
     .mark-card-body textarea:focus{border-color:#38b6ff;box-shadow:0 0 0 4px rgba(59,130,246,.1);}
     .mark-error{min-height:18px;color:#991b1b;font-size:12px;font-weight:900;}
     .mark-card-actions{display:flex;justify-content:flex-end;gap:10px;padding:0 18px 18px;}
-    .det-card{margin-top:18px;background:#fff;border:2px solid #eef2f6;border-radius:18px;padding:18px;box-shadow:0 8px 18px rgba(15,23,42,.05);}
-    .det-card-title{font-weight:1000;color:#38b6ff;margin-bottom:12px;display:flex;align-items:center;gap:10px;font-size:14px;}
-    .summary-grid{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:12px;}
-    .summary-box{border:1px solid #eef2f6;border-radius:16px;padding:14px;background:#fff;box-shadow:0 4px 6px -1px rgba(0,0,0,.04);position:relative;overflow:hidden;}
-    .summary-box::before{content:"";position:absolute;left:0;top:0;width:5px;height:100%;background:#38b6ff;}
+    .mark-note{margin-top:14px;background:#fff7f7;border:2px solid #fecaca;border-radius:20px;padding:14px 16px;box-shadow:0 8px 18px rgba(153,27,27,.06);display:flex;align-items:flex-start;gap:12px;color:#991b1b;font-weight:900;}
+    .mark-note i{width:34px;height:34px;border-radius:12px;background:#fee2e2;display:inline-flex;align-items:center;justify-content:center;flex:0 0 34px;}
+    .mark-note strong{display:block;font-size:13px;text-transform:uppercase;margin-bottom:3px;}
+    .mark-note span{display:block;color:#7f1d1d;font-size:13px;line-height:1.35;}
+    .det-card{margin-top:18px;background:#fff;border:2px solid #eef2f6;border-radius:22px;padding:18px;box-shadow:0 8px 18px rgba(15,23,42,.05);}
+    .det-card-title{font-weight:1000;color:#0f172a;margin-bottom:14px;display:flex;align-items:center;gap:10px;font-size:15px;text-transform:uppercase;}
+    .det-card-title i{width:30px;height:30px;border-radius:11px;background:#eef8ff;color:#12628f;display:inline-flex;align-items:center;justify-content:center;}
+    .summary-grid{display:grid;grid-template-columns:repeat(4,minmax(170px,1fr));gap:14px;}
+    .summary-box{border:2px solid #eef2f6;border-radius:20px;padding:18px 58px 16px 18px;background:#fff;box-shadow:0 4px 6px -1px rgba(0,0,0,.04);position:relative;overflow:hidden;min-height:118px;box-sizing:border-box;}
+    .summary-box::before{display:none;}
     .summary-box span{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:1000;text-transform:uppercase;color:#64748b;}
-    .summary-box span i{width:28px;height:28px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;background:#eef8ff;color:#12628f;}
-    .summary-box strong{display:block;margin-top:10px;font-size:22px;font-weight:1000;color:#0f172a;line-height:1.05;}
-    .summary-track{height:7px;border-radius:999px;background:#f4f7fa;border:1px solid #eef2f6;overflow:hidden;margin-top:12px;}
+    .summary-box span i{position:absolute;right:16px;top:16px;width:40px;height:40px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#eef8ff;color:#12628f;}
+    .summary-box strong{display:block;margin-top:14px;font-size:25px;font-weight:1000;color:#0f172a;line-height:1.05;}
+    .summary-track{height:5px;border-radius:999px;background:#f4f7fa;border:0;overflow:hidden;margin-top:12px;}
     .summary-fill{display:block;height:100%;width:0;border-radius:999px;background:#38b6ff;}
-    .summary-box.danger::before,.summary-box.danger .summary-fill{background:#ef4444;}
+    .summary-box.danger::before,.summary-box.danger .summary-fill{background:#38b6ff;}
     .summary-box.warn::before,.summary-box.warn .summary-fill{background:#f59e0b;}
     .summary-box.ok::before,.summary-box.ok .summary-fill{background:#10b981;}
     .debt-snapshot{
-      min-width:188px;display:grid;gap:7px;padding:10px 12px;border:1px solid #e6eef7;border-left:4px solid #ef4444;
+      min-width:188px;display:grid;gap:7px;padding:10px 12px;border:1px solid #e6eef7;border-left:4px solid #38b6ff;
       border-radius:16px;background:#fff;box-shadow:0 6px 14px rgba(15,23,42,.045);
     }
-    .snapshot-value{display:flex;align-items:center;gap:8px;color:#991b1b;font-size:16px;font-weight:1000;line-height:1;}
-    .snapshot-value i{width:24px;height:24px;border-radius:8px;background:#fee2e2;color:#991b1b;display:inline-flex;align-items:center;justify-content:center;font-size:11px;}
+    .snapshot-value{display:flex;align-items:center;gap:8px;color:#0f172a;font-size:16px;font-weight:1000;line-height:1;}
+    .snapshot-value i{width:24px;height:24px;border-radius:8px;background:#eef8ff;color:#12628f;display:inline-flex;align-items:center;justify-content:center;font-size:11px;}
     .snapshot-meta{display:flex;align-items:center;gap:10px;color:#64748b;font-size:11px;font-weight:900;line-height:1;white-space:nowrap;}
     .snapshot-meta span{display:inline-flex;align-items:center;gap:5px;}
     .snapshot-meta i{font-size:10px;color:#38b6ff;}
@@ -354,11 +359,11 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
     .btn-icon:hover{background:#f1f5f9;color:#38b6ff;border-color:#dbeafe;}
     .bill-list{display:grid;gap:14px;}
     .bill-card{
-      border:1px solid #e6eef7;border-radius:20px;background:#fff;display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,.35fr);
+      border:2px solid #e6eef7;border-radius:22px;background:#fff;display:grid;grid-template-columns:minmax(0,1fr) minmax(240px,.36fr);
       overflow:hidden;box-shadow:0 6px 16px rgba(15,23,42,.05);transition:.2s;
     }
     .bill-card:hover{border-color:#dbeafe;box-shadow:0 12px 20px -8px rgba(56,182,255,.26);}
-    .bill-main-card{padding:16px 18px;display:grid;gap:12px;}
+    .bill-main-card{padding:18px 20px;display:grid;gap:14px;}
     .bill-topline{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
     .bill-id{display:inline-flex;align-items:center;gap:8px;width:max-content;max-width:100%;padding:7px 11px;border-radius:999px;background:#eef8ff;color:#12628f;font-weight:1000;text-decoration:none;font-size:12px;}
     .bill-amount{font-size:21px;font-weight:1000;margin-top:10px;color:#0f172a;}
@@ -367,7 +372,7 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
     .bill-label{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:1000;text-transform:uppercase;color:#64748b;margin-bottom:8px;}
     .bill-label i{color:#38b6ff;}
     .bill-items{white-space:pre-wrap;word-break:break-word;font-size:14px;font-weight:900;line-height:1.42;color:#0f172a;background:#f8fbff;border:1px solid #eef2f6;border-radius:14px;padding:12px;}
-    .bill-side{display:grid;gap:10px;align-content:center;justify-items:start;text-align:left;background:#fbfdff;border-left:1px solid #eef2f6;padding:16px;}
+    .bill-side{display:grid;gap:10px;align-content:center;justify-items:start;text-align:left;background:#fbfdff;border-left:2px solid #eef2f6;padding:18px;}
     .mini-chip{display:inline-flex;align-items:center;gap:8px;padding:7px 11px;border-radius:999px;background:#f4f7fa;border:1px solid #e6eef7;font-size:12px;font-weight:1000;color:#334155;}
     .mini-chip i{color:#38b6ff;}
     .timeline{display:grid;gap:10px;}
@@ -394,7 +399,7 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
         <span class="det-chip"><i class="fa-regular fa-calendar"></i> <?=h($monthLabel)?></span>
         <?php if ($customerId > 0): ?><span class="det-chip"><i class="fa-solid fa-id-card"></i> ID <?=h($customerId)?></span><?php endif; ?>
         <span class="det-chip"><i class="fa-solid fa-phone"></i> <?=h($phone ?: 'Telefone nao salvo')?></span>
-        <?php if (!empty($mark['marked'])): ?><span class="det-chip marked"><i class="fa-solid fa-flag"></i> <?=h($mark['reason'] ?: 'Marcado')?></span><?php endif; ?>
+        <?php if (!empty($mark['marked'])): ?><span class="det-chip marked"><i class="fa-solid fa-flag"></i> Marcado</span><?php endif; ?>
       </div>
     </div>
     <div class="det-top-actions">
@@ -408,6 +413,16 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
     </div>
   </div>
 
+  <?php if (!empty($mark['marked'])): ?>
+    <div class="mark-note">
+      <i class="fa-solid fa-flag"></i>
+      <div>
+        <strong>Motivo da marcacao</strong>
+        <span><?=h($mark['reason'] ?: 'Marcado')?></span>
+      </div>
+    </div>
+  <?php endif; ?>
+
   <div id="markModal" class="mark-modal" aria-hidden="true">
     <div class="mark-card" role="dialog" aria-modal="true" aria-labelledby="markModalTitle">
       <div class="mark-card-head">
@@ -419,7 +434,7 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
       </div>
       <div class="mark-card-body">
         <label for="markReason">Motivo</label>
-        <textarea id="markReason" placeholder="Ex: protestado, franquia, financeiro confirmou..."></textarea>
+        <textarea id="markReason" placeholder="Descreva o motivo da marcacao"></textarea>
         <div id="markError" class="mark-error"></div>
       </div>
       <div class="mark-card-actions">
