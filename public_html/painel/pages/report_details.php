@@ -297,18 +297,18 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
 <div class="det-wrap report-detail-wrap">
   <style>
     .report-detail-wrap{font-family:'Nunito',sans-serif;width:min(1180px,calc(100% - 36px));max-width:1180px;margin:24px auto 28px;padding:0;color:#0f172a;}
-    .det-top{background:#fff;border:1px solid #e6eef7;border-radius:14px;padding:18px;display:flex;align-items:center;gap:16px;box-shadow:0 4px 14px rgba(15,23,42,.045);}
-    .det-top.marked{background:#fff;border-color:#fecaca;box-shadow:0 4px 14px rgba(153,27,27,.06);}
+    .det-top{background:#fff;border:2px solid #eef2f6;border-radius:18px;padding:20px;display:flex;align-items:center;gap:18px;box-shadow:0 8px 20px rgba(15,23,42,.06);}
+    .det-top.marked{background:#fff;border-color:#eef2f6;box-shadow:0 8px 20px rgba(15,23,42,.06);}
     .det-back{width:46px;height:46px;border-radius:50%;background:#f4f7fa;display:flex;align-items:center;justify-content:center;text-decoration:none;color:#0f172a;transition:.2s;flex:0 0 auto;border:1px solid rgba(15,23,42,.06);}
     .det-back:hover{background:#e2e8f0;transform:translateX(-3px);}
     .det-head{min-width:0;display:flex;flex-direction:column;gap:9px;flex:1;}
     .det-title{font-weight:1000;font-size:20px;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:12px;}
     .det-title-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-    .avatar-initial{width:44px;height:44px;border-radius:12px;background:#eef8ff;color:#12628f;box-shadow:0 0 0 4px #f7fbff;display:inline-flex;align-items:center;justify-content:center;font-size:18px;font-weight:1000;letter-spacing:0;text-transform:uppercase;flex:0 0 auto;}
+    .det-title-icon{width:46px;height:46px;border-radius:16px;background:#eef8ff;color:#12628f;box-shadow:0 0 0 5px #f7fbff;display:inline-flex;align-items:center;justify-content:center;font-size:18px;flex:0 0 auto;}
     .det-sub{display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-weight:900;color:#64748b;font-size:13px;}
     .det-chip{display:inline-flex;align-items:center;gap:8px;padding:7px 11px;border-radius:999px;border:1px solid #eef2f6;background:#f8fbff;color:#334155;font-weight:1000;}
     .det-chip i{color:#38b6ff;}
-    .det-chip.marked{border-color:#fecaca;background:#fee2e2;color:#991b1b;}
+    .det-chip.marked{border-color:#fecaca;background:#fff7f7;color:#991b1b;}
     .det-chip.marked i{color:#991b1b;}
     .det-status{display:inline-flex;align-items:center;gap:8px;width:max-content;border-radius:999px;border:1px solid #bfebff;background:#eef8ff;color:#12628f;padding:7px 12px;font-size:12px;font-weight:1000;text-transform:uppercase;white-space:nowrap;}
     .det-status i{color:#12628f;}
@@ -316,7 +316,7 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
     .det-btn{height:44px;border:2px solid #eef2f6;border-radius:999px;background:#fff;color:#0f172a;padding:0 16px;display:inline-flex;align-items:center;gap:8px;text-decoration:none;font-weight:1000;transition:.2s;font-family:'Nunito',sans-serif;cursor:pointer;box-sizing:border-box;white-space:nowrap;}
     .det-btn:hover{border-color:#bfebff;color:#12628f;transform:translateY(-1px);}
     .det-btn.primary{background:#38b6ff;color:#fff;border-color:#38b6ff;box-shadow:0 4px 12px rgba(56,182,255,.28);}
-    .det-btn.danger{border-color:#fecaca;background:#fee2e2;color:#991b1b;}
+    .det-btn.danger{border-color:#fecaca;background:#fff;color:#991b1b;}
     .det-btn.danger:hover{border-color:#fecaca;background:#fee2e2;color:#991b1b;box-shadow:0 6px 14px rgba(153,27,27,.12);}
     .det-btn:disabled{opacity:.55;cursor:not-allowed;transform:none;}
     .mark-modal{position:fixed;inset:0;z-index:1100;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(15,23,42,.36);}
@@ -332,10 +332,10 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
     .mark-card-body textarea:focus{border-color:#38b6ff;box-shadow:0 0 0 4px rgba(59,130,246,.1);}
     .mark-error{min-height:18px;color:#991b1b;font-size:12px;font-weight:900;}
     .mark-card-actions{display:flex;justify-content:flex-end;gap:10px;padding:0 18px 18px;}
-    .mark-note{margin-top:14px;background:#fff7f7;border:1px solid #fecaca;border-radius:14px;padding:14px 16px;box-shadow:0 4px 14px rgba(153,27,27,.05);display:flex;align-items:flex-start;gap:12px;color:#991b1b;font-weight:900;}
-    .mark-note i{width:34px;height:34px;border-radius:12px;background:#fee2e2;display:inline-flex;align-items:center;justify-content:center;flex:0 0 34px;}
-    .mark-note strong{display:block;font-size:13px;text-transform:uppercase;margin-bottom:3px;}
-    .mark-note span{display:block;color:#7f1d1d;font-size:13px;line-height:1.35;}
+    .mark-note{margin-top:12px;background:#fff;border:1px solid #fecaca;border-left:4px solid #991b1b;border-radius:12px;padding:12px 14px;box-shadow:0 4px 12px rgba(15,23,42,.04);display:flex;align-items:center;gap:12px;color:#991b1b;font-weight:900;}
+    .mark-note i{width:30px;height:30px;border-radius:10px;background:#fee2e2;display:inline-flex;align-items:center;justify-content:center;flex:0 0 30px;}
+    .mark-note strong{display:block;font-size:12px;text-transform:uppercase;margin-bottom:2px;}
+    .mark-note span{display:block;color:#7f1d1d;font-size:13px;line-height:1.3;}
     .det-card{margin-top:16px;background:#fff;border:1px solid #e6eef7;border-radius:14px;padding:18px;box-shadow:0 4px 14px rgba(15,23,42,.045);}
     .det-card-title{font-weight:1000;color:#12628f;margin-bottom:14px;display:flex;align-items:center;gap:10px;font-size:15px;}
     .det-card-title i{width:30px;height:30px;border-radius:11px;background:#eef8ff;color:#12628f;display:inline-flex;align-items:center;justify-content:center;}
@@ -394,7 +394,7 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
     .log-main span{display:block;color:#64748b;font-size:12px;font-weight:800;margin-top:2px;}
     .empty{color:#64748b;font-size:13px;font-weight:800;text-align:center;padding:28px 12px;background:#f4f7fa;border-radius:16px;}
     @media(max-width:1040px){.bill-card{grid-template-columns:130px minmax(220px,1fr) repeat(3,minmax(120px,1fr)) 44px;gap:10px;}}
-    @media(max-width:900px){.summary-grid,.detail-info-grid{grid-template-columns:repeat(2,minmax(150px,1fr));}.summary-box:nth-child(2){border-right:0;}.summary-box:nth-child(-n+2){border-bottom:1px solid #e6eef7;}.bill-card{grid-template-columns:1fr 1fr;align-items:start;}.bill-desc{grid-column:1 / -1;}.bill-action{justify-content:flex-start;}.det-top{align-items:flex-start;}.det-top-actions{margin-left:0;width:100%;justify-content:flex-start;}.det-title{flex-wrap:wrap;white-space:normal;}}
+    @media(max-width:900px){.summary-grid,.detail-info-grid{grid-template-columns:repeat(2,minmax(150px,1fr));}.summary-box:nth-child(2){border-right:0;}.summary-box:nth-child(-n+2){border-bottom:1px solid #e6eef7;}.bill-card{grid-template-columns:1fr 1fr;align-items:start;}.bill-desc{grid-column:1 / -1;}.bill-action{justify-content:flex-start;}.det-top{align-items:flex-start;}.det-top-actions{margin-left:0;width:100%;justify-content:flex-start;}.det-title{flex-wrap:wrap;white-space:normal;}.det-title-text{white-space:normal;}}
     @media(max-width:560px){.report-detail-wrap{width:calc(100% - 16px);margin-top:10px;}.det-top{flex-wrap:wrap;border-radius:14px;}.det-title{white-space:normal;font-size:16px;}.summary-grid,.detail-info-grid{grid-template-columns:1fr;}.summary-box{border-right:0;border-bottom:1px solid #e6eef7;}.summary-box:last-child{border-bottom:0;}.det-actions-row .det-btn,.det-btn{width:100%;justify-content:center;}.bill-card{grid-template-columns:1fr;padding:14px;}.bill-action .btn-icon{width:100%;border-radius:999px;}.log-row{grid-template-columns:36px 1fr;}.log-row .mini-chip{grid-column:1 / -1;justify-content:center;}.mark-card-sub{max-width:230px;}.debt-snapshot{width:100%;min-width:0;}.snapshot-value{font-size:14px;}.snapshot-meta{flex-wrap:wrap;}}
   </style>
 
@@ -404,7 +404,7 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
     </a>
     <div class="det-head">
       <div class="det-title">
-        <span class="avatar-initial"><?=h(rdInitial($customerName))?></span>
+        <span class="det-title-icon"><i class="fa-solid fa-file-invoice-dollar"></i></span>
         <span class="det-title-text">Relatorio de <?=h($customerName)?></span>
         <span class="det-status"><i class="fa-solid fa-check"></i> Em aberto</span>
       </div>
