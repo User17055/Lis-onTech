@@ -283,6 +283,7 @@ foreach ($bills as &$bill) {
 unset($bill);
 
 $profileHref = $customerId > 0 ? 'https://app.vindi.com.br/admin/customers/' . rawurlencode((string)$customerId) . '#tab-bills' : '';
+$localHref = $customerId > 0 ? '/painel/index.php?pagina=customer&customer_id=' . rawurlencode((string)$customerId) . '&name=' . rawurlencode($customerName) : '';
 $monthLabel = $month !== '' ? rdMonthLabel($month) : 'Todos os meses';
 $countBills = count($bills);
 $markKey = rdCustomerKey($customerId, $phone, $customerName);
@@ -295,19 +296,22 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
 
 <div class="det-wrap report-detail-wrap">
   <style>
-    .report-detail-wrap{font-family:'Nunito',sans-serif;max-width:1320px;margin:8px auto 28px;padding:0 18px;color:#0f172a;}
-    .det-top{background:#fff;border:2px solid #eef2f6;border-radius:24px;padding:18px 20px;display:flex;align-items:center;gap:16px;box-shadow:0 8px 20px rgba(15,23,42,.06);}
+    .report-detail-wrap{font-family:'Nunito',sans-serif;max-width:1180px;margin:24px auto 28px;padding:0 18px;color:#0f172a;}
+    .det-top{background:#fff;border:2px solid #eef2f6;border-radius:18px;padding:20px;display:flex;align-items:center;gap:18px;box-shadow:0 8px 20px rgba(15,23,42,.06);}
     .det-top.marked{background:#fff;border-color:#fecaca;}
     .det-back{width:46px;height:46px;border-radius:50%;background:#f4f7fa;display:flex;align-items:center;justify-content:center;text-decoration:none;color:#0f172a;transition:.2s;flex:0 0 auto;border:1px solid rgba(15,23,42,.06);}
     .det-back:hover{background:#e2e8f0;transform:translateX(-3px);}
-    .det-head{min-width:0;display:flex;flex-direction:column;gap:6px;}
+    .det-head{min-width:0;display:flex;flex-direction:column;gap:9px;flex:1;}
     .det-title{font-weight:1000;font-size:20px;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:12px;}
-    .avatar-initial{width:48px;height:48px;border-radius:18px;background:#eef8ff;color:#12628f;box-shadow:0 0 0 5px #f7fbff;display:inline-flex;align-items:center;justify-content:center;font-size:18px;font-weight:1000;letter-spacing:0;text-transform:uppercase;flex:0 0 auto;}
+    .det-title-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .avatar-initial{width:46px;height:46px;border-radius:16px;background:#eef8ff;color:#12628f;box-shadow:0 0 0 5px #f7fbff;display:inline-flex;align-items:center;justify-content:center;font-size:18px;font-weight:1000;letter-spacing:0;text-transform:uppercase;flex:0 0 auto;}
     .det-sub{display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-weight:900;color:#64748b;font-size:13px;}
     .det-chip{display:inline-flex;align-items:center;gap:8px;padding:7px 11px;border-radius:999px;border:1px solid #eef2f6;background:#fff;color:#334155;font-weight:1000;}
     .det-chip i{color:#38b6ff;}
     .det-chip.marked{border-color:#fecaca;background:#fee2e2;color:#991b1b;}
     .det-chip.marked i{color:#991b1b;}
+    .det-status{display:inline-flex;align-items:center;gap:8px;width:max-content;border-radius:999px;border:1px solid #bfebff;background:#eef8ff;color:#12628f;padding:8px 14px;font-size:13px;font-weight:1000;text-transform:uppercase;white-space:nowrap;}
+    .det-status i{color:#12628f;}
     .det-top-actions{margin-left:auto;display:flex;align-items:center;gap:8px;flex:0 0 auto;flex-wrap:wrap;justify-content:flex-end;}
     .det-btn{height:44px;border:2px solid #e6eef7;border-radius:999px;background:#fff;color:#0f172a;padding:0 16px;display:inline-flex;align-items:center;gap:8px;text-decoration:none;font-weight:1000;transition:.2s;font-family:'Nunito',sans-serif;}
     .det-btn:hover{border-color:#bfebff;color:#12628f;transform:translateY(-1px);}
@@ -331,10 +335,19 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
     .mark-note i{width:34px;height:34px;border-radius:12px;background:#fee2e2;display:inline-flex;align-items:center;justify-content:center;flex:0 0 34px;}
     .mark-note strong{display:block;font-size:13px;text-transform:uppercase;margin-bottom:3px;}
     .mark-note span{display:block;color:#7f1d1d;font-size:13px;line-height:1.35;}
-    .det-card{margin-top:18px;background:#fff;border:2px solid #eef2f6;border-radius:22px;padding:18px;box-shadow:0 8px 18px rgba(15,23,42,.05);}
-    .det-card-title{font-weight:1000;color:#0f172a;margin-bottom:14px;display:flex;align-items:center;gap:10px;font-size:15px;text-transform:uppercase;}
+    .det-card{margin-top:18px;background:#fff;border:2px solid #eef2f6;border-radius:18px;padding:20px;box-shadow:0 8px 18px rgba(15,23,42,.05);}
+    .det-card-title{font-weight:1000;color:#38b6ff;margin-bottom:16px;display:flex;align-items:center;gap:10px;font-size:15px;}
     .det-card-title i{width:30px;height:30px;border-radius:11px;background:#eef8ff;color:#12628f;display:inline-flex;align-items:center;justify-content:center;}
-    .summary-grid{display:grid;grid-template-columns:repeat(4,minmax(170px,1fr));gap:14px;}
+    .det-actions-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px;}
+    .det-actions-row .det-btn:first-child{background:#19aeea;color:#fff;border-color:#19aeea;box-shadow:0 6px 14px rgba(25,174,234,.22);}
+    .detail-info-grid{display:grid;grid-template-columns:repeat(2,minmax(220px,1fr));gap:14px;margin-top:10px;}
+    .detail-info-box{border:1px solid #e6eef7;border-radius:16px;background:#fff;padding:16px;min-height:88px;box-sizing:border-box;}
+    .detail-info-box span{display:block;color:#64748b;font-size:12px;font-weight:1000;text-transform:uppercase;margin-bottom:9px;}
+    .detail-info-box strong{display:block;color:#0f172a;font-size:15px;font-weight:1000;line-height:1.3;}
+    .detail-info-box a{color:#1d9dff;text-decoration:none;font-weight:1000;}
+    .detail-info-box a:hover{text-decoration:underline;}
+    .detail-time-line{margin-top:14px;color:#64748b;font-size:13px;font-weight:1000;}
+    .summary-grid{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:14px;margin-top:16px;}
     .summary-box{border:2px solid #eef2f6;border-radius:20px;padding:18px 58px 16px 18px;background:#fff;box-shadow:0 4px 6px -1px rgba(0,0,0,.04);position:relative;overflow:hidden;min-height:118px;box-sizing:border-box;}
     .summary-box::before{display:none;}
     .summary-box span{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:1000;text-transform:uppercase;color:#64748b;}
@@ -383,8 +396,8 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
     .log-main strong{display:block;font-weight:1000;color:#0f172a;font-size:13px;}
     .log-main span{display:block;color:#64748b;font-size:12px;font-weight:800;margin-top:2px;}
     .empty{color:#64748b;font-size:13px;font-weight:800;text-align:center;padding:28px 12px;background:#f4f7fa;border-radius:16px;}
-    @media(max-width:900px){.summary-grid{grid-template-columns:repeat(2,minmax(150px,1fr));}.bill-card{grid-template-columns:1fr;}.bill-side{justify-content:flex-start;text-align:left;}.det-top{align-items:flex-start;}.det-top-actions{margin-left:0;width:100%;justify-content:flex-start;}}
-    @media(max-width:560px){.report-detail-wrap{padding:0 8px;}.det-top{flex-wrap:wrap;border-radius:16px;}.det-title{white-space:normal;font-size:16px;}.summary-grid{grid-template-columns:1fr;}.det-btn{width:100%;justify-content:center;}.log-row{grid-template-columns:36px 1fr;}.log-row .mini-chip{grid-column:1 / -1;justify-content:center;}.mark-card-sub{max-width:230px;}.debt-snapshot{width:100%;min-width:0;}.snapshot-value{font-size:14px;}.snapshot-meta{flex-wrap:wrap;}}
+    @media(max-width:900px){.summary-grid,.detail-info-grid{grid-template-columns:repeat(2,minmax(150px,1fr));}.bill-card{grid-template-columns:1fr;}.bill-side{justify-content:flex-start;text-align:left;}.det-top{align-items:flex-start;}.det-top-actions{margin-left:0;width:100%;justify-content:flex-start;}.det-title{flex-wrap:wrap;white-space:normal;}}
+    @media(max-width:560px){.report-detail-wrap{padding:0 8px;margin-top:10px;}.det-top{flex-wrap:wrap;border-radius:16px;}.det-title{white-space:normal;font-size:16px;}.summary-grid,.detail-info-grid{grid-template-columns:1fr;}.det-actions-row .det-btn,.det-btn{width:100%;justify-content:center;}.log-row{grid-template-columns:36px 1fr;}.log-row .mini-chip{grid-column:1 / -1;justify-content:center;}.mark-card-sub{max-width:230px;}.debt-snapshot{width:100%;min-width:0;}.snapshot-value{font-size:14px;}.snapshot-meta{flex-wrap:wrap;}.bill-side .debt-snapshot{margin-right:0;}}
   </style>
 
   <div class="det-top <?=!empty($mark['marked']) ? 'marked' : ''?>">
@@ -394,7 +407,8 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
     <div class="det-head">
       <div class="det-title">
         <span class="avatar-initial"><?=h(rdInitial($customerName))?></span>
-        <?=h($customerName)?>
+        <span class="det-title-text">Relatorio de <?=h($customerName)?></span>
+        <span class="det-status"><i class="fa-solid fa-check"></i> Em aberto</span>
       </div>
       <div class="det-sub">
         <span class="det-chip"><i class="fa-regular fa-calendar"></i> <?=h($monthLabel)?></span>
@@ -407,6 +421,9 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
       <button type="button" class="det-btn <?=!empty($mark['marked']) ? 'danger' : ''?>" id="btnReportMark" data-action="<?=!empty($mark['marked']) ? 'unmark' : 'mark'?>"><i class="fa-solid fa-flag"></i> <?=!empty($mark['marked']) ? 'Desmarcar' : 'Marcar'?></button>
       <?php if ($profileHref): ?>
         <a class="det-btn primary" href="<?=h($profileHref)?>" target="_blank" rel="noopener"><i class="fa-solid fa-user"></i> Perfil</a>
+      <?php endif; ?>
+      <?php if ($localHref): ?>
+        <a class="det-btn" href="<?=h($localHref)?>" onclick="window.LisOnPageLoader?.show();"><i class="fa-solid fa-file-invoice"></i> Faturas</a>
       <?php endif; ?>
       <?php if ($firstBillUrl): ?>
         <a class="det-btn" href="<?=h($firstBillUrl)?>" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square"></i> Vindi</a>
@@ -450,6 +467,36 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
   <?php else: ?>
     <div class="det-card">
       <div class="det-card-title"><i class="fa-solid fa-chart-simple"></i> Resumo</div>
+      <div class="det-actions-row">
+        <?php if ($profileHref): ?>
+          <a class="det-btn" href="<?=h($profileHref)?>" target="_blank" rel="noopener"><i class="fa-solid fa-user"></i> Perfil Vindi</a>
+        <?php endif; ?>
+        <?php if ($localHref): ?>
+          <a class="det-btn" href="<?=h($localHref)?>" onclick="window.LisOnPageLoader?.show();"><i class="fa-solid fa-file-invoice"></i> Ir para faturas</a>
+        <?php endif; ?>
+        <?php if ($firstBillUrl): ?>
+          <a class="det-btn" href="<?=h($firstBillUrl)?>" target="_blank" rel="noopener"><i class="fa-solid fa-rotate"></i> Abrir primeira bill</a>
+        <?php endif; ?>
+      </div>
+      <div class="detail-info-grid">
+        <div class="detail-info-box">
+          <span>Cliente</span>
+          <strong><?=h($customerName)?></strong>
+        </div>
+        <div class="detail-info-box">
+          <span>Status</span>
+          <strong><span class="det-status" style="margin:0;"><i class="fa-solid fa-check"></i> Em aberto</span></strong>
+        </div>
+        <div class="detail-info-box">
+          <span>Filtro</span>
+          <strong><?=h($monthLabel)?></strong>
+        </div>
+        <div class="detail-info-box">
+          <span>Primeira fatura vencida</span>
+          <strong><?=h(rdDateBr($oldestDue))?></strong>
+        </div>
+      </div>
+      <div class="detail-time-line">Ultima recobranca: <?=h($lastReminder ? rdDateTimeBr($lastReminder) : 'Sem envio')?></div>
       <div class="summary-grid">
         <div class="summary-box danger"><span><i class="fa-solid fa-coins"></i> Total</span><strong><?=h(rdMoneyBr($total))?></strong><div class="summary-track"><span class="summary-fill" style="width:<?=h($totalFill)?>%"></span></div></div>
         <div class="summary-box warn"><span><i class="fa-solid fa-file-invoice"></i> Faturas</span><strong><?=h($countBills)?></strong><div class="summary-track"><span class="summary-fill" style="width:<?=h($billFill)?>%"></span></div></div>
