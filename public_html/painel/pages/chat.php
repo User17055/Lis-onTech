@@ -62,8 +62,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     }
 
     .chat-pane-head{
-      min-height:86px;
-      padding:18px 20px;
+      min-height:72px;
+      padding:12px 18px;
       border-bottom:1px solid var(--line);
       display:flex;
       align-items:center;
@@ -74,13 +74,13 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     }
 
     .chat-title{display:flex;align-items:center;gap:10px;min-width:0;}
-    .chat-title i{color:var(--brand);font-size:26px;}
-    .chat-title strong{display:block;font-size:21px;font-weight:900;line-height:1.1;}
-    .chat-title span{display:block;color:var(--muted);font-size:13px;font-weight:800;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .chat-title i{color:var(--brand);font-size:22px;}
+    .chat-title strong{display:block;font-size:18px;font-weight:900;line-height:1.08;}
+    .chat-title span{display:block;color:var(--muted);font-size:12px;font-weight:800;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
     .icon-btn{
-      width:48px;
-      height:48px;
+      width:40px;
+      height:40px;
       border:1px solid var(--line);
       border-radius:8px;
       background:#fff;
@@ -90,8 +90,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       justify-content:center;
       cursor:pointer;
       transition:.18s;
-      flex:0 0 48px;
-      font-size:16px;
+      flex:0 0 40px;
+      font-size:15px;
     }
     .icon-btn:hover{border-color:#bfe8ff;color:var(--brand-dark);background:#f5fbff;}
     .icon-btn.primary{background:var(--brand);border-color:var(--brand);color:#fff;}
@@ -261,7 +261,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .chat-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;}
     .mobile-chat-back{display:none;}
     .charge-btn{
-      height:48px;
+      height:40px;
       border:1px solid #bfe8ff;
       border-radius:8px;
       background:#eef8ff;
@@ -269,12 +269,12 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       display:inline-flex;
       align-items:center;
       justify-content:center;
-      gap:9px;
-      padding:0 14px;
+      gap:8px;
+      padding:0 12px;
       cursor:pointer;
       transition:.18s;
       font-family:'Nunito',sans-serif;
-      font-size:13px;
+      font-size:12px;
       font-weight:900;
       white-space:nowrap;
     }
@@ -282,7 +282,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .charge-btn:disabled{opacity:.45;cursor:not-allowed;background:#f3f7fb;border-color:var(--line);color:#7d8da1;}
     .profile-btn,
     .review-btn{
-      height:48px;
+      height:40px;
       border:1px solid var(--line);
       border-radius:8px;
       background:#fff;
@@ -290,12 +290,12 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       display:inline-flex;
       align-items:center;
       justify-content:center;
-      gap:9px;
-      padding:0 14px;
+      gap:8px;
+      padding:0 12px;
       cursor:pointer;
       transition:.18s;
       font-family:'Nunito',sans-serif;
-      font-size:13px;
+      font-size:12px;
       font-weight:900;
       white-space:nowrap;
       text-decoration:none;
@@ -309,21 +309,21 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .window-panel{
       border-bottom:1px solid var(--line);
       background:#fff;
-      padding:12px 20px;
+      padding:9px 18px;
       display:flex;
       align-items:center;
       justify-content:space-between;
       gap:14px;
     }
     .window-copy{display:flex;align-items:center;gap:10px;min-width:0;}
-    .window-copy i{font-size:18px;}
-    .window-copy strong{display:block;font-size:14px;font-weight:900;}
-    .window-copy span{display:block;font-size:12px;font-weight:800;color:var(--muted);margin-top:1px;}
+    .window-copy i{font-size:16px;}
+    .window-copy strong{display:block;font-size:13px;font-weight:900;}
+    .window-copy span{display:block;font-size:11px;font-weight:800;color:var(--muted);margin-top:1px;}
     .window-panel.open{background:#f4fff9;}
     .window-panel.open .window-copy i{color:var(--ok);}
     .window-panel.closed{background:#fffaf0;}
     .window-panel.closed .window-copy i{color:var(--warn);}
-    .window-timer{font-size:16px;font-weight:900;white-space:nowrap;color:var(--text);}
+    .window-timer{font-size:14px;font-weight:900;white-space:nowrap;color:var(--text);}
 
     .messages{
       flex:1;
