@@ -212,7 +212,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .mark-flag{position:relative;display:inline-flex;align-items:center;gap:6px;margin-left:8px;padding:6px 10px;border-radius:999px;background:#fee2e2;color:#991b1b;font-size:12px;font-weight:1000;line-height:1;vertical-align:middle;}
     .mark-flag .mark-tooltip{position:absolute;left:50%;bottom:calc(100% + 10px);transform:translateX(-50%) translateY(4px);width:max-content;max-width:280px;padding:10px 12px;border-radius:12px;background:#0f172a;color:#fff;box-shadow:0 14px 28px rgba(15,23,42,.22);font-size:12px;font-weight:900;line-height:1.3;white-space:normal;opacity:0;visibility:hidden;pointer-events:none;transition:.18s;z-index:20;text-transform:none;}
     .mark-flag .mark-tooltip::after{content:"";position:absolute;left:50%;top:100%;transform:translateX(-50%);border:7px solid transparent;border-top-color:#0f172a;}
-    .mark-flag:hover .mark-tooltip{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0);}
+    .mark-flag:hover .mark-tooltip,
+    .rep-row.marked:hover .mark-flag .mark-tooltip{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0);}
     .report-context-menu{
       position:fixed;z-index:1000;min-width:190px;background:#fff;border:2px solid var(--border-color);border-radius:8px;padding:6px;
       box-shadow:0 18px 38px rgba(15,23,42,.16);display:none;
