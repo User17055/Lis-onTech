@@ -380,7 +380,10 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
     .bill-metric span{display:flex;align-items:center;gap:6px;color:#64748b;font-size:11px;font-weight:1000;text-transform:uppercase;line-height:1.1;}
     .bill-metric span i{color:#38b6ff;font-size:11px;}
     .bill-metric strong{color:#0f172a;font-size:14px;font-weight:1000;line-height:1.2;word-break:break-word;}
-    .bill-metric small{color:#64748b;font-size:12px;font-weight:900;line-height:1.2;}
+    .bill-tooltip{position:relative;width:max-content;max-width:100%;cursor:help;}
+    .bill-tooltip::after{content:attr(data-tip);position:absolute;left:0;bottom:calc(100% + 9px);width:max-content;max-width:260px;padding:9px 11px;border-radius:10px;background:#0f172a;color:#fff;box-shadow:0 12px 26px rgba(15,23,42,.22);font-size:12px;font-weight:900;line-height:1.3;white-space:normal;opacity:0;visibility:hidden;transform:translateY(4px);transition:.16s;z-index:30;pointer-events:none;}
+    .bill-tooltip::before{content:"";position:absolute;left:14px;bottom:calc(100% + 2px);border:7px solid transparent;border-top-color:#0f172a;opacity:0;visibility:hidden;transition:.16s;z-index:31;pointer-events:none;}
+    .bill-tooltip:hover::after,.bill-tooltip:hover::before{opacity:1;visibility:visible;transform:translateY(0);}
     .bill-action{display:flex;justify-content:flex-end;}
     .bill-action .btn-icon{background:#f8fbff;border-color:#e6eef7;color:#12628f;}
     .bill-action .btn-icon:hover{background:#eef8ff;border-color:#bfebff;color:#12628f;}
@@ -536,14 +539,12 @@ $sentFill = $sent > 0 ? min(100, max(12, ($sent / max($attempts, $sent, 1)) * 10
 
               <div class="bill-metric">
                 <span><i class="fa-regular fa-calendar"></i> Vencimento</span>
-                <strong><?=h(rdDateBr($bill['due_at'] ?? null))?></strong>
-                <small><?=h((int)$bill['days_overdue'])?> dia(s) em atraso</small>
+                <strong class="bill-tooltip" data-tip="<?=h((int)$bill['days_overdue'])?> dia(s) em atraso"><?=h(rdDateBr($bill['due_at'] ?? null))?></strong>
               </div>
 
               <div class="bill-metric">
                 <span><i class="fa-brands fa-whatsapp"></i> Recobranca</span>
-                <strong><?=h($bill['sent_num'])?> envio(s) · <?=h($bill['attempts_num'])?> tent.</strong>
-                <small><?=h($last ? rdDateTimeBr($last) : 'Sem envio')?></small>
+                <strong class="bill-tooltip" data-tip="<?=h($last ? rdDateTimeBr($last) : 'Sem envio')?>"><?=h($bill['sent_num'])?> envio(s) · <?=h($bill['attempts_num'])?> tent.</strong>
               </div>
 
               <div class="bill-action">
