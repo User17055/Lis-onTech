@@ -455,7 +455,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
   </div>
 
   <script>
-    const repState = { rows: [], expanded: new Set(), contextRowKey: '' };
+    const repState = { rows: [], expanded: new Set(), contextRowKey: '', scrollRestored: false };
     const $rep = (id) => document.getElementById(id);
     let reportsLoading = false;
     let reportsRequestId = 0;
@@ -586,6 +586,40 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       if (markFilter !== 'all') url.searchParams.set('mark_filter', markFilter);
       if (prefixFilter !== 'all') url.searchParams.set('prefix_filter', prefixFilter);
       return url.toString();
+    }
+
+    function reportScrollKey(){
+      return 'reports:scroll:' + currentReportsHref();
+    }
+
+    function saveReportScroll(){
+      try {
+        sessionStorage.setItem(reportScrollKey(), JSON.stringify({
+          y: Math.max(0, window.scrollY || document.documentElement.scrollTop || 0),
+          at: Date.now()
+        }));
+      } catch(e) {}
+    }
+
+    function restoreReportScroll(){
+      if (repState.scrollRestored) return;
+      repState.scrollRestored = true;
+      let payload = null;
+      try {
+        const raw = sessionStorage.getItem(reportScrollKey());
+        if (!raw) return;
+        payload = JSON.parse(raw);
+        sessionStorage.removeItem(reportScrollKey());
+      } catch(e) {
+        return;
+      }
+      const y = Number(payload?.y || 0);
+      if (!Number.isFinite(y) || y <= 0) return;
+      const restore = () => window.scrollTo({top: y, left: 0, behavior: 'auto'});
+      requestAnimationFrame(() => {
+        restore();
+        requestAnimationFrame(restore);
+      });
     }
 
     function reportDetailsHref(row){
@@ -919,6 +953,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       const listCount = $rep('reportListCount');
       if (listCount) listCount.textContent = `${brNumber(repState.rows.length)} registro(s)`;
       renderRows();
+      restoreReportScroll();
     }
 
     function renderMonthOptions(months, current){
@@ -1183,6 +1218,10 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     }
 
     $rep('repBody').addEventListener('click', (e) => {
+      if (e.target.closest('a[href*="pagina=report_details"]')) saveReportScroll();
+    }, true);
+
+    $rep('repBody').addEventListener('click', (e) => {
       const markBtn = e.target.closest('[data-mark-action]');
       if (markBtn) {
         e.preventDefault();
@@ -1196,11 +1235,17 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         return;
       }
       closeContextMenu();
+      const detailsLink = e.target.closest('a[href*="pagina=report_details"]');
+      if (detailsLink) {
+        saveReportScroll();
+        return;
+      }
       if (e.target.closest('a,button,input,select,textarea')) return;
       const row = e.target.closest('tr.rep-row[data-href]');
       if (!row) return;
       const href = row.getAttribute('data-href');
       if (!href) return;
+      saveReportScroll();
       window.LisOnPageLoader?.show();
       window.location.href = href;
     });
@@ -1222,6 +1267,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       closeContextMenu();
       if (!row) return;
       if (action === 'details') {
+        saveReportScroll();
         window.LisOnPageLoader?.show();
         window.location.href = reportDetailsHref(row);
         return;
