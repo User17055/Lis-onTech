@@ -563,6 +563,43 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       color:#12628f;
     }
     .media-caption{margin-top:2px;}
+    .contact-card,
+    .reaction-card{
+      display:grid;
+      grid-template-columns:42px minmax(0,1fr);
+      align-items:center;
+      gap:10px;
+      width:min(340px,100%);
+      border:1px solid rgba(214,226,238,.95);
+      border-radius:12px;
+      background:#fff;
+      padding:10px;
+      box-sizing:border-box;
+    }
+    .contact-card + .contact-card{margin-top:8px;}
+    .msg-row.out .contact-card,
+    .msg-row.out .reaction-card{background:#f8fcff;border-color:var(--bubble-out-border);}
+    .contact-icon,
+    .reaction-icon{
+      width:42px;
+      height:42px;
+      border-radius:10px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:#fff;
+      font-size:18px;
+      font-weight:900;
+    }
+    .contact-icon{background:#0f9f6e;}
+    .reaction-icon{background:#f59e0b;}
+    .contact-info,
+    .reaction-info{min-width:0;display:grid;gap:3px;}
+    .contact-name,
+    .reaction-title{font-size:14px;font-weight:900;color:#172033;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .contact-phone,
+    .reaction-target{font-size:12px;font-weight:900;color:#66758a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .reaction-emoji{font-size:20px;line-height:1;}
     .msg-foot{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:8px;color:#718096;font-size:11px;font-weight:900;}
     .msg-error{margin-top:8px;color:var(--danger);font-size:12px;font-weight:900;}
 
@@ -1436,12 +1473,14 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       const st = statusLabel(msg.status);
       const error = msg.error_text ? `<div class="msg-error">${esc(msg.error_text)}</div>` : '';
       const media = mediaHtml(msg);
+      const special = specialMessageHtml(msg);
       const body = messageBodyHtml(msg);
       const bubbleClass = media ? 'bubble media-bubble' : 'bubble';
       return `
         <div class="msg-row ${dir}">
           <div class="${bubbleClass}">
             ${media}
+            ${special}
             ${body ? `<div class="msg-body ${media ? 'media-caption' : ''}">${body}</div>` : ''}
             ${error}
             <div class="msg-foot">
@@ -1477,6 +1516,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     function messageBodyHtml(msg){
       const type = String(msg.message_type || '').toLowerCase();
       let body = String(msg.body || '');
+      if (type === 'contacts' || type === 'reaction') return '';
       const placeholders = {
         image: ['[imagem]'],
         video: ['[video]'],
@@ -1493,6 +1533,60 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       body = body.trim();
       if (body === '') return '';
       return linkify(body);
+    }
+
+    function specialMessageHtml(msg){
+      const type = String(msg.message_type || '').toLowerCase();
+      if (type === 'contacts') return contactsHtml(msg);
+      if (type === 'reaction') return reactionHtml(msg);
+      return '';
+    }
+
+    function contactsHtml(msg){
+      const contacts = Array.isArray(msg.contacts) ? msg.contacts : [];
+      if (!contacts.length) {
+        return `
+          <div class="contact-card">
+            <span class="contact-icon"><i class="fa-regular fa-address-card"></i></span>
+            <span class="contact-info">
+              <span class="contact-name">Contato recebido</span>
+              <span class="contact-phone">Sem telefone no payload</span>
+            </span>
+          </div>
+        `;
+      }
+
+      return contacts.map(contact => {
+        const phones = Array.isArray(contact.phones) ? contact.phones : [];
+        const firstPhone = phones[0] || {};
+        const phone = String(firstPhone.phone || firstPhone.wa_id || '').trim();
+        const label = String(firstPhone.label || '').trim();
+        const phoneText = phone ? `${label ? `${label}: ` : ''}${phone}` : 'Sem telefone';
+        return `
+          <div class="contact-card">
+            <span class="contact-icon"><i class="fa-regular fa-address-card"></i></span>
+            <span class="contact-info">
+              <span class="contact-name">${esc(contact.name || 'Contato')}</span>
+              <span class="contact-phone">${esc(phoneText)}</span>
+            </span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function reactionHtml(msg){
+      const reaction = msg.reaction || {};
+      const emoji = String(reaction.emoji || '').trim();
+      const removed = emoji === '';
+      return `
+        <div class="reaction-card">
+          <span class="reaction-icon">${removed ? '<i class="fa-regular fa-face-meh"></i>' : `<span class="reaction-emoji">${esc(emoji)}</span>`}</span>
+          <span class="reaction-info">
+            <span class="reaction-title">${removed ? 'Removeu uma reacao' : `Reagiu com ${esc(emoji)}`}</span>
+            <span class="reaction-target">Na sua mensagem</span>
+          </span>
+        </div>
+      `;
     }
 
     function mediaFileName(msg){
@@ -1683,7 +1777,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         if (controller !== state.messageController || requestSeq !== state.messageRequestSeq || requestPhone !== state.selectedPhone) return;
         const messages = Array.isArray(data.messages) ? data.messages : [];
         state.lastCharge = data.last_charge || null;
-        const hash = JSON.stringify(messages.map(m => [m.id, m.status, m.message_type, m.body, m.error_text, m.created_at]));
+        const hash = JSON.stringify(messages.map(m => [m.id, m.status, m.message_type, m.body, m.error_text, m.created_at, m.contacts, m.reaction]));
         const activeThread = data.thread || state.threads.find(t => t.phone === requestPhone);
         setActiveHeader(activeThread);
 

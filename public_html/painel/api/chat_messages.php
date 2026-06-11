@@ -44,6 +44,74 @@ function chatMessageMediaInfo(array $message): ?array
     ];
 }
 
+function chatMessageContactInfo(array $message): array
+{
+    $type = strtolower((string)($message['message_type'] ?? ''));
+    if ($type !== 'contacts') {
+        return [];
+    }
+
+    $payload = json_decode((string)($message['payload_json'] ?? ''), true);
+    $contacts = is_array($payload) && is_array($payload['contacts'] ?? null) ? $payload['contacts'] : [];
+    $items = [];
+
+    foreach ($contacts as $contact) {
+        if (!is_array($contact)) continue;
+
+        $nameData = is_array($contact['name'] ?? null) ? $contact['name'] : [];
+        $name = trim((string)($nameData['formatted_name'] ?? ''));
+        if ($name === '') {
+            $parts = [
+                trim((string)($nameData['first_name'] ?? '')),
+                trim((string)($nameData['middle_name'] ?? '')),
+                trim((string)($nameData['last_name'] ?? '')),
+            ];
+            $name = trim(implode(' ', array_filter($parts, static fn($part) => $part !== '')));
+        }
+        if ($name === '') {
+            $name = trim((string)($contact['profile']['name'] ?? ''));
+        }
+
+        $phones = [];
+        $phoneRows = is_array($contact['phones'] ?? null) ? $contact['phones'] : [];
+        foreach ($phoneRows as $phoneRow) {
+            if (!is_array($phoneRow)) continue;
+            $phone = trim((string)($phoneRow['phone'] ?? ''));
+            $waId = trim((string)($phoneRow['wa_id'] ?? ''));
+            $label = trim((string)($phoneRow['type'] ?? ''));
+            if ($phone === '' && $waId !== '') $phone = $waId;
+            if ($phone === '') continue;
+            $phones[] = [
+                'phone' => $phone,
+                'wa_id' => $waId,
+                'label' => $label,
+            ];
+        }
+
+        $items[] = [
+            'name' => $name !== '' ? $name : 'Contato',
+            'phones' => $phones,
+        ];
+    }
+
+    return $items;
+}
+
+function chatMessageReactionInfo(array $message): ?array
+{
+    $type = strtolower((string)($message['message_type'] ?? ''));
+    if ($type !== 'reaction') {
+        return null;
+    }
+
+    $payload = json_decode((string)($message['payload_json'] ?? ''), true);
+    $reaction = is_array($payload) && is_array($payload['reaction'] ?? null) ? $payload['reaction'] : [];
+    return [
+        'emoji' => trim((string)($reaction['emoji'] ?? '')),
+        'message_id' => (string)($reaction['message_id'] ?? ''),
+    ];
+}
+
 try {
     require_once __DIR__ . '/../../config.php';
     require_once __DIR__ . '/../../db.php';
@@ -95,6 +163,8 @@ try {
     $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
     foreach ($messages as &$message) {
         $message['media'] = chatMessageMediaInfo($message);
+        $message['contacts'] = chatMessageContactInfo($message);
+        $message['reaction'] = chatMessageReactionInfo($message);
         unset($message['payload_json']);
     }
     unset($message);

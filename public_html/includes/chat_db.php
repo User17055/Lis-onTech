@@ -424,7 +424,24 @@ if (!function_exists('chatIncomingBody')) {
         } elseif ($type === 'location') {
             $body = '[localizacao]';
         } elseif ($type === 'contacts') {
-            $body = '[contato]';
+            $contacts = $message['contacts'] ?? [];
+            $names = [];
+            if (is_array($contacts)) {
+                foreach ($contacts as $contact) {
+                    if (!is_array($contact)) continue;
+                    $name = $contact['name'] ?? [];
+                    $formatted = is_array($name) ? (string)($name['formatted_name'] ?? '') : '';
+                    if ($formatted === '') {
+                        $formatted = (string)($contact['profile']['name'] ?? '');
+                    }
+                    if ($formatted !== '') $names[] = $formatted;
+                }
+            }
+            $body = '[contato]' . (!empty($names) ? ' ' . implode(', ', array_slice($names, 0, 3)) : '');
+        } elseif ($type === 'reaction') {
+            $reaction = $message['reaction'] ?? [];
+            $emoji = is_array($reaction) ? trim((string)($reaction['emoji'] ?? '')) : '';
+            $body = $emoji !== '' ? 'Reagiu com ' . $emoji : 'Removeu uma reacao';
         }
 
         if ($body === '') {
