@@ -1475,7 +1475,8 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       const media = mediaHtml(msg);
       const special = specialMessageHtml(msg);
       const body = messageBodyHtml(msg);
-      const bubbleClass = media ? 'bubble media-bubble' : 'bubble';
+      const isFramedSpecial = ['contacts', 'reaction'].includes(String(msg.message_type || '').toLowerCase());
+      const bubbleClass = media || isFramedSpecial ? 'bubble media-bubble' : 'bubble';
       return `
         <div class="msg-row ${dir}">
           <div class="${bubbleClass}">
