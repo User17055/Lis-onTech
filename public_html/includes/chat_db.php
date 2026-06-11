@@ -345,11 +345,11 @@ if (!function_exists('chatGetOrCreateThread')) {
 }
 
 if (!function_exists('chatTouchThread')) {
-    function chatTouchThread(PDO $pdo, int $threadId, string $direction, string $preview, string $at, bool $unread): void
+    function chatTouchThread(PDO $pdo, int $threadId, string $direction, string $preview, string $at, bool $unread, bool $countsAsInboundReply = true): void
     {
         $preview = chatTruncate($preview);
 
-        if ($direction === 'in') {
+        if ($direction === 'in' && $countsAsInboundReply) {
             $stmt = $pdo->prepare("
                 UPDATE chat_threads
                 SET
@@ -366,6 +366,23 @@ if (!function_exists('chatTouchThread')) {
                 WHERE id = ?
             ");
             $stmt->execute([$at, $preview, $at, $at, $at, $at, $unread ? 1 : 0, $threadId]);
+            return;
+        }
+
+        if ($direction === 'in') {
+            $stmt = $pdo->prepare("
+                UPDATE chat_threads
+                SET
+                    last_message_preview = CASE
+                        WHEN last_message_at IS NULL OR ? >= last_message_at THEN ? ELSE last_message_preview
+                    END,
+                    last_message_at = CASE
+                        WHEN last_message_at IS NULL OR ? >= last_message_at THEN ? ELSE last_message_at
+                    END,
+                    unread_count = unread_count + ?
+                WHERE id = ?
+            ");
+            $stmt->execute([$at, $preview, $at, $at, $unread ? 1 : 0, $threadId]);
             return;
         }
 
@@ -452,6 +469,13 @@ if (!function_exists('chatIncomingBody')) {
     }
 }
 
+if (!function_exists('chatInboundCountsAsReply')) {
+    function chatInboundCountsAsReply(string $type): bool
+    {
+        return in_array(strtolower($type), ['text', 'button', 'interactive'], true);
+    }
+}
+
 if (!function_exists('chatContactName')) {
     function chatContactName(array $value, string $phone): string
     {
@@ -508,7 +532,7 @@ if (!function_exists('chatSaveIncomingMessage')) {
         ]);
 
         $messageId = (int)$pdo->lastInsertId();
-        chatTouchThread($pdo, $threadId, 'in', $body, $createdAt, true);
+        chatTouchThread($pdo, $threadId, 'in', $body, $createdAt, true, chatInboundCountsAsReply($type));
         return $messageId;
     }
 }
