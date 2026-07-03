@@ -102,7 +102,7 @@ if (file_exists($pathPages)) {
   <link rel="shortcut icon" type="image/svg+xml" href="/assets/favicon.svg">
 
   <!-- ✅ Sidebar Lis'on (Poppins + Boxicons) -->
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
 
   <!-- ✅ Painel Automator (Nunito + FontAwesome) -->
@@ -171,9 +171,6 @@ if (file_exists($pathPages)) {
       }
     }
   </style>
-
-  <!-- ✅ Tema Liquid Glass (carrega por último para sobrepor os estilos das páginas) -->
-  <link rel="stylesheet" href="/assets/glass.css?v=1">
 </head>
 
 <body class="page-<?= htmlspecialchars($pagina, ENT_QUOTES, 'UTF-8') ?>">

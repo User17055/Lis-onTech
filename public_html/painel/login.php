@@ -68,90 +68,15 @@ if ($loginError !== '') {
 
     .login-panel {
       align-items: center;
-      background: linear-gradient(180deg, #EAF1FF 0%, #F6F9FF 100%);
+      background: #F7FAFF;
       display: flex;
       justify-content: center;
-      overflow: hidden;
       padding: 48px 32px;
-      position: relative;
-    }
-
-    .login-panel::before,
-    .login-panel::after {
-      animation: blob-float 14s ease-in-out infinite alternate;
-      border-radius: 50%;
-      content: "";
-      filter: blur(60px);
-      pointer-events: none;
-      position: absolute;
-      z-index: 0;
-    }
-
-    .login-panel::before {
-      background: rgba(45, 106, 255, 0.20);
-      height: 340px;
-      left: -110px;
-      top: -90px;
-      width: 340px;
-    }
-
-    .login-panel::after {
-      animation-delay: -7s;
-      background: rgba(56, 182, 255, 0.22);
-      bottom: -120px;
-      height: 380px;
-      right: -130px;
-      width: 380px;
-    }
-
-    @keyframes blob-float {
-      from {
-        transform: translate(0, 0) scale(1);
-      }
-
-      to {
-        transform: translate(34px, 26px) scale(1.12);
-      }
     }
 
     .login-content {
-      animation: card-enter 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
-      background: rgba(255, 255, 255, 0.55);
-      -webkit-backdrop-filter: blur(22px) saturate(1.6);
-      backdrop-filter: blur(22px) saturate(1.6);
-      border: 1px solid rgba(255, 255, 255, 0.65);
-      border-radius: 26px;
-      box-shadow: 0 24px 60px rgba(23, 60, 130, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.85);
-      padding: 38px 34px;
-      position: relative;
-      width: min(100%, 430px);
-      z-index: 1;
-    }
-
-    @keyframes card-enter {
-      from {
-        opacity: 0;
-        transform: translateY(18px) scale(0.985);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-      }
-    }
-
-    @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-      .login-content {
-        background: rgba(255, 255, 255, 0.92);
-      }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      .login-panel::before,
-      .login-panel::after,
-      .login-content {
-        animation: none;
-      }
+      margin-top: -2px;
+      width: min(100%, 380px);
     }
 
     .brand-line {
@@ -215,7 +140,7 @@ if ($loginError !== '') {
     }
 
     .field input {
-      background: rgba(255, 255, 255, 0.72);
+      background: #ffffff;
       border: 1px solid var(--border);
       border-radius: 12px;
       box-shadow: var(--shadow);
@@ -223,7 +148,7 @@ if ($loginError !== '') {
       height: 48px;
       outline: none;
       padding: 0 15px;
-      transition: background 220ms cubic-bezier(0.22, 1, 0.36, 1), border-color 220ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1);
+      transition: border-color 160ms ease, box-shadow 160ms ease;
       width: 100%;
     }
 
@@ -239,7 +164,6 @@ if ($loginError !== '') {
     }
 
     .field input:focus {
-      background: rgba(255, 255, 255, 0.96);
       border-color: rgba(45, 106, 255, 0.85);
       box-shadow: 0 0 0 3px rgba(45, 106, 255, 0.16), var(--shadow);
     }
@@ -279,26 +203,25 @@ if ($loginError !== '') {
       justify-content: center;
       letter-spacing: 0;
       line-height: 1;
-      transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1), background 220ms cubic-bezier(0.22, 1, 0.36, 1), filter 220ms cubic-bezier(0.22, 1, 0.36, 1);
+      transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
       width: 100%;
     }
 
     .button:active {
-      transform: translateY(1px) scale(0.99);
+      transform: translateY(1px);
     }
 
     .button-primary {
-      background: linear-gradient(135deg, #4b82ff 0%, #2D6AFF 100%);
-      border: 1px solid rgba(45, 106, 255, 0.85);
-      box-shadow: 0 6px 16px rgba(45, 106, 255, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+      background: var(--accent);
+      border: 1px solid var(--accent);
+      box-shadow: 0 4px 12px rgba(45, 106, 255, 0.22);
       color: #ffffff;
       margin-top: 2px;
     }
 
     .button-primary:hover:not(:disabled) {
-      background: linear-gradient(135deg, #2D6AFF 0%, #1e53e3 100%);
-      box-shadow: 0 10px 24px rgba(45, 106, 255, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.35);
-      transform: translateY(-2px);
+      background: #1e53e3;
+      box-shadow: 0 7px 18px rgba(45, 106, 255, 0.27);
     }
 
     .login-note {
@@ -464,7 +387,6 @@ if ($loginError !== '') {
 
       .login-content {
         margin: 0 auto;
-        padding: 28px 22px;
         width: min(100%, 430px);
       }
 
