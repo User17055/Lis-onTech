@@ -1,0 +1,280 @@
+/* ============================================================
+   Lis'on — Liquid Glass Theme
+   Camada de tema carregada depois dos estilos das páginas.
+   Aplica vidro (translucidez + blur) apenas nas superfícies
+   principais: header, sidebar, cards, toolbars e overlays.
+   Fonte principal: Poppins (Nunito segue como complemento).
+   ============================================================ */
+
+:root {
+  --lg-glass-bg: rgba(255, 255, 255, 0.62);
+  --lg-glass-bg-strong: rgba(255, 255, 255, 0.74);
+  --lg-glass-border: rgba(151, 191, 234, 0.28);
+  --lg-glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  --lg-shadow: 0 8px 28px rgba(23, 60, 102, 0.08);
+  --lg-shadow-hover: 0 18px 44px rgba(23, 60, 102, 0.13);
+  --lg-blur: 16px;
+  --lg-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ---------- Fundo do painel: gradiente suave com "blobs" ---------- */
+
+body {
+  background-color: #eef3fa !important;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(900px 620px at 88% -12%, rgba(56, 182, 255, 0.16), transparent 62%),
+    radial-gradient(760px 540px at -8% 34%, rgba(122, 132, 255, 0.10), transparent 60%),
+    radial-gradient(820px 620px at 55% 112%, rgba(56, 182, 255, 0.09), transparent 62%),
+    linear-gradient(180deg, #f3f7fd 0%, #ecf2fa 100%);
+}
+
+/* ---------- Tipografia: Poppins como base, Nunito complementa ---------- */
+
+body .pa-wrap,
+body .dash-wrap,
+body .det-wrap {
+  font-family: 'Poppins', 'Nunito', sans-serif;
+}
+
+/* ---------- Header fixo em vidro ---------- */
+
+body .top-header {
+  background: rgba(255, 255, 255, 0.72) !important;
+  -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(1.6);
+  backdrop-filter: blur(var(--lg-blur)) saturate(1.6);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.06) !important;
+}
+
+/* ---------- Sidebar em vidro ---------- */
+
+body .sidebar {
+  background: rgba(255, 255, 255, 0.68) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  backdrop-filter: blur(20px) saturate(1.6);
+  border-right: 1px solid rgba(255, 255, 255, 0.55) !important;
+}
+
+body .nav-links a {
+  transition: background 0.25s var(--lg-ease), color 0.25s var(--lg-ease),
+    transform 0.25s var(--lg-ease), box-shadow 0.25s var(--lg-ease);
+}
+
+body .nav-links a:hover {
+  background: rgba(56, 182, 255, 0.10);
+}
+
+body .nav-links a.active {
+  background: linear-gradient(135deg, rgba(56, 182, 255, 0.18), rgba(56, 182, 255, 0.08)) !important;
+  box-shadow: inset 0 0 0 1px rgba(56, 182, 255, 0.22), 0 6px 16px rgba(56, 182, 255, 0.14);
+}
+
+/* ---------- Cards, painéis e toolbars em vidro ---------- */
+
+body .metric,
+body .panel,
+body .toolbar,
+body .filters,
+body .month-board,
+body .note,
+body .pa-header,
+body .dash-head,
+body .det-top,
+body .det-card {
+  background: var(--lg-glass-bg) !important;
+  border-color: var(--lg-glass-border) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(1.45);
+  backdrop-filter: blur(12px) saturate(1.45);
+  box-shadow: var(--lg-shadow), var(--lg-glass-highlight) !important;
+}
+
+body .metric:hover,
+body .panel:hover,
+body .toolbar:hover,
+body .filters:hover,
+body .month-board:hover,
+body .det-card:hover {
+  background: var(--lg-glass-bg-strong) !important;
+  border-color: rgba(56, 182, 255, 0.32) !important;
+  box-shadow: var(--lg-shadow-hover), var(--lg-glass-highlight) !important;
+}
+
+/* Inputs dentro das toolbars ficam levemente translúcidos */
+
+body .toolbar .form-control,
+body .filters .field input {
+  background: rgba(244, 249, 254, 0.75);
+  transition: background 0.25s var(--lg-ease), border-color 0.25s var(--lg-ease),
+    box-shadow 0.25s var(--lg-ease);
+}
+
+body .toolbar .form-control:focus,
+body .filters .field input:focus {
+  background: rgba(255, 255, 255, 0.95);
+}
+
+/* ---------- Botões ---------- */
+
+body:not(.page-chat) .btn-primary,
+body:not(.page-chat) .icon-btn {
+  background: linear-gradient(135deg, #4cc2ff 0%, #2ea6f2 100%) !important;
+  box-shadow: 0 6px 18px rgba(56, 182, 255, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+  transition: transform 0.22s var(--lg-ease), box-shadow 0.22s var(--lg-ease),
+    filter 0.22s var(--lg-ease);
+}
+
+body:not(.page-chat) .btn-primary:hover:not(:disabled),
+body:not(.page-chat) .icon-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #38b6ff 0%, #1b98ea 100%) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 26px rgba(56, 182, 255, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+}
+
+body:not(.page-chat) .btn-primary:active,
+body:not(.page-chat) .icon-btn:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+body .btn-secondary,
+body .det-btn,
+body .month-btn,
+body .filter-select,
+body .notify-btn,
+body .logout-btn {
+  background: rgba(255, 255, 255, 0.62) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(1.4);
+  backdrop-filter: blur(8px) saturate(1.4);
+  border-color: rgba(151, 191, 234, 0.32) !important;
+  transition: background 0.22s var(--lg-ease), border-color 0.22s var(--lg-ease),
+    color 0.22s var(--lg-ease), transform 0.22s var(--lg-ease), box-shadow 0.22s var(--lg-ease);
+}
+
+body .btn-secondary:hover:not(:disabled),
+body .det-btn:hover,
+body .month-btn:hover,
+body .notify-btn:hover {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(56, 182, 255, 0.45) !important;
+}
+
+/* ---------- Loader de página em vidro ---------- */
+
+body .lt-content-loader {
+  background: rgba(240, 246, 253, 0.55) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(1.4);
+  backdrop-filter: blur(10px) saturate(1.4);
+}
+
+/* ---------- Toast global em vidro escuro ---------- */
+
+body .global-toast {
+  background: rgba(15, 23, 42, 0.78) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  backdrop-filter: blur(14px) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+}
+
+/* ---------- Modais e menus de contexto ---------- */
+
+body .mark-modal {
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+body .mark-card,
+body .report-context-menu {
+  background: rgba(255, 255, 255, 0.86) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(1.5);
+  backdrop-filter: blur(18px) saturate(1.5);
+  border-color: rgba(151, 191, 234, 0.32) !important;
+}
+
+/* ---------- Entrada suave do conteúdo (exceto chat) ---------- */
+
+@keyframes lgPageIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+body:not(.page-chat) .main-content > div:not(.lt-content-loader) {
+  animation: lgPageIn 0.5s var(--lg-ease) both;
+}
+
+/* ---------- Scrollbar discreta ---------- */
+
+body:not(.page-chat) ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+body:not(.page-chat) ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+body:not(.page-chat) ::-webkit-scrollbar-thumb {
+  background: rgba(56, 182, 255, 0.28);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+body:not(.page-chat) ::-webkit-scrollbar-thumb:hover {
+  background: rgba(56, 182, 255, 0.45);
+  background-clip: padding-box;
+}
+
+/* ---------- Fallback sem suporte a backdrop-filter ---------- */
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  body .top-header,
+  body .sidebar {
+    background: rgba(255, 255, 255, 0.95) !important;
+  }
+
+  body .metric,
+  body .panel,
+  body .toolbar,
+  body .filters,
+  body .month-board,
+  body .note,
+  body .pa-header,
+  body .dash-head,
+  body .det-top,
+  body .det-card,
+  body .mark-card,
+  body .report-context-menu {
+    background: rgba(255, 255, 255, 0.94) !important;
+  }
+}
+
+/* ---------- Acessibilidade: reduzir movimento ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  body:not(.page-chat) .main-content > div:not(.lt-content-loader) {
+    animation: none;
+  }
+
+  body .nav-links a,
+  body .btn-secondary,
+  body .det-btn,
+  body .month-btn,
+  body .notify-btn,
+  body .logout-btn {
+    transition: none;
+  }
+}
