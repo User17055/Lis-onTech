@@ -1,0 +1,5 @@
+RewriteEngine On
+
+RewriteRule ^whatsapp/send/?$ whatsapp_send.php [L,QSA]
+RewriteRule ^pickup/validate/?$ pickup_validate.php [L,QSA]
+RewriteRule ^pickup/complete/?$ pickup_complete.php [L,QSA]
