@@ -72,6 +72,7 @@ try {
             'dry_run' => true,
             'message' => 'Codigo gerado/salvo sem envio de WhatsApp',
             'pickup_code' => $pickupCode,
+            'shopify_order_id' => $orderId,
             'order_id' => $orderId,
             'order_number' => $orderNumber,
             'customer_name' => $customerName,
@@ -207,6 +208,8 @@ try {
     apiOut([
         'ok' => true,
         'pickup_code' => $pickupCode,
+        'shopify_order_id' => $orderId,
+        'order_id' => $orderId,
         'message_id' => $messageId,
         'meta_message_id' => chatMetaMessageId($resp),
         'http' => $http,

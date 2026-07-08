@@ -162,6 +162,7 @@ try {
         'ok' => true,
         'status' => 'picked_up',
         'message' => 'Pedido marcado como retirado',
+        'shopify_order_id' => $order['order_id'],
         'order_id' => $order['order_id'],
         'order_number' => $order['order_number'],
         'customer_name' => $order['customer_name'],
