@@ -75,13 +75,52 @@ if (!function_exists('apiRequireBearer')) {
     {
         $expected = cfg($cfg, 'API_BEARER_TOKEN');
         if ($expected === '') {
+            apiAuthLog('missing_expected_token', $expected, apiBearerToken());
             apiOut(['ok' => false, 'error' => 'API_BEARER_TOKEN nao configurado'], 500);
         }
 
         $provided = apiBearerToken();
         if ($provided === '' || !hash_equals($expected, $provided)) {
+            apiAuthLog('unauthorized', $expected, $provided);
             apiOut(['ok' => false, 'error' => 'Unauthorized'], 401);
         }
+    }
+}
+
+if (!function_exists('apiAuthLog')) {
+    function apiAuthLog(string $event, string $expected, string $provided): void
+    {
+        $logDir = __DIR__ . '/../storage/logs';
+        if (!is_dir($logDir)) {
+            @mkdir($logDir, 0755, true);
+        }
+
+        $headerNames = [];
+        foreach ($_SERVER as $key => $value) {
+            if (strpos($key, 'HTTP_') === 0 || in_array($key, ['REDIRECT_HTTP_AUTHORIZATION', 'CONTENT_TYPE'], true)) {
+                $headerNames[] = $key;
+            }
+        }
+
+        $line = [
+            'at' => date('Y-m-d H:i:s'),
+            'event' => $event,
+            'method' => $_SERVER['REQUEST_METHOD'] ?? '',
+            'uri' => $_SERVER['REQUEST_URI'] ?? '',
+            'config_label' => $GLOBALS['LISON_CONFIG_ENV_LABEL'] ?? null,
+            'config_checks' => $GLOBALS['LISON_CONFIG_ENV_CHECKS'] ?? [],
+            'expected_len' => strlen($expected),
+            'expected_sha12' => $expected !== '' ? substr(hash('sha256', $expected), 0, 12) : '',
+            'provided_len' => strlen($provided),
+            'provided_sha12' => $provided !== '' ? substr(hash('sha256', $provided), 0, 12) : '',
+            'headers_seen' => $headerNames,
+        ];
+
+        @file_put_contents(
+            $logDir . '/api_auth.log',
+            json_encode($line, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . PHP_EOL,
+            FILE_APPEND
+        );
     }
 }
 
