@@ -43,6 +43,11 @@ if (!function_exists('apiRequirePost')) {
 if (!function_exists('apiBearerToken')) {
     function apiBearerToken(): string
     {
+        $apiKey = $_SERVER['HTTP_X_API_KEY'] ?? '';
+        if (trim((string)$apiKey) !== '') {
+            return trim((string)$apiKey);
+        }
+
         $header = $_SERVER['HTTP_AUTHORIZATION']
             ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION']
             ?? '';

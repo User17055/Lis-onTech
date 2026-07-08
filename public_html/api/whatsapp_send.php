@@ -66,6 +66,18 @@ try {
         ]);
     }
 
+    if (!empty($body['dry_run'])) {
+        apiOut([
+            'ok' => true,
+            'dry_run' => true,
+            'message' => 'Codigo gerado/salvo sem envio de WhatsApp',
+            'pickup_code' => $pickupCode,
+            'order_id' => $orderId,
+            'order_number' => $orderNumber,
+            'customer_name' => $customerName,
+        ]);
+    }
+
     $phoneNumberId = cfg($cfg, 'META_PHONE_NUMBER_ID');
     $accessToken = cfg($cfg, 'META_ACCESS_TOKEN');
     if ($phoneNumberId === '' || $accessToken === '') {
