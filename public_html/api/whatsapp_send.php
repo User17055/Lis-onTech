@@ -87,17 +87,17 @@ try {
     $templateName = chatCleanText((string)($body['template_name'] ?? ''));
     $templateLang = chatCleanText((string)($body['template_lang'] ?? cfg($cfg, 'META_TEMPLATE_LANG', 'pt_BR')));
     $message = chatCleanText((string)($body['message'] ?? ''));
-    $storeName = chatCleanText((string)($body['store_name'] ?? cfg($cfg, 'PICKUP_STORE_NAME', 'Lis-onTech')));
-    $pickupHours = chatCleanText((string)($body['pickup_hours'] ?? cfg($cfg, 'PICKUP_HOURS', '')));
+    $storeName = chatCleanText((string)($body['store_name'] ?? cfg($cfg, 'PICKUP_STORE_NAME', 'TudoPraPet')));
+    $pickupHours = chatCleanText((string)($body['pickup_hours'] ?? cfg($cfg, 'PICKUP_HOURS', 'segunda a sexta, das 9h às 18h, e aos sábados até 12h')));
 
     if ($templateName === '' && $event === 'order_created') {
-        $templateName = cfg($cfg, 'META_TEMPLATE_ORDER_CREATED_NAME');
+        $templateName = cfg($cfg, 'META_TEMPLATE_ORDER_CREATED_NAME', 'pedido_recebido');
         $templateLang = cfg($cfg, 'META_TEMPLATE_ORDER_CREATED_LANG', $templateLang);
     } elseif ($templateName === '' && $event === 'order_ready_for_pickup') {
-        $templateName = cfg($cfg, 'META_TEMPLATE_PICKUP_READY_NAME');
+        $templateName = cfg($cfg, 'META_TEMPLATE_PICKUP_READY_NAME', 'pedido_pronto_retirada');
         $templateLang = cfg($cfg, 'META_TEMPLATE_PICKUP_READY_LANG', $templateLang);
     } elseif ($templateName === '' && $event === 'order_picked_up') {
-        $templateName = cfg($cfg, 'META_TEMPLATE_PICKUP_DONE_NAME');
+        $templateName = cfg($cfg, 'META_TEMPLATE_PICKUP_DONE_NAME', 'pedido_retirado_sucesso');
         $templateLang = cfg($cfg, 'META_TEMPLATE_PICKUP_DONE_LANG', $templateLang);
     }
 

@@ -84,7 +84,7 @@ try {
     $notify = !array_key_exists('notify', $body) || !empty($body['notify']);
     $notifyResult = null;
     if ($notify && (string)($order['phone'] ?? '') !== '') {
-        $templateName = cfg($cfg, 'META_TEMPLATE_PICKUP_DONE_NAME');
+        $templateName = cfg($cfg, 'META_TEMPLATE_PICKUP_DONE_NAME', 'pedido_retirado_sucesso');
         $phoneNumberId = cfg($cfg, 'META_PHONE_NUMBER_ID');
         $accessToken = cfg($cfg, 'META_ACCESS_TOKEN');
 
