@@ -87,10 +87,18 @@ try {
     $templateName = chatCleanText((string)($body['template_name'] ?? ''));
     $templateLang = chatCleanText((string)($body['template_lang'] ?? cfg($cfg, 'META_TEMPLATE_LANG', 'pt_BR')));
     $message = chatCleanText((string)($body['message'] ?? ''));
+    $storeName = chatCleanText((string)($body['store_name'] ?? cfg($cfg, 'PICKUP_STORE_NAME', 'Lis-onTech')));
+    $pickupHours = chatCleanText((string)($body['pickup_hours'] ?? cfg($cfg, 'PICKUP_HOURS', '')));
 
-    if ($templateName === '' && $event === 'order_ready_for_pickup') {
+    if ($templateName === '' && $event === 'order_created') {
+        $templateName = cfg($cfg, 'META_TEMPLATE_ORDER_CREATED_NAME');
+        $templateLang = cfg($cfg, 'META_TEMPLATE_ORDER_CREATED_LANG', $templateLang);
+    } elseif ($templateName === '' && $event === 'order_ready_for_pickup') {
         $templateName = cfg($cfg, 'META_TEMPLATE_PICKUP_READY_NAME');
         $templateLang = cfg($cfg, 'META_TEMPLATE_PICKUP_READY_LANG', $templateLang);
+    } elseif ($templateName === '' && $event === 'order_picked_up') {
+        $templateName = cfg($cfg, 'META_TEMPLATE_PICKUP_DONE_NAME');
+        $templateLang = cfg($cfg, 'META_TEMPLATE_PICKUP_DONE_LANG', $templateLang);
     }
 
     if ($templateName === '' && $message === '') {
@@ -104,12 +112,13 @@ try {
     if ($templateName !== '') {
         $params = $body['params'] ?? null;
         if (!is_array($params)) {
-            $params = [
-                $customerName,
-                $orderNumber,
-                $pickupCode,
-                chatCleanText((string)($body['store_name'] ?? cfg($cfg, 'PICKUP_STORE_NAME', 'Lis-onTech'))),
-            ];
+            if ($event === 'order_created') {
+                $params = [$customerName, $storeName];
+            } elseif ($event === 'order_picked_up') {
+                $params = [$customerName];
+            } else {
+                $params = [$customerName, $pickupCode, $pickupHours];
+            }
         }
 
         $bodyParams = [];
@@ -124,10 +133,12 @@ try {
             'name' => $templateName,
             'language' => ['code' => $templateLang !== '' ? $templateLang : 'pt_BR'],
         ];
+        $components = [];
         if ($bodyParams) {
-            $template['components'] = [
-                ['type' => 'body', 'parameters' => $bodyParams],
-            ];
+            $components[] = ['type' => 'body', 'parameters' => $bodyParams];
+        }
+        if ($components) {
+            $template['components'] = $components;
         }
 
         $payload = [

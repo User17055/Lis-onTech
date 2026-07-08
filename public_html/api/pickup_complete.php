@@ -81,6 +81,83 @@ try {
 
     $pdo->commit();
 
+    $notify = !array_key_exists('notify', $body) || !empty($body['notify']);
+    $notifyResult = null;
+    if ($notify && (string)($order['phone'] ?? '') !== '') {
+        $templateName = cfg($cfg, 'META_TEMPLATE_PICKUP_DONE_NAME');
+        $phoneNumberId = cfg($cfg, 'META_PHONE_NUMBER_ID');
+        $accessToken = cfg($cfg, 'META_ACCESS_TOKEN');
+
+        if ($templateName !== '' && $phoneNumberId !== '' && $accessToken !== '') {
+            $templateLang = cfg($cfg, 'META_TEMPLATE_PICKUP_DONE_LANG', cfg($cfg, 'META_TEMPLATE_LANG', 'pt_BR'));
+            $customerName = chatCleanText((string)($order['customer_name'] ?? ''));
+            $params = [
+                $customerName,
+            ];
+            $bodyParams = [];
+            foreach ($params as $param) {
+                $text = chatCleanText((string)$param);
+                if ($text !== '') {
+                    $bodyParams[] = ['type' => 'text', 'text' => $text];
+                }
+            }
+
+            $payload = [
+                'messaging_product' => 'whatsapp',
+                'recipient_type' => 'individual',
+                'to' => chatNormalizePhone((string)$order['phone']),
+                'type' => 'template',
+                'template' => [
+                    'name' => $templateName,
+                    'language' => ['code' => $templateLang],
+                    'components' => [
+                        ['type' => 'body', 'parameters' => $bodyParams],
+                    ],
+                ],
+            ];
+
+            $ch = curl_init("https://graph.facebook.com/v22.0/{$phoneNumberId}/messages");
+            curl_setopt_array($ch, [
+                CURLOPT_HTTPHEADER => [
+                    'Authorization: Bearer ' . $accessToken,
+                    'Content-Type: application/json',
+                ],
+                CURLOPT_POST => true,
+                CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_UNICODE),
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_CONNECTTIMEOUT => 10,
+                CURLOPT_TIMEOUT => 30,
+            ]);
+            $res = curl_exec($ch);
+            $http = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $err = curl_error($ch);
+            curl_close($ch);
+
+            $resp = json_decode((string)$res, true);
+            if (!is_array($resp)) {
+                $resp = ['raw' => (string)$res];
+            }
+
+            $messageId = chatSaveOutgoingMessage(
+                $pdo,
+                (string)$order['phone'],
+                chatDescribeWhatsAppPayload($payload),
+                $payload,
+                $resp,
+                $http,
+                $err ?: null,
+                'lovable_pickup_done',
+                (string)$order['order_id']
+            );
+
+            $notifyResult = [
+                'ok' => ($http >= 200 && $http < 300) && ($err === '') && empty($resp['error']),
+                'message_id' => $messageId,
+                'http' => $http,
+            ];
+        }
+    }
+
     apiOut([
         'ok' => true,
         'status' => 'picked_up',
@@ -89,6 +166,7 @@ try {
         'order_number' => $order['order_number'],
         'customer_name' => $order['customer_name'],
         'picked_up_at' => $pickedUpAt,
+        'notification' => $notifyResult,
     ]);
 } catch (Throwable $e) {
     if (isset($pdo) && $pdo instanceof PDO && $pdo->inTransaction()) {
