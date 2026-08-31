@@ -15,6 +15,14 @@ Core privado do Lis'on ERP para automacao de cobrancas e mensagens via WhatsApp.
 
 Copie `secure/config.env.example` para `secure/config.env` no ambiente real e preencha os valores. Nunca versione `secure/config.env` ou logs.
 
+## Paginas juridicas publicas
+
+- `/termos-de-uso.php`
+- `/politica-de-privacidade.php`
+- `/exclusao-de-dados.php`
+
+Defina `LEGAL_CONTROLLER_NAME` e, de preferencia, um e-mail monitorado em `LEGAL_CONTACT_EMAIL` no `secure/config.env` do ambiente real.
+
 ## Recobranca automatica
 
 A recobranca automatica roda pelo endpoint:
