@@ -1,8 +1,16 @@
-const session = requireAuth();
-
-if (session) {
-  initTopbar(session);
-
+if (!getClientId()) {
+  window.location.href = "index.html";
+} else {
+  const THEME_META = [
+    { key: "animais", label: "Animais", emoji: "🐾" },
+    { key: "frutas", label: "Frutas", emoji: "🍎" },
+    { key: "paises", label: "Países", emoji: "🌎" },
+    { key: "profissoes", label: "Profissões", emoji: "💼" },
+    { key: "filmes", label: "Filmes", emoji: "🎬" },
+    { key: "objetos", label: "Objetos", emoji: "🪑" },
+    { key: "esportes", label: "Esportes", emoji: "⚽" },
+    { key: "cores", label: "Cores", emoji: "🎨" },
+  ];
   const MAX_ERRORS = 6;
   const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
@@ -14,160 +22,154 @@ if (session) {
   const wordDisplay = document.getElementById("wordDisplay");
   const keyboard = document.getElementById("keyboard");
   const errorsValue = document.getElementById("errorsValue");
+  const score1Name = document.getElementById("score1Name");
+  const score2Name = document.getElementById("score2Name");
   const score1Value = document.getElementById("score1Value");
   const score2Value = document.getElementById("score2Value");
 
-  document.getElementById("score1Name").textContent = session.player1;
-  document.getElementById("score2Name").textContent = session.player2;
-
-  Object.entries(THEMES).forEach(([key, theme]) => {
+  THEME_META.forEach((theme) => {
     const btn = document.createElement("button");
     btn.className = "theme-btn";
     btn.innerHTML = `<span class="emoji">${theme.emoji}</span>${theme.label}`;
-    btn.addEventListener("click", () => startRound(key));
+    btn.addEventListener("click", () => pickTheme(theme.key));
     themeGrid.appendChild(btn);
   });
   const randomBtn = document.createElement("button");
   randomBtn.className = "theme-btn";
   randomBtn.innerHTML = `<span class="emoji">🎲</span>Aleatório`;
-  randomBtn.addEventListener("click", () => startRound("aleatorio"));
+  randomBtn.addEventListener("click", () => pickTheme("aleatorio"));
   themeGrid.appendChild(randomBtn);
 
-  const scores = { 1: 0, 2: 0 };
-  let starter = 1;
-  let currentPlayer = starter;
-  let currentThemeKey = null;
-  let wordInfo = null;
-  let guessed = new Set();
-  let roundPoints = { 1: 0, 2: 0 };
-  let wrongCount = 0;
-  let gameOver = false;
+  const keyButtons = {};
+  ALPHABET.forEach((letter) => {
+    const btn = document.createElement("button");
+    btn.className = "key";
+    btn.textContent = letter;
+    btn.addEventListener("click", () => guess(letter));
+    keyboard.appendChild(btn);
+    keyButtons[letter] = btn;
+  });
 
-  function playerName(p) {
-    return p === 1 ? session.player1 : session.player2;
-  }
+  function render(state) {
+    if (!state.you) {
+      clearClientId();
+      window.location.href = "index.html";
+      return;
+    }
 
-  function startRound(themeKey) {
-    currentThemeKey = themeKey;
-    wordInfo = pickWord(themeKey);
-    guessed = new Set();
-    roundPoints = { 1: 0, 2: 0 };
-    wrongCount = 0;
-    gameOver = false;
-    starter = starter === 1 ? 2 : 1;
-    currentPlayer = starter;
+    const mySlot = state.you;
+    const oppSlot = mySlot === "1" ? "2" : "1";
+    const opponent = state.lobby.slots[oppSlot];
+    const me = state.lobby.slots[mySlot];
 
-    themeTag.textContent = `Tema: ${wordInfo.themeEmoji} ${wordInfo.themeLabel}`;
+    if (!opponent || state.activeGame !== "forca") {
+      window.location.href = "index.html";
+      return;
+    }
+
+    document.getElementById("topbarPlayers").textContent = `${me.name} & ${opponent.name}`;
+
+    const f = state.forca;
+    if (!f || f.choosingTheme) {
+      themeScreen.style.display = "block";
+      gameScreen.style.display = "none";
+      return;
+    }
+
     themeScreen.style.display = "none";
     gameScreen.style.display = "block";
 
-    document.querySelectorAll(".part").forEach((p) => (p.style.visibility = "hidden"));
-    errorsValue.textContent = `0/${MAX_ERRORS}`;
+    score1Name.textContent = state.lobby.slots["1"].name;
+    score2Name.textContent = state.lobby.slots["2"].name;
+    score1Value.textContent = f.scores["1"] || 0;
+    score2Value.textContent = f.scores["2"] || 0;
+    themeTag.textContent = `Tema: ${f.themeEmoji} ${f.themeLabel}`;
 
-    renderWord();
-    renderKeyboard();
-    updateStatus();
-  }
+    errorsValue.textContent = `${f.wrongCount}/${MAX_ERRORS}`;
+    for (let i = 0; i < MAX_ERRORS; i++) {
+      const part = document.getElementById(`part-${i}`);
+      if (part) part.style.visibility = i < f.wrongCount ? "visible" : "hidden";
+    }
 
-  function renderWord() {
     wordDisplay.innerHTML = "";
-    wordInfo.word.split("").forEach((letter) => {
+    f.revealed.forEach((letter) => {
       const slot = document.createElement("div");
       slot.className = "letter-slot";
-      slot.textContent = guessed.has(letter) ? letter : "";
+      slot.textContent = letter || "";
       wordDisplay.appendChild(slot);
     });
-  }
 
-  function renderKeyboard() {
-    keyboard.innerHTML = "";
     ALPHABET.forEach((letter) => {
-      const btn = document.createElement("button");
-      btn.className = "key";
-      btn.textContent = letter;
-      btn.addEventListener("click", () => handleGuess(letter));
-      keyboard.appendChild(btn);
-    });
-  }
-
-  function updateStatus() {
-    if (gameOver) return;
-    const badgeClass = currentPlayer === 1 ? "p1" : "p2";
-    statusBar.innerHTML = `<span class="turn-badge ${badgeClass}">Vez de ${playerName(currentPlayer)}</span>`;
-  }
-
-  function handleGuess(letter) {
-    if (gameOver || guessed.has(letter)) return;
-    guessed.add(letter);
-
-    const keyBtn = Array.from(keyboard.children).find((b) => b.textContent === letter);
-    const isHit = wordInfo.word.includes(letter);
-
-    if (isHit) {
-      keyBtn.classList.add("correct");
-      roundPoints[currentPlayer]++;
-    } else {
-      keyBtn.classList.add("wrong");
-      wrongCount++;
-      errorsValue.textContent = `${wrongCount}/${MAX_ERRORS}`;
-      const part = document.getElementById(`part-${wrongCount - 1}`);
-      if (part) part.style.visibility = "visible";
-    }
-    keyBtn.disabled = true;
-
-    renderWord();
-
-    const wordComplete = wordInfo.word.split("").every((l) => guessed.has(l));
-
-    if (wordComplete) {
-      finishRound("won");
-      return;
-    }
-    if (wrongCount >= MAX_ERRORS) {
-      finishRound("lost");
-      return;
-    }
-
-    currentPlayer = currentPlayer === 1 ? 2 : 1;
-    updateStatus();
-  }
-
-  function finishRound(outcome) {
-    gameOver = true;
-    Array.from(keyboard.children).forEach((b) => (b.disabled = true));
-
-    if (outcome === "won") {
-      let winnerText;
-      if (roundPoints[1] > roundPoints[2]) {
-        scores[1]++;
-        winnerText = `${session.player1} mandou bem nessa rodada!`;
-      } else if (roundPoints[2] > roundPoints[1]) {
-        scores[2]++;
-        winnerText = `${session.player2} mandou bem nessa rodada!`;
-      } else {
-        winnerText = `Rodada equilibrada, os dois acertaram igual!`;
+      const btn = keyButtons[letter];
+      const used = f.guessedLetters.includes(letter);
+      btn.disabled = used || f.gameOver || f.turnSlot !== mySlot;
+      btn.classList.remove("correct", "wrong");
+      if (used) {
+        btn.classList.add(f.revealed.includes(letter) ? "correct" : "wrong");
       }
-      statusBar.innerHTML = `<span class="turn-badge">🎉 Palavra: ${wordInfo.word} — ${winnerText}</span>`;
-    } else {
-      statusBar.innerHTML = `<span class="turn-badge">💀 Fim de jogo! A palavra era: ${wordInfo.word}</span>`;
-    }
+    });
 
-    updateScoreboard();
+    if (f.gameOver) {
+      if (f.outcome === "lost") {
+        statusBar.innerHTML = `<span class="turn-badge">💀 Fim de jogo! A palavra era: ${f.solution}</span>`;
+      } else {
+        let text;
+        if (f.outcome === "won_tie") {
+          text = "Rodada equilibrada, os dois acertaram igual!";
+        } else {
+          const winnerSlot = f.outcome === "won_1" ? "1" : "2";
+          text = `${state.lobby.slots[winnerSlot].name} mandou bem nessa rodada!`;
+        }
+        statusBar.innerHTML = `<span class="turn-badge">🎉 Palavra: ${f.solution} — ${text}</span>`;
+      }
+    } else if (f.turnSlot === mySlot) {
+      statusBar.innerHTML = `<span class="turn-badge p1">🟢 Sua vez!</span>`;
+    } else {
+      statusBar.innerHTML = `<span class="turn-badge p2">⏳ Vez de ${opponent.name}...</span>`;
+    }
   }
 
-  function updateScoreboard() {
-    score1Value.textContent = scores[1];
-    score2Value.textContent = scores[2];
+  async function pickTheme(key) {
+    const result = await apiAction("forca_pick_theme", { themeKey: key });
+    if (result.ok) render(result.state);
+    else alert(friendlyError(result.error));
+  }
+
+  async function guess(letter) {
+    const result = await apiAction("forca_guess", { letter });
+    if (result.ok) {
+      render(result.state);
+    } else if (result.error !== "not_your_turn" && result.error !== "letter_used") {
+      alert(friendlyError(result.error));
+    }
   }
 
   document.getElementById("newWordBtn").addEventListener("click", () => {
-    startRound(currentThemeKey);
+    const f = lastState && lastState.forca;
+    if (f) pickTheme(f.themeKey);
   });
 
-  document.getElementById("changeThemeBtn").addEventListener("click", () => {
-    gameScreen.style.display = "none";
-    themeScreen.style.display = "block";
+  document.getElementById("changeThemeBtn").addEventListener("click", async () => {
+    const result = await apiAction("forca_change_theme");
+    if (result.ok) render(result.state);
   });
 
-  updateScoreboard();
+  async function backToMenu() {
+    await apiAction("back_to_menu");
+    window.location.href = "index.html";
+  }
+  document.getElementById("backToMenuBtn1").addEventListener("click", backToMenu);
+  document.getElementById("backToMenuBtn2").addEventListener("click", backToMenu);
+
+  document.getElementById("logoutBtn").addEventListener("click", async () => {
+    await apiAction("leave");
+    clearClientId();
+    window.location.href = "index.html";
+  });
+
+  let lastState = null;
+  startPolling((state) => {
+    lastState = state;
+    render(state);
+  }, 1200);
 }

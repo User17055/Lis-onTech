@@ -8,6 +8,8 @@ public_html/log_*.txt
 public_html/painel/api/log_*.txt
 public_html/storage/logs/*
 !public_html/storage/logs/.gitkeep
+public_html/game/data/*
+!public_html/game/data/.gitkeep
 
 # OS/editor noise
 .DS_Store

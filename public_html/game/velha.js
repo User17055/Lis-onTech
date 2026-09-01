@@ -1,137 +1,104 @@
-const session = requireAuth();
-
-if (session) {
-  initTopbar(session);
-
-  const WIN_LINES = [
-    [0, 1, 2], [3, 4, 5], [6, 7, 8],
-    [0, 3, 6], [1, 4, 7], [2, 5, 8],
-    [0, 4, 8], [2, 4, 6]
-  ];
-
+if (!getClientId()) {
+  window.location.href = "index.html";
+} else {
   const boardEl = document.getElementById("board");
   const statusBar = document.getElementById("statusBar");
+  const score1Name = document.getElementById("score1Name");
+  const score2Name = document.getElementById("score2Name");
   const score1Value = document.getElementById("score1Value");
   const score2Value = document.getElementById("score2Value");
   const scoreDrawValue = document.getElementById("scoreDrawValue");
-
-  document.getElementById("score1Name").textContent = session.player1;
-  document.getElementById("score2Name").textContent = session.player2;
-
-  const scores = { 1: 0, 2: 0, draw: 0 };
-  let board = Array(9).fill(null);
-  let starter = 1;
-  let currentPlayer = starter;
-  let gameOver = false;
 
   const cells = [];
   for (let i = 0; i < 9; i++) {
     const btn = document.createElement("button");
     btn.className = "cell";
-    btn.addEventListener("click", () => handleMove(i));
+    btn.addEventListener("click", () => makeMove(i));
     boardEl.appendChild(btn);
     cells.push(btn);
   }
 
-  function playerName(p) {
-    return p === 1 ? session.player1 : session.player2;
-  }
+  function render(state) {
+    if (!state.you) {
+      clearClientId();
+      window.location.href = "index.html";
+      return;
+    }
 
-  function playerSymbol(p) {
-    return p === 1 ? "X" : "O";
-  }
+    const mySlot = state.you;
+    const oppSlot = mySlot === "1" ? "2" : "1";
+    const opponent = state.lobby.slots[oppSlot];
+    const me = state.lobby.slots[mySlot];
 
-  function updateStatus() {
-    if (gameOver) return;
-    const badgeClass = currentPlayer === 1 ? "p1" : "p2";
-    statusBar.innerHTML =
-      `<span class="turn-badge ${badgeClass}">Vez de ${playerName(currentPlayer)} (${playerSymbol(currentPlayer)})</span>`;
-  }
+    if (!opponent || state.activeGame !== "velha" || !state.velha) {
+      window.location.href = "index.html";
+      return;
+    }
 
-  function renderBoard() {
-    board.forEach((val, i) => {
+    document.getElementById("topbarPlayers").textContent = `${me.name} & ${opponent.name}`;
+
+    const v = state.velha;
+    score1Name.textContent = state.lobby.slots["1"].name;
+    score2Name.textContent = state.lobby.slots["2"].name;
+    score1Value.textContent = v.scores["1"] || 0;
+    score2Value.textContent = v.scores["2"] || 0;
+    scoreDrawValue.textContent = v.scores.draw || 0;
+
+    v.board.forEach((val, i) => {
       const cell = cells[i];
-      cell.textContent = val ? playerSymbol(val) : "";
-      cell.className = "cell" + (val === 1 ? " x" : val === 2 ? " o" : "");
-      cell.disabled = !!val || gameOver;
+      cell.textContent = val === 1 ? "X" : val === 2 ? "O" : "";
+      cell.className =
+        "cell" +
+        (val === 1 ? " x" : val === 2 ? " o" : "") +
+        (v.winLine && v.winLine.includes(i) ? " win" : "");
+      cell.disabled = !!val || v.gameOver || v.turnSlot !== mySlot;
     });
-  }
 
-  function checkWinner() {
-    for (const line of WIN_LINES) {
-      const [a, b, c] = line;
-      if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-        return { player: board[a], line };
+    if (v.gameOver) {
+      if (v.winLine) {
+        const winnerSlot = String(v.board[v.winLine[0]]);
+        const winnerName = state.lobby.slots[winnerSlot].name;
+        const badgeClass = winnerSlot === mySlot ? "p1" : "p2";
+        statusBar.innerHTML = `<span class="turn-badge ${badgeClass}">🎉 ${winnerName} venceu!</span>`;
+      } else {
+        statusBar.innerHTML = `<span class="turn-badge">Empate!</span>`;
       }
+    } else if (v.turnSlot === mySlot) {
+      statusBar.innerHTML = `<span class="turn-badge p1">🟢 Sua vez! (${mySlot === "1" ? "X" : "O"})</span>`;
+    } else {
+      statusBar.innerHTML = `<span class="turn-badge p2">⏳ Vez de ${opponent.name}...</span>`;
     }
-    if (board.every((v) => v !== null)) {
-      return { draw: true };
-    }
-    return null;
   }
 
-  function handleMove(index) {
-    if (gameOver || board[index]) return;
-    board[index] = currentPlayer;
-    renderBoard();
-
-    const result = checkWinner();
-    if (result && result.player) {
-      gameOver = true;
-      scores[result.player]++;
-      updateScoreboard();
-      result.line.forEach((i) => cells[i].classList.add("win"));
-      cells.forEach((c) => (c.disabled = true));
-      const badgeClass = result.player === 1 ? "p1" : "p2";
-      statusBar.innerHTML =
-        `<span class="turn-badge ${badgeClass}">🎉 ${playerName(result.player)} venceu!</span>`;
-      return;
+  async function makeMove(index) {
+    const result = await apiAction("velha_move", { index });
+    if (result.ok) {
+      render(result.state);
+    } else if (result.error !== "not_your_turn" && result.error !== "cell_taken") {
+      alert(friendlyError(result.error));
     }
-
-    if (result && result.draw) {
-      gameOver = true;
-      scores.draw++;
-      updateScoreboard();
-      statusBar.innerHTML = `<span class="turn-badge">Empate!</span>`;
-      return;
-    }
-
-    currentPlayer = currentPlayer === 1 ? 2 : 1;
-    updateStatus();
   }
 
-  function updateScoreboard() {
-    score1Value.textContent = scores[1];
-    score2Value.textContent = scores[2];
-    scoreDrawValue.textContent = scores.draw;
-  }
-
-  function newRound() {
-    board = Array(9).fill(null);
-    gameOver = false;
-    starter = starter === 1 ? 2 : 1;
-    currentPlayer = starter;
-    cells.forEach((c) => c.classList.remove("win"));
-    renderBoard();
-    updateStatus();
-  }
-
-  document.getElementById("restartRoundBtn").addEventListener("click", newRound);
-  document.getElementById("resetScoreBtn").addEventListener("click", () => {
-    scores[1] = 0;
-    scores[2] = 0;
-    scores.draw = 0;
-    updateScoreboard();
-    starter = 1;
-    board = Array(9).fill(null);
-    gameOver = false;
-    currentPlayer = starter;
-    cells.forEach((c) => c.classList.remove("win"));
-    renderBoard();
-    updateStatus();
+  document.getElementById("restartRoundBtn").addEventListener("click", async () => {
+    const result = await apiAction("velha_restart_round");
+    if (result.ok) render(result.state);
   });
 
-  renderBoard();
-  updateStatus();
-  updateScoreboard();
+  document.getElementById("resetScoreBtn").addEventListener("click", async () => {
+    const result = await apiAction("velha_reset_score");
+    if (result.ok) render(result.state);
+  });
+
+  document.getElementById("backToMenuBtn").addEventListener("click", async () => {
+    await apiAction("back_to_menu");
+    window.location.href = "index.html";
+  });
+
+  document.getElementById("logoutBtn").addEventListener("click", async () => {
+    await apiAction("leave");
+    clearClientId();
+    window.location.href = "index.html";
+  });
+
+  startPolling(render, 1200);
 }

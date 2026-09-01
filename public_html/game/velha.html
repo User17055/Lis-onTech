@@ -11,8 +11,6 @@
   <div class="topbar">
     <div class="topbar-nav">
       <a href="index.html">🎮 Jogos</a>
-      <a href="velha.html">⭕ Jogo da Velha</a>
-      <a href="forca.html">🔤 Jogo da Forca</a>
     </div>
     <div class="topbar-right">
       <span id="topbarPlayers"></span>
@@ -47,10 +45,12 @@
       <button class="btn btn-secondary" id="resetScoreBtn">Zerar placar</button>
     </div>
 
-    <a class="back-link" href="index.html">&larr; Voltar ao menu</a>
+    <div style="text-align:center;">
+      <button class="back-link" id="backToMenuBtn" style="background:none;border:none;cursor:pointer;font-family:inherit;">&larr; Voltar ao menu</button>
+    </div>
   </div>
 
-  <script src="auth.js"></script>
+  <script src="client.js"></script>
   <script src="velha.js"></script>
 </body>
 </html>

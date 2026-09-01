@@ -15,86 +15,175 @@
     <div class="topbar-right" id="topbarRight"></div>
   </div>
 
+  <div class="matched-toast" id="matchedToast"></div>
+
   <div class="card" id="loginCard">
     <h1>Entrar</h1>
-    <p class="subtitle">Digite o nome dos dois jogadores e a senha para começar.</p>
+    <p class="subtitle">Digite seu nome e a senha. Quando os dois entrarem, o jogo libera sozinho.</p>
     <form id="loginForm">
       <div class="field">
-        <label for="p1">Nome do Jogador 1</label>
-        <input type="text" id="p1" maxlength="20" required autocomplete="off" />
+        <label for="nameInput">Seu nome</label>
+        <input type="text" id="nameInput" maxlength="20" required autocomplete="off" />
       </div>
       <div class="field">
-        <label for="p2">Nome do Jogador 2</label>
-        <input type="text" id="p2" maxlength="20" required autocomplete="off" />
-      </div>
-      <div class="field">
-        <label for="pwd">Senha</label>
-        <input type="password" id="pwd" required autocomplete="off" />
+        <label for="pwdInput">Senha</label>
+        <input type="password" id="pwdInput" required autocomplete="off" />
       </div>
       <div class="error-msg" id="errorMsg"></div>
       <button type="submit" class="btn btn-primary">Entrar</button>
     </form>
   </div>
 
+  <div class="card" id="waitingCard" style="display: none;">
+    <div class="waiting-wrap">
+      <div class="spinner"></div>
+      <h1>Aguardando o outro jogador...</h1>
+      <p class="subtitle" id="waitingSubtitle"></p>
+    </div>
+  </div>
+
   <div class="card" id="menuCard" style="display: none;">
     <h1>E aí, hora de jogar!</h1>
     <p class="subtitle" id="welcomeMsg"></p>
     <div class="menu-grid">
-      <a class="game-tile" href="velha.html">
+      <button class="game-tile" id="tileVelha" type="button">
         <span class="emoji">⭕</span>
         Jogo da Velha
-      </a>
-      <a class="game-tile" href="forca.html">
+      </button>
+      <button class="game-tile" id="tileForca" type="button">
         <span class="emoji">🔤</span>
         Jogo da Forca
-      </a>
+      </button>
     </div>
+    <div class="error-msg" id="menuError" style="text-align:center; margin-top: 12px;"></div>
   </div>
 
-  <script src="auth.js"></script>
+  <script src="client.js"></script>
   <script>
-    const loginCard = document.getElementById("loginCard");
-    const menuCard = document.getElementById("menuCard");
+    const screens = {
+      login: document.getElementById("loginCard"),
+      waiting: document.getElementById("waitingCard"),
+      menu: document.getElementById("menuCard"),
+    };
     const topbarRight = document.getElementById("topbarRight");
+    const matchedToast = document.getElementById("matchedToast");
 
-    function showMenu(session) {
-      loginCard.style.display = "none";
-      menuCard.style.display = "block";
-      document.getElementById("welcomeMsg").textContent =
-        `Bem-vindos, ${session.player1} e ${session.player2}!`;
-      topbarRight.innerHTML =
-        `<span>${session.player1} &amp; ${session.player2}</span> ` +
-        `<button class="btn btn-ghost" id="logoutBtn" style="padding:6px 14px;">Sair</button>`;
-      document.getElementById("logoutBtn").addEventListener("click", () => {
-        clearSession();
-        location.reload();
+    function showScreen(name) {
+      Object.entries(screens).forEach(([key, el]) => {
+        el.style.display = key === name ? "block" : "none";
       });
     }
 
-    const existing = getSession();
-    if (existing) {
-      showMenu(existing);
+    function renderTopbar(me) {
+      if (!me) {
+        topbarRight.innerHTML = "";
+        return;
+      }
+      topbarRight.innerHTML =
+        `<span>${me.name}</span> <button class="btn btn-ghost" id="logoutBtn" style="padding:6px 14px;">Sair</button>`;
+      document.getElementById("logoutBtn").addEventListener("click", doLeave);
     }
 
-    document.getElementById("loginForm").addEventListener("submit", (e) => {
-      e.preventDefault();
-      const p1 = document.getElementById("p1").value.trim();
-      const p2 = document.getElementById("p2").value.trim();
-      const pwd = document.getElementById("pwd").value;
-      const errorEl = document.getElementById("errorMsg");
+    async function doLeave() {
+      stopPolling();
+      await apiAction("leave").catch(() => {});
+      clearClientId();
+      previousBothFilled = false;
+      renderTopbar(null);
+      showScreen("login");
+    }
 
-      if (!p1 || !p2) {
-        errorEl.textContent = "Preencha o nome dos dois jogadores.";
+    let previousBothFilled = false;
+    let stopPolling = () => {};
+
+    function showMatchedToast(opponentName) {
+      matchedToast.textContent = `🎉 ${opponentName} está te esperando!`;
+      matchedToast.classList.add("show");
+      setTimeout(() => matchedToast.classList.remove("show"), 3200);
+    }
+
+    function render(state) {
+      if (!getClientId()) {
+        showScreen("login");
         return;
       }
-      if (pwd !== GAME_PASSWORD) {
-        errorEl.textContent = "Senha incorreta.";
+
+      if (!state.you) {
+        clearClientId();
+        renderTopbar(null);
+        showScreen("login");
+        document.getElementById("errorMsg").textContent = "Sua sessão expirou, entre novamente.";
         return;
       }
+
+      const mySlot = state.you;
+      const oppSlot = mySlot === "1" ? "2" : "1";
+      const me = state.lobby.slots[mySlot];
+      const opponent = state.lobby.slots[oppSlot];
+
+      renderTopbar(me);
+
+      if (!opponent) {
+        showScreen("waiting");
+        document.getElementById("waitingSubtitle").textContent = `Você: ${me.name}`;
+        previousBothFilled = false;
+        return;
+      }
+
+      if (!previousBothFilled) {
+        showMatchedToast(opponent.name);
+      }
+      previousBothFilled = true;
+
+      if (state.activeGame) {
+        window.location.href = state.activeGame === "velha" ? "velha.html" : "forca.html";
+        return;
+      }
+
+      showScreen("menu");
+      document.getElementById("welcomeMsg").textContent = `Bem-vindos, ${me.name} e ${opponent.name}!`;
+    }
+
+    document.getElementById("loginForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const name = document.getElementById("nameInput").value.trim();
+      const password = document.getElementById("pwdInput").value;
+      const errorEl = document.getElementById("errorMsg");
       errorEl.textContent = "";
-      setSession(p1, p2);
-      showMenu(getSession());
+
+      if (!name) {
+        errorEl.textContent = "Digite seu nome.";
+        return;
+      }
+
+      const result = await apiAction("join", { name, password });
+      if (!result.ok) {
+        errorEl.textContent = friendlyError(result.error);
+        return;
+      }
+
+      setClientId(result.clientId);
+      render(result.state);
+      stopPolling();
+      stopPolling = startPolling(render, 1500);
     });
+
+    async function chooseGame(game) {
+      document.getElementById("menuError").textContent = "";
+      const result = await apiAction("choose_game", { game });
+      if (result.ok) {
+        render(result.state);
+      } else {
+        document.getElementById("menuError").textContent = friendlyError(result.error);
+      }
+    }
+
+    document.getElementById("tileVelha").addEventListener("click", () => chooseGame("velha"));
+    document.getElementById("tileForca").addEventListener("click", () => chooseGame("forca"));
+
+    if (getClientId()) {
+      stopPolling = startPolling(render, 1500);
+    }
   </script>
 </body>
 </html>
