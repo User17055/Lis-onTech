@@ -183,7 +183,12 @@ try {
 
                 $state['activeGame'] = $game;
                 $state['velha'] = $game === 'velha' ? newVelhaState(1) : null;
-                $state['forca'] = null;
+                $state['forca'] = $game === 'forca' ? [
+                    'choosingTheme' => true,
+                    'themePickerSlot' => $mySlot,
+                    'scores' => ['1' => 0, '2' => 0],
+                    'starter' => 2,
+                ] : null;
                 return $state;
             });
 
@@ -227,6 +232,10 @@ try {
                 }
                 if ($state['activeGame'] !== 'velha' || !$state['velha']) {
                     $resultError = 'no_active_game';
+                    return $state;
+                }
+                if (!isSlotOnline($state, otherSlot($mySlot))) {
+                    $resultError = 'opponent_offline';
                     return $state;
                 }
                 $v = $state['velha'];
@@ -283,6 +292,10 @@ try {
                     $resultError = 'no_active_game';
                     return $state;
                 }
+                if (!isSlotOnline($state, otherSlot($mySlot))) {
+                    $resultError = 'opponent_offline';
+                    return $state;
+                }
                 $v = $state['velha'];
                 $newStarter = $v['starter'] === 1 ? 2 : 1;
                 $scores = $v['scores'];
@@ -309,6 +322,10 @@ try {
                 }
                 if ($state['activeGame'] !== 'velha') {
                     $resultError = 'no_active_game';
+                    return $state;
+                }
+                if (!isSlotOnline($state, otherSlot($mySlot))) {
+                    $resultError = 'opponent_offline';
                     return $state;
                 }
                 $state['velha'] = newVelhaState(1);
@@ -346,6 +363,17 @@ try {
                     return $state;
                 }
 
+                $currentForca = $state['forca'] ?? [];
+                $pickerSlot = $currentForca['themePickerSlot'] ?? $mySlot;
+                if (!empty($currentForca['choosingTheme']) && $pickerSlot !== $mySlot) {
+                    $resultError = 'not_theme_picker';
+                    return $state;
+                }
+                if (!isSlotOnline($state, otherSlot($mySlot))) {
+                    $resultError = 'opponent_offline';
+                    return $state;
+                }
+
                 $picked = pickWord($themeKey);
                 $prevScores = $state['forca']['scores'] ?? ['1' => 0, '2' => 0];
                 $prevStarter = $state['forca']['starter'] ?? 2;
@@ -365,6 +393,8 @@ try {
                     'outcome' => null,
                     'roundPoints' => ['1' => 0, '2' => 0],
                     'scores' => $prevScores,
+                    'choosingTheme' => false,
+                    'themePickerSlot' => null,
                 ];
                 return $state;
             });
@@ -391,6 +421,7 @@ try {
                     return $state;
                 }
                 $state['forca']['choosingTheme'] = true;
+                $state['forca']['themePickerSlot'] = $mySlot;
                 return $state;
             });
             if ($resultError) {
@@ -417,6 +448,10 @@ try {
                 }
                 if ($state['activeGame'] !== 'forca' || !$state['forca']) {
                     $resultError = 'no_active_game';
+                    return $state;
+                }
+                if (!isSlotOnline($state, otherSlot($mySlot))) {
+                    $resultError = 'opponent_offline';
                     return $state;
                 }
                 $f = $state['forca'];

@@ -8,6 +8,8 @@ const STATE_FILE = STATE_DIR . '/state.json';
 // (aba fechada, celular desligado etc). Generoso de propósito para não
 // expulsar alguém só porque o celular travou a aba em segundo plano.
 const STALE_SECONDS = 300;
+// Pausa rapidamente a partida sem expulsar quem pode estar reconectando.
+const OFFLINE_SECONDS = 8;
 
 function defaultState(): array {
     return [
@@ -82,11 +84,23 @@ function otherSlot(string $slot): string {
     return $slot === '1' ? '2' : '1';
 }
 
+function isSlotOnline(array $state, string $slot): bool {
+    $player = $state['lobby']['slots'][$slot] ?? null;
+    return $player !== null && (time() - (int)($player['lastSeen'] ?? 0)) <= OFFLINE_SECONDS;
+}
+
 // Monta a versão do estado que pode ser enviada ao cliente: nunca inclui a
 // palavra secreta da forca, só o tamanho e as letras já reveladas.
 function publicState(array $state, ?string $clientId): array {
     $mySlot = $clientId ? findSlotByClientId($state, $clientId) : null;
     $out = $state;
+
+    foreach (['1', '2'] as $slot) {
+        if (!empty($out['lobby']['slots'][$slot])) {
+            unset($out['lobby']['slots'][$slot]['clientId']);
+            $out['lobby']['slots'][$slot]['online'] = isSlotOnline($state, $slot);
+        }
+    }
 
     if (!empty($state['forca'])) {
         $f = $state['forca'];
