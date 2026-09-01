@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jogos</title>
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="topbar">
+    <div class="topbar-nav">
+      <a href="index.html">🎮 Jogos</a>
+    </div>
+    <div class="topbar-right" id="topbarRight"></div>
+  </div>
+
+  <div class="card" id="loginCard">
+    <h1>Entrar</h1>
+    <p class="subtitle">Digite o nome dos dois jogadores e a senha para começar.</p>
+    <form id="loginForm">
+      <div class="field">
+        <label for="p1">Nome do Jogador 1</label>
+        <input type="text" id="p1" maxlength="20" required autocomplete="off" />
+      </div>
+      <div class="field">
+        <label for="p2">Nome do Jogador 2</label>
+        <input type="text" id="p2" maxlength="20" required autocomplete="off" />
+      </div>
+      <div class="field">
+        <label for="pwd">Senha</label>
+        <input type="password" id="pwd" required autocomplete="off" />
+      </div>
+      <div class="error-msg" id="errorMsg"></div>
+      <button type="submit" class="btn btn-primary">Entrar</button>
+    </form>
+  </div>
+
+  <div class="card" id="menuCard" style="display: none;">
+    <h1>E aí, hora de jogar!</h1>
+    <p class="subtitle" id="welcomeMsg"></p>
+    <div class="menu-grid">
+      <a class="game-tile" href="velha.html">
+        <span class="emoji">⭕</span>
+        Jogo da Velha
+      </a>
+      <a class="game-tile" href="forca.html">
+        <span class="emoji">🔤</span>
+        Jogo da Forca
+      </a>
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script>
+    const loginCard = document.getElementById("loginCard");
+    const menuCard = document.getElementById("menuCard");
+    const topbarRight = document.getElementById("topbarRight");
+
+    function showMenu(session) {
+      loginCard.style.display = "none";
+      menuCard.style.display = "block";
+      document.getElementById("welcomeMsg").textContent =
+        `Bem-vindos, ${session.player1} e ${session.player2}!`;
+      topbarRight.innerHTML =
+        `<span>${session.player1} &amp; ${session.player2}</span> ` +
+        `<button class="btn btn-ghost" id="logoutBtn" style="padding:6px 14px;">Sair</button>`;
+      document.getElementById("logoutBtn").addEventListener("click", () => {
+        clearSession();
+        location.reload();
+      });
+    }
+
+    const existing = getSession();
+    if (existing) {
+      showMenu(existing);
+    }
+
+    document.getElementById("loginForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const p1 = document.getElementById("p1").value.trim();
+      const p2 = document.getElementById("p2").value.trim();
+      const pwd = document.getElementById("pwd").value;
+      const errorEl = document.getElementById("errorMsg");
+
+      if (!p1 || !p2) {
+        errorEl.textContent = "Preencha o nome dos dois jogadores.";
+        return;
+      }
+      if (pwd !== GAME_PASSWORD) {
+        errorEl.textContent = "Senha incorreta.";
+        return;
+      }
+      errorEl.textContent = "";
+      setSession(p1, p2);
+      showMenu(getSession());
+    });
+  </script>
+</body>
+</html>

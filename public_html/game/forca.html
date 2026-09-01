@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jogo da Forca</title>
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="topbar">
+    <div class="topbar-nav">
+      <a href="index.html">🎮 Jogos</a>
+      <a href="velha.html">⭕ Jogo da Velha</a>
+      <a href="forca.html">🔤 Jogo da Forca</a>
+    </div>
+    <div class="topbar-right">
+      <span id="topbarPlayers"></span>
+      <button class="btn btn-ghost" id="logoutBtn" style="padding:6px 14px;">Sair</button>
+    </div>
+  </div>
+
+  <div class="card" id="themeScreen">
+    <h1>Jogo da Forca</h1>
+    <p class="subtitle">Escolham juntos o tema da palavra.</p>
+    <div class="theme-grid" id="themeGrid"></div>
+  </div>
+
+  <div class="card" id="gameScreen" style="display: none;">
+    <h1>Jogo da Forca</h1>
+    <p class="theme-tag" id="themeTag"></p>
+
+    <div class="scoreboard">
+      <div class="score-pill">
+        <div class="name" id="score1Name">Jogador 1</div>
+        <div class="value" id="score1Value">0</div>
+      </div>
+      <div class="score-pill">
+        <div class="name">Erros</div>
+        <div class="value" id="errorsValue">0/6</div>
+      </div>
+      <div class="score-pill">
+        <div class="name" id="score2Name">Jogador 2</div>
+        <div class="value" id="score2Value">0</div>
+      </div>
+    </div>
+
+    <div class="status-bar" id="statusBar"></div>
+
+    <div class="hangman-wrap">
+      <svg viewBox="0 0 100 120">
+        <line x1="10" y1="115" x2="70" y2="115" stroke="#1f2333" stroke-width="4" stroke-linecap="round" />
+        <line x1="25" y1="115" x2="25" y2="10" stroke="#1f2333" stroke-width="4" stroke-linecap="round" />
+        <line x1="25" y1="10" x2="65" y2="10" stroke="#1f2333" stroke-width="4" stroke-linecap="round" />
+        <line x1="65" y1="10" x2="65" y2="25" stroke="#1f2333" stroke-width="4" stroke-linecap="round" />
+        <circle class="part" id="part-0" cx="65" cy="35" r="10" stroke="#1f2333" stroke-width="4" fill="none" />
+        <line class="part" id="part-1" x1="65" y1="45" x2="65" y2="80" stroke="#1f2333" stroke-width="4" stroke-linecap="round" />
+        <line class="part" id="part-2" x1="65" y1="55" x2="50" y2="45" stroke="#1f2333" stroke-width="4" stroke-linecap="round" />
+        <line class="part" id="part-3" x1="65" y1="55" x2="80" y2="45" stroke="#1f2333" stroke-width="4" stroke-linecap="round" />
+        <line class="part" id="part-4" x1="65" y1="80" x2="52" y2="100" stroke="#1f2333" stroke-width="4" stroke-linecap="round" />
+        <line class="part" id="part-5" x1="65" y1="80" x2="78" y2="100" stroke="#1f2333" stroke-width="4" stroke-linecap="round" />
+      </svg>
+    </div>
+
+    <div class="word-display" id="wordDisplay"></div>
+
+    <div class="keyboard" id="keyboard"></div>
+
+    <div class="actions-row">
+      <button class="btn btn-secondary" id="newWordBtn">Nova palavra (mesmo tema)</button>
+      <button class="btn btn-secondary" id="changeThemeBtn">Trocar tema</button>
+    </div>
+
+    <a class="back-link" href="index.html">&larr; Voltar ao menu</a>
+  </div>
+
+  <script src="auth.js"></script>
+  <script src="words.js"></script>
+  <script src="forca.js"></script>
+</body>
+</html>
