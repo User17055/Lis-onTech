@@ -6,7 +6,7 @@ header('Content-Type: application/json; charset=utf-8');
 require __DIR__ . '/words.php';
 require __DIR__ . '/store.php';
 
-const GAME_PASSWORD = 'dudadech';
+const GAME_PASSWORD = 'dudadeck';
 const MAX_ERRORS = 6;
 
 function jsonInput(): array {
