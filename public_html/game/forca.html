@@ -12,17 +12,17 @@
 </head>
 <body>
   <div class="decor decor-one"></div><div class="decor decor-two"></div>
-  <header class="topbar"><a class="brand" href="index.html"><span>🎮</span> Play Duo</a><div class="topbar-right"><span class="online-dot"></span><span id="topbarPlayers"></span><button class="btn btn-ghost" id="logoutBtn">Sair</button></div></header>
+  <header class="topbar"><a class="brand" href="index.html"><span data-icon="gamepad"></span> Play Duo</a><div class="topbar-right"><span class="online-dot"></span><span id="topbarPlayers"></span><button class="btn btn-ghost" id="logoutBtn">Sair</button></div></header>
 
   <main class="card" id="themeScreen">
-    <div class="game-heading"><div><span class="eyebrow">ESCOLHA A AVENTURA</span><h1 id="themeTitle">Qual será o tema?</h1><p class="subtitle" id="themeSubtitle">Escolha uma categoria para começar a rodada.</p></div><span class="heading-icon bob">💡</span></div>
+    <div class="game-heading"><div><span class="eyebrow">ESCOLHA A AVENTURA</span><h1 id="themeTitle">Escolha o seu tema</h1><p class="subtitle" id="themeSubtitle">Cada pessoa escolhe uma categoria. A rodada sorteia uma das duas opções.</p></div><span class="heading-icon bob" data-icon="bulb"></span></div>
     <div class="theme-grid" id="themeGrid"></div>
-    <div class="theme-wait" id="themeWait" hidden><div class="spinner"></div><h2>O outro jogador está escolhendo...</h2><p>A rodada vai começar automaticamente.</p></div>
+    <div class="theme-wait" id="themeWait" hidden><div class="spinner"></div><h2 id="themeWaitTitle">O outro jogador está escolhendo...</h2><p id="themeWaitText">A rodada vai começar automaticamente.</p></div>
     <div class="back-row"><button class="back-link" id="backToMenuBtn1">← Voltar aos jogos</button></div>
   </main>
 
   <main class="card game-card" id="gameScreen" style="display:none">
-    <div class="game-heading"><div><span class="eyebrow">DESCUBRA A PALAVRA</span><h1>Jogo da Forca</h1><p class="theme-tag" id="themeTag"></p></div><span class="heading-icon">🔤</span></div>
+    <div class="game-heading"><div><span class="eyebrow">DESCUBRA A PALAVRA</span><h1>Jogo da Forca</h1><p class="theme-tag" id="themeTag"></p></div><span class="heading-icon" data-icon="letters"></span></div>
     <div class="scoreboard compact">
       <div class="score-pill player-one"><div class="avatar">1</div><div><div class="name" id="score1Name">Jogador 1</div><div class="value" id="score1Value">0</div></div></div>
       <div class="score-pill mistakes"><div class="name">ERROS</div><div class="value" id="errorsValue">0/6</div></div>
@@ -46,11 +46,11 @@
       <div class="word-area"><div class="word-display" id="wordDisplay"></div><p class="word-tip">Clique em uma letra para jogar</p></div>
     </div>
     <div class="keyboard" id="keyboard"></div>
-    <div class="actions-row"><button class="btn btn-secondary" id="newWordBtn">✨ Nova palavra</button><button class="btn btn-soft" id="changeThemeBtn">🎨 Trocar tema</button></div>
+    <div class="actions-row"><button class="btn btn-secondary" id="newWordBtn"><span data-icon="sparkle"></span> Nova palavra</button><button class="btn btn-soft" id="changeThemeBtn"><span data-icon="palette"></span> Trocar tema</button></div>
     <div class="back-row"><button class="back-link" id="backToMenuBtn2">← Voltar aos jogos</button></div>
   </main>
 
-  <div class="pause-overlay" id="pauseOverlay" aria-hidden="true"><div class="pause-box"><div class="pause-character">👋</div><span class="eyebrow">PARTIDA PAUSADA</span><h2><span data-opponent-name>O outro jogador</span> está ausente</h2><p>O jogo está seguro. Estamos aguardando a pessoa voltar...</p><div class="waiting-dots"><i></i><i></i><i></i></div></div></div>
-  <script src="client.js"></script><script src="forca.js"></script>
+  <div class="pause-overlay" id="pauseOverlay" aria-hidden="true"><div class="pause-box"><div class="pause-character" data-icon="wave"></div><span class="eyebrow">PARTIDA PAUSADA</span><h2><span data-opponent-name>O outro jogador</span> está ausente</h2><p>O jogo está seguro. Estamos aguardando a pessoa voltar...</p><div class="waiting-dots"><i></i><i></i><i></i></div></div></div>
+  <script src="client.js"></script><script src="icons.js"></script><script src="forca.js"></script>
 </body>
 </html>

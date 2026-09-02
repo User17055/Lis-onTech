@@ -9,28 +9,30 @@
 </head>
 <body>
   <div class="decor decor-one"></div><div class="decor decor-two"></div>
-  <header class="topbar"><a class="brand" href="index.html"><span>🎮</span> Play Duo</a><div class="topbar-right" id="topbarRight"></div></header>
+  <header class="topbar"><a class="brand" href="index.html"><span data-icon="gamepad"></span> Play Duo</a><div class="topbar-right" id="topbarRight"></div></header>
   <div class="matched-toast" id="matchedToast"></div>
 
   <main class="card login-card" id="loginCard">
-    <div class="hero-mascot"><span>🎮</span><i class="spark spark-a">✦</i><i class="spark spark-b">★</i></div>
+    <div class="hero-mascot"><span data-icon="gamepad"></span><i class="spark spark-a" data-icon="sparkle"></i><i class="spark spark-b" data-icon="sparkle"></i></div>
     <span class="eyebrow">DIVERSÃO EM DOBRO</span><h1>Bora jogar?</h1><p class="subtitle">Entre na sala e chame alguém para disputar com você.</p>
     <form id="loginForm"><div class="field"><label for="nameInput">Seu nome</label><input type="text" id="nameInput" maxlength="20" required autocomplete="off" placeholder="Como podemos te chamar?" /></div><div class="field"><label for="pwdInput">Senha da sala</label><input type="password" id="pwdInput" required autocomplete="off" placeholder="Digite a senha" /></div><div class="error-msg" id="errorMsg"></div><button type="submit" class="btn btn-primary">Entrar na sala <span>→</span></button></form>
   </main>
 
-  <main class="card" id="waitingCard" style="display:none"><div class="waiting-wrap"><div class="waiting-gamepad">🎮<span class="signal s1"></span><span class="signal s2"></span><span class="signal s3"></span></div><span class="eyebrow">VOCÊ ESTÁ NA SALA</span><h1>Aguardando seu parceiro...</h1><p class="subtitle" id="waitingSubtitle"></p><p class="waiting-hint">Assim que a outra pessoa entrar, os jogos serão liberados.</p></div></main>
+  <main class="card" id="waitingCard" style="display:none"><div class="waiting-wrap"><div class="waiting-gamepad"><span data-icon="gamepad"></span><span class="signal s1"></span><span class="signal s2"></span><span class="signal s3"></span></div><span class="eyebrow">VOCÊ ESTÁ NA SALA</span><h1>Aguardando seu parceiro...</h1><p class="subtitle" id="waitingSubtitle"></p><p class="waiting-hint">Assim que a outra pessoa entrar, os jogos serão liberados.</p></div></main>
 
-  <main class="card menu-card" id="menuCard" style="display:none"><div class="game-heading"><div><span class="eyebrow">ESCOLHA O DESAFIO</span><h1>Hora de jogar!</h1><p class="subtitle" id="welcomeMsg"></p></div><span class="heading-icon bob">🏆</span></div><div class="menu-grid"><button class="game-tile tile-velha" id="tileVelha" type="button"><span class="tile-art"><b>×</b><b>○</b></span><span class="tile-copy"><strong>Jogo da Velha</strong><small>Três em linha vence!</small></span><span class="play-arrow">→</span></button><button class="game-tile tile-forca" id="tileForca" type="button"><span class="tile-art">🔤</span><span class="tile-copy"><strong>Jogo da Forca</strong><small>Descubra a palavra!</small></span><span class="play-arrow">→</span></button></div><div class="error-msg centered" id="menuError"></div></main>
+  <main class="card menu-card" id="menuCard" style="display:none"><div class="game-heading"><div><span class="eyebrow">ESCOLHA O DESAFIO</span><h1>Hora de jogar!</h1><p class="subtitle" id="welcomeMsg"></p></div><span class="heading-icon bob" data-icon="trophy"></span></div><div class="menu-grid"><button class="game-tile tile-velha" id="tileVelha" type="button"><span class="tile-art"><b>×</b><b>○</b></span><span class="tile-copy"><strong>Jogo da Velha</strong><small>Três em linha vence!</small></span><span class="play-arrow">→</span></button><button class="game-tile tile-forca" id="tileForca" type="button"><span class="tile-art" data-icon="letters"></span><span class="tile-copy"><strong>Jogo da Forca</strong><small>Descubra a palavra!</small></span><span class="play-arrow">→</span></button></div><div class="error-msg centered" id="menuError"></div></main>
 
   <script src="client.js"></script>
+  <script src="icons.js"></script>
   <script>
+    hydrateIcons();
     const screens={login:document.getElementById("loginCard"),waiting:document.getElementById("waitingCard"),menu:document.getElementById("menuCard")};
     const topbarRight=document.getElementById("topbarRight"),matchedToast=document.getElementById("matchedToast");
     let previousBothFilled=false,stopPolling=()=>{};
     function showScreen(name){Object.entries(screens).forEach(([key,el])=>el.style.display=key===name?"block":"none");}
     function renderTopbar(me){if(!me){topbarRight.innerHTML="";return;}topbarRight.innerHTML=`<span class="online-dot"></span><span>${me.name}</span><button class="btn btn-ghost" id="logoutBtn">Sair</button>`;document.getElementById("logoutBtn").addEventListener("click",doLeave);}
     async function doLeave(){stopPolling();await apiAction("leave").catch(()=>{});clearClientId();previousBothFilled=false;renderTopbar(null);showScreen("login");}
-    function showMatchedToast(name){matchedToast.textContent=`🎉 ${name} entrou na sala!`;matchedToast.classList.add("show");setTimeout(()=>matchedToast.classList.remove("show"),3200);}
+    function showMatchedToast(name){matchedToast.innerHTML=`${iconSvg("party")}<span>${name} entrou na sala!</span>`;matchedToast.classList.add("show");setTimeout(()=>matchedToast.classList.remove("show"),3200);}
     function render(state){if(!getClientId()){showScreen("login");return;}if(!state.you){clearClientId();renderTopbar(null);showScreen("login");document.getElementById("errorMsg").textContent="Sua sessão expirou. Entre novamente.";return;}const my=state.you,opp=my==="1"?"2":"1",me=state.lobby.slots[my],opponent=state.lobby.slots[opp];renderTopbar(me);if(!opponent){showScreen("waiting");document.getElementById("waitingSubtitle").textContent=`Você entrou como ${me.name}`;previousBothFilled=false;return;}if(!previousBothFilled)showMatchedToast(opponent.name);previousBothFilled=true;if(state.activeGame){location.href=state.activeGame==="velha"?"velha.html":"forca.html";return;}showScreen("menu");document.getElementById("welcomeMsg").textContent=`${me.name} e ${opponent.name}, escolham um jogo.`;}
     document.getElementById("loginForm").addEventListener("submit",async e=>{e.preventDefault();const name=document.getElementById("nameInput").value.trim(),password=document.getElementById("pwdInput").value,error=document.getElementById("errorMsg");error.textContent="";if(!name){error.textContent="Digite seu nome.";return;}const result=await apiAction("join",{name,password});if(!result.ok){error.textContent=friendlyError(result.error);return;}setClientId(result.clientId);render(result.state);stopPolling();stopPolling=startPolling(render);});
     async function chooseGame(game){const error=document.getElementById("menuError");error.textContent="";const result=await apiAction("choose_game",{game});result.ok?render(result.state):error.textContent=friendlyError(result.error);}

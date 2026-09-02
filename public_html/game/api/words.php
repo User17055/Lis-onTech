@@ -7,7 +7,6 @@ declare(strict_types=1);
 const THEMES = [
     'animais' => [
         'label' => 'Animais',
-        'emoji' => '🐾',
         'wikiCategory' => 'Categoria:Mamíferos',
         'words' => [
             'LEAO', 'TIGRE', 'ELEFANTE', 'GIRAFA', 'MACACO', 'CACHORRO', 'GATO',
@@ -18,7 +17,6 @@ const THEMES = [
     ],
     'frutas' => [
         'label' => 'Frutas',
-        'emoji' => '🍎',
         'wikiCategory' => 'Categoria:Frutos',
         'words' => [
             'BANANA', 'MACA', 'LARANJA', 'ABACAXI', 'MORANGO', 'UVA', 'MELANCIA',
@@ -28,7 +26,6 @@ const THEMES = [
     ],
     'paises' => [
         'label' => 'Países',
-        'emoji' => '🌎',
         'wikiCategory' => 'Categoria:Países',
         'words' => [
             'BRASIL', 'ARGENTINA', 'PORTUGAL', 'FRANCA', 'ALEMANHA', 'ITALIA',
@@ -39,7 +36,6 @@ const THEMES = [
     ],
     'profissoes' => [
         'label' => 'Profissões',
-        'emoji' => '💼',
         'wikiCategory' => 'Categoria:Profissões',
         'words' => [
             'MEDICO', 'PROFESSOR', 'ENGENHEIRO', 'ADVOGADO', 'DENTISTA',
@@ -50,7 +46,6 @@ const THEMES = [
     ],
     'filmes' => [
         'label' => 'Filmes',
-        'emoji' => '🎬',
         'wikiCategory' => 'Categoria:Filmes premiados com o Oscar de melhor filme',
         'words' => [
             'TITANIC', 'AVATAR', 'MATRIX', 'SHREK', 'FROZEN', 'MOANA', 'UP',
@@ -60,7 +55,6 @@ const THEMES = [
     ],
     'objetos' => [
         'label' => 'Objetos',
-        'emoji' => '🪑',
         'wikiCategory' => 'Categoria:Utensílios domésticos',
         'words' => [
             'CADEIRA', 'MESA', 'COMPUTADOR', 'CELULAR', 'RELOGIO', 'JANELA',
@@ -71,7 +65,6 @@ const THEMES = [
     ],
     'esportes' => [
         'label' => 'Esportes',
-        'emoji' => '⚽',
         'wikiCategory' => 'Categoria:Esportes de combate',
         'words' => [
             'FUTEBOL', 'BASQUETE', 'VOLEIBOL', 'NATACAO', 'TENIS', 'SURFE',
@@ -81,7 +74,6 @@ const THEMES = [
     ],
     'cores' => [
         'label' => 'Cores',
-        'emoji' => '🎨',
         'wikiCategory' => 'Categoria:Cores',
         'words' => [
             'VERMELHO', 'AZUL', 'AMARELO', 'VERDE', 'LARANJA', 'ROXO', 'ROSA',
@@ -193,7 +185,6 @@ function pickWord(string $themeKey): array {
     return [
         'themeKey' => $key,
         'themeLabel' => $theme['label'],
-        'themeEmoji' => $theme['emoji'],
         'word' => $word,
         'source' => $source,
     ];

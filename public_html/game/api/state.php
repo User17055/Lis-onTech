@@ -42,6 +42,38 @@ function newVelhaState(int $starter): array {
     ];
 }
 
+function newForcaThemeState(array $scores = ['1' => 0, '2' => 0], int $starter = 2): array {
+    return [
+        'choosingTheme' => true,
+        'themeChoices' => ['1' => null, '2' => null],
+        'scores' => $scores,
+        'starter' => $starter,
+    ];
+}
+
+function startForcaRound(array $currentForca, string $themeKey): array {
+    $picked = pickWord($themeKey);
+    $previousStarter = (int)($currentForca['starter'] ?? 2);
+    $newStarter = $previousStarter === 1 ? 2 : 1;
+
+    return [
+        'themeKey' => $picked['themeKey'],
+        'themeLabel' => $picked['themeLabel'],
+        'source' => $picked['source'],
+        'word' => $picked['word'],
+        'guessedLetters' => [],
+        'wrongCount' => 0,
+        'turnSlot' => (string)$newStarter,
+        'starter' => $newStarter,
+        'gameOver' => false,
+        'outcome' => null,
+        'roundPoints' => ['1' => 0, '2' => 0],
+        'scores' => $currentForca['scores'] ?? ['1' => 0, '2' => 0],
+        'choosingTheme' => false,
+        'themeChoices' => ['1' => null, '2' => null],
+    ];
+}
+
 function checkVelhaWinner(array $board): ?array {
     $lines = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]];
     foreach ($lines as $line) {
@@ -183,12 +215,7 @@ try {
 
                 $state['activeGame'] = $game;
                 $state['velha'] = $game === 'velha' ? newVelhaState(1) : null;
-                $state['forca'] = $game === 'forca' ? [
-                    'choosingTheme' => true,
-                    'themePickerSlot' => $mySlot,
-                    'scores' => ['1' => 0, '2' => 0],
-                    'starter' => 2,
-                ] : null;
+                $state['forca'] = $game === 'forca' ? newForcaThemeState() : null;
                 return $state;
             });
 
@@ -364,9 +391,8 @@ try {
                 }
 
                 $currentForca = $state['forca'] ?? [];
-                $pickerSlot = $currentForca['themePickerSlot'] ?? $mySlot;
-                if (!empty($currentForca['choosingTheme']) && $pickerSlot !== $mySlot) {
-                    $resultError = 'not_theme_picker';
+                if (empty($currentForca['choosingTheme'])) {
+                    $resultError = 'theme_selection_closed';
                     return $state;
                 }
                 if (!isSlotOnline($state, otherSlot($mySlot))) {
@@ -374,28 +400,18 @@ try {
                     return $state;
                 }
 
-                $picked = pickWord($themeKey);
-                $prevScores = $state['forca']['scores'] ?? ['1' => 0, '2' => 0];
-                $prevStarter = $state['forca']['starter'] ?? 2;
-                $newStarter = $prevStarter === 1 ? 2 : 1;
+                $currentForca['themeChoices'] ??= ['1' => null, '2' => null];
+                $currentForca['themeChoices'][$mySlot] = $themeKey;
+                $otherChoice = $currentForca['themeChoices'][otherSlot($mySlot)] ?? null;
 
-                $state['forca'] = [
-                    'themeKey' => $picked['themeKey'],
-                    'themeLabel' => $picked['themeLabel'],
-                    'themeEmoji' => $picked['themeEmoji'],
-                    'source' => $picked['source'],
-                    'word' => $picked['word'],
-                    'guessedLetters' => [],
-                    'wrongCount' => 0,
-                    'turnSlot' => (string)$newStarter,
-                    'starter' => $newStarter,
-                    'gameOver' => false,
-                    'outcome' => null,
-                    'roundPoints' => ['1' => 0, '2' => 0],
-                    'scores' => $prevScores,
-                    'choosingTheme' => false,
-                    'themePickerSlot' => null,
-                ];
+                if ($otherChoice === null) {
+                    $state['forca'] = $currentForca;
+                    return $state;
+                }
+
+                $choices = array_values(array_unique(array_filter($currentForca['themeChoices'])));
+                $selectedTheme = $choices[random_int(0, count($choices) - 1)];
+                $state['forca'] = startForcaRound($currentForca, $selectedTheme);
                 return $state;
             });
 
@@ -420,8 +436,42 @@ try {
                     $resultError = 'no_active_game';
                     return $state;
                 }
-                $state['forca']['choosingTheme'] = true;
-                $state['forca']['themePickerSlot'] = $mySlot;
+                if (!isSlotOnline($state, otherSlot($mySlot))) {
+                    $resultError = 'opponent_offline';
+                    return $state;
+                }
+                $state['forca'] = newForcaThemeState(
+                    $state['forca']['scores'] ?? ['1' => 0, '2' => 0],
+                    (int)($state['forca']['starter'] ?? 2)
+                );
+                return $state;
+            });
+            if ($resultError) {
+                respondError($resultError, 409);
+            }
+            respondState($state, $clientId);
+        }
+
+        case 'forca_new_word': {
+            if (!$clientId) {
+                respondError('missing_client');
+            }
+            $resultError = null;
+            $state = withState(function (array $state) use ($clientId, &$resultError) {
+                $mySlot = findSlotByClientId($state, $clientId);
+                if (!$mySlot) {
+                    $resultError = 'not_in_lobby';
+                    return $state;
+                }
+                if ($state['activeGame'] !== 'forca' || empty($state['forca']['themeKey'])) {
+                    $resultError = 'no_active_game';
+                    return $state;
+                }
+                if (!isSlotOnline($state, otherSlot($mySlot))) {
+                    $resultError = 'opponent_offline';
+                    return $state;
+                }
+                $state['forca'] = startForcaRound($state['forca'], $state['forca']['themeKey']);
                 return $state;
             });
             if ($resultError) {

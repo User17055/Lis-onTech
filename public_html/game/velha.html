@@ -13,12 +13,12 @@
 <body>
   <div class="decor decor-one"></div><div class="decor decor-two"></div>
   <header class="topbar">
-    <a class="brand" href="index.html"><span>🎮</span> Play Duo</a>
+    <a class="brand" href="index.html"><span data-icon="gamepad"></span> Play Duo</a>
     <div class="topbar-right"><span class="online-dot"></span><span id="topbarPlayers"></span><button class="btn btn-ghost" id="logoutBtn">Sair</button></div>
   </header>
 
   <main class="card game-card">
-    <div class="game-heading"><div><span class="eyebrow">DUELO 1 × 1</span><h1>Jogo da Velha</h1></div><span class="heading-icon">⭕</span></div>
+    <div class="game-heading"><div><span class="eyebrow">DUELO 1 × 1</span><h1>Jogo da Velha</h1></div><span class="heading-icon" data-icon="circle"></span></div>
     <div class="scoreboard">
       <div class="score-pill player-one"><div class="avatar">X</div><div><div class="name" id="score1Name">Jogador 1</div><div class="value" id="score1Value">0</div></div></div>
       <div class="score-pill draws"><div class="name">EMPATES</div><div class="value" id="scoreDrawValue">0</div></div>
@@ -31,8 +31,8 @@
   </main>
 
   <div class="pause-overlay" id="pauseOverlay" aria-hidden="true">
-    <div class="pause-box"><div class="pause-character">👋</div><span class="eyebrow">PARTIDA PAUSADA</span><h2><span data-opponent-name>O outro jogador</span> está ausente</h2><p>O jogo está seguro. Estamos aguardando a pessoa voltar...</p><div class="waiting-dots"><i></i><i></i><i></i></div></div>
+    <div class="pause-box"><div class="pause-character" data-icon="wave"></div><span class="eyebrow">PARTIDA PAUSADA</span><h2><span data-opponent-name>O outro jogador</span> está ausente</h2><p>O jogo está seguro. Estamos aguardando a pessoa voltar...</p><div class="waiting-dots"><i></i><i></i><i></i></div></div>
   </div>
-  <script src="client.js"></script><script src="velha.js"></script>
+  <script src="client.js"></script><script src="icons.js"></script><script src="velha.js"></script>
 </body>
 </html>

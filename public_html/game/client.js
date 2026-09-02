@@ -59,7 +59,7 @@ const ERROR_MESSAGES = {
   cell_taken: "Essa casa já foi jogada.", letter_used: "Essa letra já foi tentada.",
   game_over: "Essa rodada já terminou.", waiting_for_opponent: "Espere o outro jogador entrar.",
   opponent_offline: "Partida pausada: o outro jogador está ausente.",
-  not_theme_picker: "O outro jogador está escolhendo o tema.", no_active_game: "Nenhum jogo ativo no momento.",
+  theme_selection_closed: "A escolha de temas desta rodada já terminou.", no_active_game: "Nenhum jogo ativo no momento.",
   not_in_lobby: "Sua sessão expirou, entre novamente.", invalid_theme: "Tema inválido.",
   invalid_letter: "Letra inválida.", invalid_index: "Jogada inválida.", invalid_game: "Escolha um jogo válido.",
 };

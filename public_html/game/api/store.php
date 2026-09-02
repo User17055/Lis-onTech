@@ -116,6 +116,10 @@ function publicState(array $state, ?string $clientId): array {
         if (!empty($f['gameOver'])) {
             $f['solution'] = $word;
         }
+        if (!empty($f['themeChoices']) && $mySlot) {
+            $opponentSlot = otherSlot($mySlot);
+            $f['themeChoices'][$opponentSlot] = $f['themeChoices'][$opponentSlot] !== null;
+        }
         $out['forca'] = $f;
     }
 

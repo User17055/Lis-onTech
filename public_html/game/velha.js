@@ -1,6 +1,7 @@
 if (!getClientId()) {
   location.href = "index.html";
 } else {
+  hydrateIcons();
   const boardEl = document.getElementById("board");
   const statusBar = document.getElementById("statusBar");
   const cells = [];
@@ -44,14 +45,14 @@ if (!getClientId()) {
 
     if (v.gameOver && v.winLine) {
       const winnerSlot = String(v.board[v.winLine[0]]);
-      statusBar.innerHTML = `<span class="turn-badge winner">🎉 ${state.lobby.slots[winnerSlot].name} venceu!</span>`;
+      statusBar.innerHTML = `<span class="turn-badge winner">${iconSvg("party")} ${state.lobby.slots[winnerSlot].name} venceu!</span>`;
       boardEl.classList.add("celebrate");
     } else if (v.gameOver) {
-      statusBar.innerHTML = `<span class="turn-badge">🤝 Deu empate!</span>`;
+      statusBar.innerHTML = `<span class="turn-badge">${iconSvg("handshake")} Deu empate!</span>`;
     } else if (v.turnSlot === mySlot) {
       statusBar.innerHTML = `<span class="turn-badge p1"><i></i>Sua vez! Você é ${mySlot === "1" ? "X" : "O"}</span>`;
     } else {
-      statusBar.innerHTML = `<span class="turn-badge p2">⏳ Vez de ${opponent.name}</span>`;
+      statusBar.innerHTML = `<span class="turn-badge p2">${iconSvg("clock")} Vez de ${opponent.name}</span>`;
     }
   }
 
