@@ -83,6 +83,47 @@ const THEMES = [
     ],
 ];
 
+// Pistas factuais para os animais locais. Nenhuma delas entrega letras da resposta.
+const ANIMAL_HINTS = [
+    'LEAO' => ['É carnívoro e costuma viver em grupos.', 'É encontrado principalmente nas savanas africanas.'],
+    'TIGRE' => ['É um grande felino carnívoro e solitário.', 'Suas listras ajudam na camuflagem.'],
+    'ELEFANTE' => ['É herbívoro e passa boa parte do dia comendo plantas.', 'É o maior animal terrestre vivo.'],
+    'GIRAFA' => ['É herbívora e alcança folhas no alto das árvores.', 'Possui o pescoço muito comprido.'],
+    'MACACO' => ['Pode comer frutas, folhas, sementes e pequenos animais.', 'É um primata conhecido pela agilidade.'],
+    'CACHORRO' => ['É domesticado e possui olfato muito apurado.', 'Costuma viver como animal de companhia dos humanos.'],
+    'GATO' => ['É um felino carnívoro domesticado.', 'Enxerga bem com pouca luz e costuma ronronar.'],
+    'COELHO' => ['É herbívoro e se alimenta de folhas e capim.', 'Tem orelhas longas e patas traseiras fortes.'],
+    'CAVALO' => ['É herbívoro e se alimenta principalmente de capim.', 'Foi domesticado para transporte, trabalho e esporte.'],
+    'ZEBRA' => ['É herbívora e vive nas savanas africanas.', 'Sua pelagem tem listras pretas e brancas.'],
+    'PINGUIM' => ['Alimenta-se de peixes e outros animais marinhos.', 'É uma ave que não voa, mas nada muito bem.'],
+    'GOLFINHO' => ['Alimenta-se principalmente de peixes e lulas.', 'É um mamífero marinho muito sociável.'],
+    'TARTARUGA' => ['A alimentação varia entre plantas e pequenos animais.', 'Possui um casco que protege o corpo.'],
+    'CROCODILO' => ['É carnívoro e costuma caçar perto da água.', 'É um grande réptil de mandíbulas poderosas.'],
+    'CANGURU' => ['É herbívoro e se alimenta de gramíneas.', 'Desloca-se aos saltos e carrega o filhote em uma bolsa.'],
+    'PANDA' => ['Sua alimentação é baseada principalmente em bambu.', 'É um mamífero de pelagem preta e branca.'],
+    'COALA' => ['Alimenta-se quase exclusivamente de folhas de eucalipto.', 'Vive em árvores e é nativo da Austrália.'],
+    'RINOCERONTE' => ['É herbívoro e come capim, folhas e brotos.', 'Tem pele grossa e um ou dois chifres no focinho.'],
+    'HIPOPOTAMO' => ['É principalmente herbívoro e costuma pastar à noite.', 'Passa grande parte do dia dentro da água.'],
+    'ONCA' => ['É um felino carnívoro e excelente nadador.', 'Possui manchas em forma de rosetas na pelagem.'],
+    'URSO' => ['Muitas espécies são onívoras.', 'Pode hibernar durante os meses mais frios.'],
+    'RAPOSA' => ['É onívora e tem hábitos geralmente noturnos.', 'É conhecida pela cauda espessa e grande audição.'],
+    'LOBO' => ['É carnívoro e costuma caçar em grupo.', 'Vive em grupos sociais chamados alcateias.'],
+    'AGUIA' => ['É uma ave de rapina carnívora.', 'Possui visão muito aguçada e garras fortes.'],
+];
+
+function buildWordHints(string $word, string $themeKey, string $themeLabel): array {
+    if ($themeKey === 'animais' && isset(ANIMAL_HINTS[$word])) {
+        return ANIMAL_HINTS[$word];
+    }
+
+    $letterCount = preg_match_all('/[A-Z]/', $word);
+    $wordCount = substr_count($word, ' ') + 1;
+    return [
+        "A resposta pertence ao tema {$themeLabel}.",
+        "A resposta tem {$letterCount} letras e {$wordCount} " . ($wordCount === 1 ? 'palavra.' : 'palavras.'),
+    ];
+}
+
 function normalizeWord(string $word): string {
     $map = [
         'Á' => 'A', 'À' => 'A', 'Â' => 'A', 'Ã' => 'A', 'Ä' => 'A',
@@ -173,8 +214,9 @@ function pickWord(string $themeKey): array {
         $theme = THEMES[$key];
     }
 
-    $word = fetchWikipediaWord($key);
-    $source = 'wikipedia';
+    // Os animais usam a lista curada para sempre terem duas pistas factuais.
+    $word = $key === 'animais' ? null : fetchWikipediaWord($key);
+    $source = $key === 'animais' ? 'local' : 'wikipedia';
     if ($word === null) {
         $word = normalizeWord($theme['words'][array_rand($theme['words'])]);
         $source = 'local';
@@ -185,5 +227,6 @@ function pickWord(string $themeKey): array {
         'themeLabel' => $theme['label'],
         'word' => $word,
         'source' => $source,
+        'hints' => buildWordHints($word, $key, $theme['label']),
     ];
 }

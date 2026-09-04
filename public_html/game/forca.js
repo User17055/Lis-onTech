@@ -105,11 +105,10 @@ if (!getClientId()) {
     document.getElementById("themeTag").innerHTML = `${iconSvg(chosenTheme.icon)}<span>Tema sorteado: ${f.themeLabel}</span>`;
     document.getElementById("errorsValue").textContent = `${f.wrongCount}/${MAX_ERRORS}`;
 
-    for (let i = 0; i < MAX_ERRORS; i++) {
-      const part = document.getElementById(`part-${i}`);
-      part.classList.toggle("visible", i < f.wrongCount);
-      part.classList.toggle("just-shown", i === f.wrongCount - 1 && f.wrongCount > lastWrongCount);
-    }
+    const hangmanImage = document.getElementById("hangmanImage");
+    hangmanImage.src = `https://commons.wikimedia.org/wiki/Special:Redirect/file/Hangman-${f.wrongCount}.png`;
+    hangmanImage.alt = `Jogo da forca com ${f.wrongCount} de ${MAX_ERRORS} erros`;
+    hangmanImage.classList.toggle("just-changed", f.wrongCount > lastWrongCount);
     lastWrongCount = f.wrongCount;
 
     wordDisplay.innerHTML = "";
@@ -122,9 +121,16 @@ if (!getClientId()) {
       wordDisplay.appendChild(slot);
     });
 
-    document.getElementById("wordTip").textContent = f.hintLetter
-      ? `Dica usada: a letra ${f.hintLetter} foi revelada.`
-      : "Clique em uma letra para jogar";
+    document.getElementById("wordTip").textContent = "Clique em uma letra para jogar";
+    const shownHints = Array.isArray(f.shownHints) ? f.shownHints : [];
+    const hintPanel = document.getElementById("hintPanel");
+    const hintList = document.getElementById("hintList");
+    hintPanel.hidden = shownHints.length === 0;
+    hintList.replaceChildren(...shownHints.map(hint => {
+      const item = document.createElement("li");
+      item.textContent = hint;
+      return item;
+    }));
 
     ALPHABET.forEach(letter => {
       const button = keyButtons[letter];
@@ -136,10 +142,9 @@ if (!getClientId()) {
     document.getElementById("newWordBtn").disabled = !online;
     document.getElementById("changeThemeBtn").disabled = !online;
     const hintBtn = document.getElementById("hintBtn");
-    hintBtn.disabled = !online || f.gameOver || f.hintUsed || f.turnSlot !== mySlot;
-    hintBtn.innerHTML = f.hintUsed
-      ? `${iconSvg("bulb")} Dica usada`
-      : `${iconSvg("bulb")} Pedir dica`;
+    const hintsRemaining = Math.max(0, 2 - shownHints.length);
+    hintBtn.disabled = !online || f.gameOver || hintsRemaining === 0;
+    hintBtn.innerHTML = `${iconSvg("bulb")} ${hintsRemaining ? `Pedir dica (${hintsRemaining})` : "Dicas usadas"}`;
     if (f.gameOver && f.outcome === "lost") {
       statusBar.innerHTML = `<span class="turn-badge danger">${iconSvg("alert")} A palavra era <b>${f.solution}</b></span>`;
     } else if (f.gameOver) {
@@ -184,7 +189,7 @@ if (!getClientId()) {
   document.getElementById("hintBtn").addEventListener("click", async () => {
     const result = await apiAction("forca_hint");
     if (result.ok) render(result.state);
-    else if (!['not_your_turn', 'hint_used', 'opponent_offline'].includes(result.error)) alert(friendlyError(result.error));
+    else if (!['hints_exhausted', 'opponent_offline'].includes(result.error)) alert(friendlyError(result.error));
   });
   async function backToMenu() {
     await apiAction("back_to_menu");

@@ -68,8 +68,9 @@ function startForcaRound(array $currentForca, string $themeKey): array {
         'gameOver' => false,
         'outcome' => null,
         'roundPoints' => ['1' => 0, '2' => 0],
-        'hintUsed' => false,
-        'hintLetter' => null,
+        'hints' => $picked['hints'],
+        'shownHints' => [],
+        'hintsUsed' => 0,
         'scores' => $currentForca['scores'] ?? ['1' => 0, '2' => 0],
         'choosingTheme' => false,
         'themeChoices' => ['1' => null, '2' => null],
@@ -597,51 +598,26 @@ try {
                     $resultError = 'game_over';
                     return $state;
                 }
-                if ($f['turnSlot'] !== $mySlot) {
-                    $resultError = 'not_your_turn';
-                    return $state;
-                }
-                if (!empty($f['hintUsed'])) {
-                    $resultError = 'hint_used';
+                $shownHints = $f['shownHints'] ?? [];
+                if (count($shownHints) >= 2) {
+                    $resultError = 'hints_exhausted';
                     return $state;
                 }
 
-                $availableLetters = [];
-                foreach (array_unique(str_split($f['word'])) as $wordLetter) {
-                    if (preg_match('/^[A-Z]$/', $wordLetter)
-                        && !in_array($wordLetter, $f['guessedLetters'], true)) {
-                        $availableLetters[] = $wordLetter;
-                    }
-                }
-                if (!$availableLetters) {
+                $hints = $f['hints'] ?? buildWordHints(
+                    $f['word'],
+                    (string)($f['themeKey'] ?? ''),
+                    (string)($f['themeLabel'] ?? 'selecionado')
+                );
+                $nextHint = $hints[count($shownHints)] ?? null;
+                if (!is_string($nextHint) || $nextHint === '') {
                     $resultError = 'no_hint_available';
                     return $state;
                 }
 
-                $hintLetter = $availableLetters[random_int(0, count($availableLetters) - 1)];
-                $f['guessedLetters'][] = $hintLetter;
-                $f['hintUsed'] = true;
-                $f['hintLetter'] = $hintLetter;
-
-                $remainingLetters = array_filter(
-                    array_unique(str_split($f['word'])),
-                    static fn(string $wordLetter): bool => preg_match('/^[A-Z]$/', $wordLetter) === 1
-                        && !in_array($wordLetter, $f['guessedLetters'], true)
-                );
-                if (!$remainingLetters) {
-                    $f['gameOver'] = true;
-                    $p1 = $f['roundPoints']['1'] ?? 0;
-                    $p2 = $f['roundPoints']['2'] ?? 0;
-                    if ($p1 > $p2) {
-                        $f['scores']['1'] = ($f['scores']['1'] ?? 0) + 1;
-                        $f['outcome'] = 'won_1';
-                    } elseif ($p2 > $p1) {
-                        $f['scores']['2'] = ($f['scores']['2'] ?? 0) + 1;
-                        $f['outcome'] = 'won_2';
-                    } else {
-                        $f['outcome'] = 'won_tie';
-                    }
-                }
+                $shownHints[] = $nextHint;
+                $f['shownHints'] = $shownHints;
+                $f['hintsUsed'] = count($shownHints);
 
                 $state['forca'] = $f;
                 return $state;

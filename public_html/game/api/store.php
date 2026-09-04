@@ -111,6 +111,7 @@ function publicState(array $state, ?string $clientId): array {
             $isLetter = preg_match('/^[A-Z]$/', $ch) === 1;
             $revealed[] = !$isLetter || in_array($ch, $guessed, true) ? $ch : null;
         }
+        unset($f['hints']);
         unset($f['word']);
         $f['wordLength'] = strlen($word);
         $f['revealed'] = $revealed;
