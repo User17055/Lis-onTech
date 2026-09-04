@@ -115,10 +115,16 @@ if (!getClientId()) {
     wordDisplay.innerHTML = "";
     f.revealed.forEach(letter => {
       const slot = document.createElement("div");
-      slot.className = `letter-slot${letter ? " revealed" : ""}`;
-      slot.textContent = letter || "";
+      const isSeparator = letter === " " || letter === "-";
+      slot.className = `letter-slot${letter ? " revealed" : ""}${isSeparator ? " separator" : ""}`;
+      slot.textContent = letter === " " ? "\u00a0" : (letter || "");
+      if (letter === " ") slot.setAttribute("aria-label", "espaço");
       wordDisplay.appendChild(slot);
     });
+
+    document.getElementById("wordTip").textContent = f.hintLetter
+      ? `Dica usada: a letra ${f.hintLetter} foi revelada.`
+      : "Clique em uma letra para jogar";
 
     ALPHABET.forEach(letter => {
       const button = keyButtons[letter];
@@ -129,6 +135,11 @@ if (!getClientId()) {
 
     document.getElementById("newWordBtn").disabled = !online;
     document.getElementById("changeThemeBtn").disabled = !online;
+    const hintBtn = document.getElementById("hintBtn");
+    hintBtn.disabled = !online || f.gameOver || f.hintUsed || f.turnSlot !== mySlot;
+    hintBtn.innerHTML = f.hintUsed
+      ? `${iconSvg("bulb")} Dica usada`
+      : `${iconSvg("bulb")} Pedir dica`;
     if (f.gameOver && f.outcome === "lost") {
       statusBar.innerHTML = `<span class="turn-badge danger">${iconSvg("alert")} A palavra era <b>${f.solution}</b></span>`;
     } else if (f.gameOver) {
@@ -169,6 +180,11 @@ if (!getClientId()) {
     const result = await apiAction("forca_change_theme");
     if (result.ok) render(result.state);
     else if (result.error !== "opponent_offline") alert(friendlyError(result.error));
+  });
+  document.getElementById("hintBtn").addEventListener("click", async () => {
+    const result = await apiAction("forca_hint");
+    if (result.ok) render(result.state);
+    else if (!['not_your_turn', 'hint_used', 'opponent_offline'].includes(result.error)) alert(friendlyError(result.error));
   });
   async function backToMenu() {
     await apiAction("back_to_menu");

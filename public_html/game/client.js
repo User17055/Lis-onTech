@@ -62,6 +62,7 @@ const ERROR_MESSAGES = {
   theme_selection_closed: "A escolha de temas desta rodada já terminou.", no_active_game: "Nenhum jogo ativo no momento.",
   not_in_lobby: "Sua sessão expirou, entre novamente.", invalid_theme: "Tema inválido.",
   invalid_letter: "Letra inválida.", invalid_index: "Jogada inválida.", invalid_game: "Escolha um jogo válido.",
+  hint_used: "A dica desta rodada já foi usada.", no_hint_available: "Não há outra letra disponível para revelar.",
 };
 
 function friendlyError(code) { return ERROR_MESSAGES[code] || "Algo deu errado. Tente novamente."; }

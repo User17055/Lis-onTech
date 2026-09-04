@@ -108,7 +108,8 @@ function publicState(array $state, ?string $clientId): array {
         $guessed = $f['guessedLetters'] ?? [];
         $revealed = [];
         foreach (str_split($word) as $ch) {
-            $revealed[] = in_array($ch, $guessed, true) ? $ch : null;
+            $isLetter = preg_match('/^[A-Z]$/', $ch) === 1;
+            $revealed[] = !$isLetter || in_array($ch, $guessed, true) ? $ch : null;
         }
         unset($f['word']);
         $f['wordLength'] = strlen($word);

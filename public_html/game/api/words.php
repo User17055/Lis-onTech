@@ -93,18 +93,19 @@ function normalizeWord(string $word): string {
         'Ç' => 'C', 'Ñ' => 'N', 'Ý' => 'Y',
     ];
     $word = mb_strtoupper(trim($word), 'UTF-8');
-    return strtr($word, $map);
+    $word = strtr($word, $map);
+    return (string)preg_replace('/\s+/', ' ', $word);
 }
 
 function isUsableWord(string $word): bool {
-    return preg_match('/^[A-Z]+(-[A-Z]+)*$/', $word) === 1
+    return preg_match('/^[A-Z]+(?:[ -][A-Z]+)*$/', $word) === 1
         && strlen($word) >= 3
         && strlen($word) <= 18;
 }
 
 // Busca um título de página aleatório dentro da categoria da Wikipédia
 // associada ao tema. Retorna null se a busca falhar ou não render nenhum
-// título utilizável (sem espaços, sem pontuação estranha) — quem chama deve
+// título utilizável (palavra ou expressão curta, sem pontuação estranha) — quem chama deve
 // cair para a lista local nesse caso.
 function fetchWikipediaWord(string $themeKey): ?string {
     $theme = THEMES[$themeKey] ?? null;
@@ -150,9 +151,6 @@ function fetchWikipediaWord(string $themeKey): ?string {
         $parenPos = strpos($title, '(');
         if ($parenPos !== false) {
             $title = trim(substr($title, 0, $parenPos));
-        }
-        if (str_contains($title, ' ')) {
-            continue;
         }
         $normalized = normalizeWord($title);
         if (isUsableWord($normalized)) {

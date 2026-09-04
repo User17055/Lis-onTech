@@ -68,6 +68,8 @@ function startForcaRound(array $currentForca, string $themeKey): array {
         'gameOver' => false,
         'outcome' => null,
         'roundPoints' => ['1' => 0, '2' => 0],
+        'hintUsed' => false,
+        'hintLetter' => null,
         'scores' => $currentForca['scores'] ?? ['1' => 0, '2' => 0],
         'choosingTheme' => false,
         'themeChoices' => ['1' => null, '2' => null],
@@ -530,6 +532,9 @@ try {
                 $wordLetters = array_unique(str_split($f['word']));
                 $wordComplete = true;
                 foreach ($wordLetters as $wl) {
+                    if (!preg_match('/^[A-Z]$/', $wl)) {
+                        continue;
+                    }
                     if (!in_array($wl, $f['guessedLetters'], true)) {
                         $wordComplete = false;
                         break;
@@ -554,6 +559,88 @@ try {
                     $f['outcome'] = 'lost';
                 } else {
                     $f['turnSlot'] = otherSlot($mySlot);
+                }
+
+                $state['forca'] = $f;
+                return $state;
+            });
+
+            if ($resultError) {
+                respondError($resultError, 409);
+            }
+            respondState($state, $clientId);
+        }
+
+        case 'forca_hint': {
+            if (!$clientId) {
+                respondError('missing_client');
+            }
+
+            $resultError = null;
+            $state = withState(function (array $state) use ($clientId, &$resultError) {
+                $mySlot = findSlotByClientId($state, $clientId);
+                if (!$mySlot) {
+                    $resultError = 'not_in_lobby';
+                    return $state;
+                }
+                if ($state['activeGame'] !== 'forca' || !$state['forca']) {
+                    $resultError = 'no_active_game';
+                    return $state;
+                }
+                if (!isSlotOnline($state, otherSlot($mySlot))) {
+                    $resultError = 'opponent_offline';
+                    return $state;
+                }
+
+                $f = $state['forca'];
+                if (!empty($f['gameOver'])) {
+                    $resultError = 'game_over';
+                    return $state;
+                }
+                if ($f['turnSlot'] !== $mySlot) {
+                    $resultError = 'not_your_turn';
+                    return $state;
+                }
+                if (!empty($f['hintUsed'])) {
+                    $resultError = 'hint_used';
+                    return $state;
+                }
+
+                $availableLetters = [];
+                foreach (array_unique(str_split($f['word'])) as $wordLetter) {
+                    if (preg_match('/^[A-Z]$/', $wordLetter)
+                        && !in_array($wordLetter, $f['guessedLetters'], true)) {
+                        $availableLetters[] = $wordLetter;
+                    }
+                }
+                if (!$availableLetters) {
+                    $resultError = 'no_hint_available';
+                    return $state;
+                }
+
+                $hintLetter = $availableLetters[random_int(0, count($availableLetters) - 1)];
+                $f['guessedLetters'][] = $hintLetter;
+                $f['hintUsed'] = true;
+                $f['hintLetter'] = $hintLetter;
+
+                $remainingLetters = array_filter(
+                    array_unique(str_split($f['word'])),
+                    static fn(string $wordLetter): bool => preg_match('/^[A-Z]$/', $wordLetter) === 1
+                        && !in_array($wordLetter, $f['guessedLetters'], true)
+                );
+                if (!$remainingLetters) {
+                    $f['gameOver'] = true;
+                    $p1 = $f['roundPoints']['1'] ?? 0;
+                    $p2 = $f['roundPoints']['2'] ?? 0;
+                    if ($p1 > $p2) {
+                        $f['scores']['1'] = ($f['scores']['1'] ?? 0) + 1;
+                        $f['outcome'] = 'won_1';
+                    } elseif ($p2 > $p1) {
+                        $f['scores']['2'] = ($f['scores']['2'] ?? 0) + 1;
+                        $f['outcome'] = 'won_2';
+                    } else {
+                        $f['outcome'] = 'won_tie';
+                    }
                 }
 
                 $state['forca'] = $f;
