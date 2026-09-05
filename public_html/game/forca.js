@@ -105,10 +105,12 @@ if (!getClientId()) {
     document.getElementById("themeTag").innerHTML = `${iconSvg(chosenTheme.icon)}<span>Tema sorteado: ${f.themeLabel}</span>`;
     document.getElementById("errorsValue").textContent = `${f.wrongCount}/${MAX_ERRORS}`;
 
-    const hangmanImage = document.getElementById("hangmanImage");
-    hangmanImage.alt = `Jogo da forca com ${f.wrongCount} de ${MAX_ERRORS} erros`;
-    hangmanImage.classList.toggle("just-changed", f.wrongCount > lastWrongCount);
-    hangmanImage.style.opacity = String(Math.min(.98, .38 + f.wrongCount * .1));
+    const hangmanCanvas = document.getElementById("hangmanCanvas");
+    hangmanCanvas.setAttribute("aria-label", `Jogo da forca com ${f.wrongCount} de ${MAX_ERRORS} erros`);
+    hangmanCanvas.querySelectorAll(".piece").forEach((part, index) => {
+      part.classList.toggle("visible", index < f.wrongCount);
+      part.classList.toggle("just-shown", index === f.wrongCount - 1 && f.wrongCount > lastWrongCount);
+    });
     document.querySelectorAll("#mistakeTrack i").forEach((mark, index) => {
       mark.classList.toggle("active", index < f.wrongCount);
     });

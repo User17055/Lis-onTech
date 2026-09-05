@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="style.css?v=20260904-4" />
+  <link rel="stylesheet" href="style.css?v=20260904-5" />
 </head>
 <body>
   <div class="decor decor-one"></div><div class="decor decor-two"></div>
@@ -31,7 +31,7 @@
     <div class="status-bar" id="statusBar"></div>
     <div class="hangman-stage">
       <div class="hangman-wrap">
-        <div class="hangman-art" id="hangmanArt"><img id="hangmanImage" src="https://assets.streamlinehq.com/image/private/w_240%2Ch_240%2Car_1/f_auto/v1/icons/war-crime-disasters/hangman-72p7owi0lwijepc5d2un.png/hangman-zhe098n35kq0oxqu1no3.png?_a=DATAiZkSZAA0" alt="Ilustração do jogo da forca" referrerpolicy="no-referrer" /><div class="mistake-track" id="mistakeTrack" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div><a class="art-credit" href="https://www.streamlinehq.com/icons/download/hangman--17188" target="_blank" rel="noopener">Ilustração Cyber Duotone · Streamline</a></div>
+        <div class="hangman-art" id="hangmanArt"><div class="hangman-canvas" id="hangmanCanvas" role="img" aria-label="Forca sem erros"><i class="hangman-layer base base-top"></i><i class="hangman-layer base base-diagonal"></i><i class="hangman-layer base base-post"></i><i class="hangman-layer base base-rope"></i><i class="hangman-layer base base-floor"></i><i class="hangman-layer piece piece-head"></i><i class="hangman-layer piece piece-body"></i><i class="hangman-layer piece piece-left-arm"></i><i class="hangman-layer piece piece-right-arm"></i><i class="hangman-layer piece piece-left-leg"></i><i class="hangman-layer piece piece-right-leg"></i></div><div class="mistake-track" id="mistakeTrack" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div><a class="art-credit" href="https://www.streamlinehq.com/icons/download/hangman--17188" target="_blank" rel="noopener">Ilustração Cyber Duotone · Streamline</a></div>
       </div>
       <div class="word-area"><div class="word-display" id="wordDisplay"></div><p class="word-tip" id="wordTip">Clique em uma letra para jogar</p><div class="hint-panel" id="hintPanel" hidden><strong>Pistas da rodada</strong><ol id="hintList"></ol></div></div>
     </div>
@@ -41,6 +41,6 @@
   </main>
 
   <div class="pause-overlay" id="pauseOverlay" aria-hidden="true"><div class="pause-box"><div class="pause-character" data-icon="wave"></div><span class="eyebrow">PARTIDA PAUSADA</span><h2><span data-opponent-name>O outro jogador</span> está ausente</h2><p>O jogo está seguro. Estamos aguardando a pessoa voltar...</p><div class="waiting-dots"><i></i><i></i><i></i></div></div></div>
-  <script src="client.js?v=20260904-4"></script><script src="icons.js?v=20260904-4"></script><script src="forca.js?v=20260904-4"></script>
+  <script src="client.js?v=20260904-5"></script><script src="icons.js?v=20260904-5"></script><script src="forca.js?v=20260904-5"></script>
 </body>
 </html>
