@@ -95,6 +95,14 @@ try {
         $clientId = isset($_GET['clientId']) ? (string)$_GET['clientId'] : null;
         $state = withState(function (array $state) use ($clientId) {
             $state = expireStaleSlots($state);
+            // Rodadas de animais criadas antes do banco de pistas não têm
+            // fatos associados. Troca somente essas rodadas antigas por uma
+            // palavra curada, preservando placar e alternância de jogador.
+            if (($state['activeGame'] ?? null) === 'forca'
+                && ($state['forca']['themeKey'] ?? null) === 'animais'
+                && empty($state['forca']['hints'])) {
+                $state['forca'] = startForcaRound($state['forca'], 'animais');
+            }
             if ($clientId) {
                 $slot = findSlotByClientId($state, $clientId);
                 if ($slot) {

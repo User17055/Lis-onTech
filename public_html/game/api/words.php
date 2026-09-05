@@ -117,10 +117,12 @@ function buildWordHints(string $word, string $themeKey, string $themeLabel): arr
     }
 
     $letterCount = preg_match_all('/[A-Z]/', $word);
+    $vowelCount = preg_match_all('/[AEIOU]/', $word);
+    $consonantCount = $letterCount - $vowelCount;
     $wordCount = substr_count($word, ' ') + 1;
     return [
-        "A resposta pertence ao tema {$themeLabel}.",
-        "A resposta tem {$letterCount} letras e {$wordCount} " . ($wordCount === 1 ? 'palavra.' : 'palavras.'),
+        "A resposta tem {$vowelCount} vogais e {$consonantCount} consoantes.",
+        "Ela é formada por {$wordCount} " . ($wordCount === 1 ? 'palavra.' : 'palavras.'),
     ];
 }
 

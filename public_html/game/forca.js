@@ -106,9 +106,12 @@ if (!getClientId()) {
     document.getElementById("errorsValue").textContent = `${f.wrongCount}/${MAX_ERRORS}`;
 
     const hangmanImage = document.getElementById("hangmanImage");
-    hangmanImage.src = `https://commons.wikimedia.org/wiki/Special:Redirect/file/Hangman-${f.wrongCount}.png`;
     hangmanImage.alt = `Jogo da forca com ${f.wrongCount} de ${MAX_ERRORS} erros`;
     hangmanImage.classList.toggle("just-changed", f.wrongCount > lastWrongCount);
+    hangmanImage.style.opacity = String(Math.min(.98, .38 + f.wrongCount * .1));
+    document.querySelectorAll("#mistakeTrack i").forEach((mark, index) => {
+      mark.classList.toggle("active", index < f.wrongCount);
+    });
     lastWrongCount = f.wrongCount;
 
     wordDisplay.innerHTML = "";
