@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="style.css?v=20260904-5" />
+  <link rel="stylesheet" href="style.css?v=20260905-1" />
 </head>
 <body>
   <div class="decor decor-one"></div><div class="decor decor-two"></div>
@@ -31,7 +31,22 @@
     <div class="status-bar" id="statusBar"></div>
     <div class="hangman-stage">
       <div class="hangman-wrap">
-        <div class="hangman-art" id="hangmanArt"><div class="hangman-canvas" id="hangmanCanvas" role="img" aria-label="Forca sem erros"><i class="hangman-layer base base-top"></i><i class="hangman-layer base base-diagonal"></i><i class="hangman-layer base base-post"></i><i class="hangman-layer base base-rope"></i><i class="hangman-layer base base-floor"></i><i class="hangman-layer piece piece-head"></i><i class="hangman-layer piece piece-body"></i><i class="hangman-layer piece piece-left-arm"></i><i class="hangman-layer piece piece-right-arm"></i><i class="hangman-layer piece piece-left-leg"></i><i class="hangman-layer piece piece-right-leg"></i></div><div class="mistake-track" id="mistakeTrack" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div><a class="art-credit" href="https://www.streamlinehq.com/icons/download/hangman--17188" target="_blank" rel="noopener">Ilustração Cyber Duotone · Streamline</a></div>
+        <div class="hangman-art" id="hangmanArt">
+          <svg class="hangman-canvas" id="hangmanCanvas" viewBox="0 0 100 100" role="img" aria-label="Forca sem erros">
+            <path class="base base-floor" d="M8 92h64"/>
+            <path class="base base-post" d="M20 92V10"/>
+            <path class="base base-top" d="M20 10h38"/>
+            <path class="base base-diagonal" d="M20 26 34 10"/>
+            <path class="base base-rope" d="M58 10v10"/>
+            <circle class="piece piece-head" cx="58" cy="28" r="8"/>
+            <path class="piece piece-body" d="M58 36v26"/>
+            <path class="piece piece-left-arm" d="M58 44 45 56"/>
+            <path class="piece piece-right-arm" d="M58 44 71 56"/>
+            <path class="piece piece-left-leg" d="M58 62 47 80"/>
+            <path class="piece piece-right-leg" d="M58 62 69 80"/>
+          </svg>
+          <div class="mistake-track" id="mistakeTrack" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        </div>
       </div>
       <div class="word-area"><div class="word-display" id="wordDisplay"></div><p class="word-tip" id="wordTip">Clique em uma letra para jogar</p><div class="hint-panel" id="hintPanel" hidden><strong>Pistas da rodada</strong><ol id="hintList"></ol></div></div>
     </div>
