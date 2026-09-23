@@ -261,7 +261,7 @@ async function updateMarkerV2(page, shouldMark) {
   await field.waitFor({ state: 'visible', timeout: 15000 });
   await page.locator(tagsContainerSelector).first().waitFor({ state: 'visible', timeout: 15000 });
 
-  if (await hasMarker() === shouldMark) return;
+  if (await hasMarker() === shouldMark) return false;
 
   if (shouldMark) {
     await field.fill(marker);
@@ -286,6 +286,7 @@ async function updateMarkerV2(page, shouldMark) {
   if (await hasMarker() !== shouldMark) {
     throw new Error('O SimplesVet nao confirmou a alteracao da marcacao');
   }
+  return true;
 }
 
 async function loginWithRetry(page, retries = 2) {
@@ -309,7 +310,7 @@ async function syncCustomer(page, customerId, shouldMark) {
   const cpf = customerDocument(customer);
   if (!cpf) throw new Error('CPF ausente ou invalido na Vindi');
   await locateResponsible(page, cpf);
-  await updateMarkerV2(page, shouldMark);
+  return updateMarkerV2(page, shouldMark);
 }
 
 let browser;
@@ -341,24 +342,29 @@ try {
                    WHERE customer_id=? AND status IN ('pending','retry')`).run(customerId);
 
       try {
+        let changed;
         try {
-          await syncCustomer(page, customerId, shouldMark);
+          changed = await syncCustomer(page, customerId, shouldMark);
         } catch (firstError) {
           if (!page.url().includes('/login/')) throw firstError;
           console.warn(`AVISO customer_id=${customerId} sessao expirada; refazendo login`);
           await loginWithRetry(page);
-          await syncCustomer(page, customerId, shouldMark);
+          changed = await syncCustomer(page, customerId, shouldMark);
         }
         db.prepare(`UPDATE customer_sync
                        SET applied_marked=?, status='synced', attempts=0,
-                           next_attempt_at=NULL, last_action=?, last_error=NULL,
+                           next_attempt_at=NULL,
+                           last_action=CASE WHEN ? THEN ? ELSE last_action END,
+                           last_error=NULL,
                            synced_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP
                      WHERE customer_id=?`).run(
           shouldMark ? 1 : 0,
+          changed ? 1 : 0,
           shouldMark ? 'ADD' : 'REMOVE',
           customerId,
         );
-        console.log(`OK customer_id=${customerId} action=${shouldMark ? 'ADD' : 'REMOVE'}`);
+        const action = changed ? (shouldMark ? 'ADD' : 'REMOVE') : 'VERIFIED';
+        console.log(`OK customer_id=${customerId} action=${action}`);
       } catch (error) {
         exitCode = 1;
         const attempts = Number(row.attempts || 0) + 1;

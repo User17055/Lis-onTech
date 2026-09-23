@@ -64,12 +64,11 @@ const upsert = db.prepare(`
     customer_name=excluded.customer_name,
     desired_marked=1,
     status=CASE
-      WHEN customer_sync.applied_marked=1 THEN 'synced'
       WHEN customer_sync.status='manual_review' THEN 'manual_review'
       ELSE 'pending'
     END,
     next_attempt_at=CASE
-      WHEN customer_sync.applied_marked=1 OR customer_sync.status='manual_review' THEN NULL
+      WHEN customer_sync.status='manual_review' THEN NULL
       ELSE CURRENT_TIMESTAMP
     END,
     last_overdue_seen_at=excluded.last_overdue_seen_at,
@@ -95,4 +94,3 @@ try {
 } finally {
   db.close();
 }
-
