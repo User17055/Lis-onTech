@@ -78,7 +78,7 @@ async function clickText(page, text) {
 }
 
 async function login(page) {
-  await page.goto(required('SIMPLESVET_LOGIN_URL'), { waitUntil: 'domcontentloaded' });
+  await page.goto(required('SIMPLESVET_LOGIN_URL'), { waitUntil: 'domcontentloaded', timeout: 60000 });
   const userSelector = env('SIMPLESVET_USERNAME_SELECTOR', 'input[name="usuario"], input[name="username"], input[type="email"]');
   const passwordSelector = env('SIMPLESVET_PASSWORD_SELECTOR', 'input[name="senha"], input[name="password"], input[type="password"]');
   const username = firstEnv('SIMPLESVET_USER', 'SIMPLESVET_USERNAME');
@@ -96,17 +96,30 @@ async function selectUnitIfNeeded(page) {
   const unitName = env('SIMPLESVET_UNIT_NAME');
   if (!unitName) return;
 
+  const waitForUnitLogin = async () => {
+    await page.waitForURL((url) => !url.pathname.startsWith('/login/'), {
+      waitUntil: 'domcontentloaded',
+      timeout: 30000,
+    });
+    await page.waitForLoadState('domcontentloaded').catch(() => undefined);
+  };
+
   const configuredSelector = env('SIMPLESVET_UNIT_SELECTOR');
   if (configuredSelector) {
     const field = page.locator(configuredSelector).first();
     await field.waitFor({ state: 'visible', timeout: 15000 });
     const tagName = await field.evaluate((el) => el.tagName.toLowerCase());
-    if (tagName === 'select') await field.selectOption({ label: unitName });
-    else {
-      await field.click();
-      await page.getByText(unitName, { exact: true }).last().click();
+    if (tagName === 'select') {
+      await field.selectOption({ label: unitName });
+      await waitForUnitLogin();
+      return;
     }
-    await page.waitForLoadState('domcontentloaded').catch(() => undefined);
+
+    const displayedUnit = (await field.innerText()).trim();
+    if (!displayedUnit.includes(unitName)) {
+      throw new Error(`Unidade configurada nao confere: esperado "${unitName}"`);
+    }
+    await Promise.all([waitForUnitLogin(), field.click()]);
     return;
   }
 
@@ -125,15 +138,19 @@ async function selectUnitIfNeeded(page) {
 
   const unitText = page.getByText(unitName, { exact: true });
   if (await unitText.count() > 0 && await unitText.first().isVisible()) {
-    await unitText.first().click();
-    await page.waitForLoadState('domcontentloaded').catch(() => undefined);
+    const unitCard = unitText.first().locator('xpath=ancestor::*[contains(concat(" ", normalize-space(@class), " "), " celx ")][1]');
+    const clickTarget = await unitCard.count() > 0 ? unitCard : unitText.first();
+    await Promise.all([waitForUnitLogin(), clickTarget.click()]);
+    return;
   }
+
+  throw new Error(`Unidade nao encontrada: ${unitName}`);
 }
 
 async function openResponsibleSearch(page) {
   const directUrl = env('SIMPLESVET_RESPONSIBLE_URL');
   if (directUrl) {
-    await page.goto(directUrl, { waitUntil: 'domcontentloaded' });
+    await page.goto(directUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
     return;
   }
   await clickText(page, 'Atendimento Clínico');
@@ -143,19 +160,25 @@ async function openResponsibleSearch(page) {
 
 async function locateResponsible(page, cpf) {
   await openResponsibleSearch(page);
-  await page.locator(env('SIMPLESVET_FILTER_SELECTOR', '#p__btn_expandir')).first().click();
   const cpfSelector = required('SIMPLESVET_CPF_SELECTOR');
   await page.locator(cpfSelector).first().fill(cpf);
   const searchSelector = env('SIMPLESVET_SEARCH_SELECTOR');
   if (searchSelector) await page.locator(searchSelector).first().click();
   else await page.getByRole('button', { name: /pesquisar|buscar/i }).first().click();
-  await page.waitForLoadState('domcontentloaded');
 
-  const rows = page.locator(env('SIMPLESVET_RESULT_ROWS_SELECTOR', 'table tbody tr'));
+  const rowsSelector = env('SIMPLESVET_RESULT_ROWS_SELECTOR', 'tr.linhaRegistro');
+  await page.waitForFunction(
+    (selector) => document.querySelectorAll(selector).length <= 1,
+    rowsSelector,
+    { timeout: 30000 },
+  );
+  const rows = page.locator(rowsSelector);
   await rows.first().waitFor({ state: 'visible', timeout: 15000 });
   const count = await rows.count();
   if (count !== 1) throw new Error(`Pesquisa por CPF retornou ${count} registros; revisao manual necessaria`);
-  await rows.first().click();
+  await rows.first().locator('td').first().click();
+  await page.locator(env('SIMPLESVET_EDIT_SELECTOR', '#v__btn_editar_geral'))
+    .first().waitFor({ state: 'visible', timeout: 15000 });
 }
 
 async function updateMarker(page, shouldMark) {
@@ -215,6 +238,56 @@ async function updateMarker(page, shouldMark) {
   }
 }
 
+async function updateMarkerV2(page, shouldMark) {
+  const editSelector = env('SIMPLESVET_EDIT_SELECTOR', '#v__btn_editar_geral');
+  const extrasSelector = env('SIMPLESVET_EXTRAS_SELECTOR', 'a[href="#tabExtras"]');
+  const tagsContainerSelector = env('SIMPLESVET_TAGS_CONTAINER_SELECTOR', '#pes_txt_tag_tagsinput');
+  const fieldSelector = required('SIMPLESVET_MARKINGS_SELECTOR');
+
+  const openExtras = async () => {
+    await page.locator(editSelector).first().click();
+    const extras = page.locator(extrasSelector).first();
+    await extras.waitFor({ state: 'visible', timeout: 15000 });
+    await extras.click();
+  };
+
+  const hasMarker = async () => {
+    const tags = await page.locator(`${tagsContainerSelector} .tag span`).allInnerTexts();
+    return tags.some((value) => value.trim().toLocaleUpperCase('pt-BR') === marker.toLocaleUpperCase('pt-BR'));
+  };
+
+  await openExtras();
+  const field = page.locator(fieldSelector).first();
+  await field.waitFor({ state: 'visible', timeout: 15000 });
+  await page.locator(tagsContainerSelector).first().waitFor({ state: 'visible', timeout: 15000 });
+
+  if (await hasMarker() === shouldMark) return;
+
+  if (shouldMark) {
+    await field.fill(marker);
+    await field.press('Enter');
+    await page.waitForFunction(
+      ({ container, expected }) => Array.from(document.querySelectorAll(`${container} .tag span`))
+        .some((item) => item.textContent.trim().toLocaleUpperCase('pt-BR') === expected.toLocaleUpperCase('pt-BR')),
+      { container: tagsContainerSelector, expected: marker },
+      { timeout: 15000 },
+    );
+  } else {
+    const markerTag = page.locator(`${tagsContainerSelector} .tag`).filter({ hasText: marker }).first();
+    await markerTag.locator('a').click();
+  }
+
+  const saveSelector = env('SIMPLESVET_SAVE_SELECTOR', '#f__btn_salvar');
+  await page.locator(saveSelector).first().click();
+  await page.locator(editSelector).first().waitFor({ state: 'visible', timeout: 30000 });
+
+  await openExtras();
+  await page.locator(tagsContainerSelector).first().waitFor({ state: 'visible', timeout: 15000 });
+  if (await hasMarker() !== shouldMark) {
+    throw new Error('O SimplesVet nao confirmou a alteracao da marcacao');
+  }
+}
+
 let browser;
 let exitCode = 0;
 try {
@@ -248,7 +321,7 @@ try {
         const cpf = customerDocument(customer);
         if (!cpf) throw new Error('CPF ausente ou invalido na Vindi');
         await locateResponsible(page, cpf);
-        await updateMarker(page, shouldMark);
+        await updateMarkerV2(page, shouldMark);
         db.prepare(`UPDATE customer_sync
                        SET applied_marked=?, status='synced', attempts=0,
                            next_attempt_at=NULL, last_action=?, last_error=NULL,
