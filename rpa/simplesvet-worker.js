@@ -288,6 +288,30 @@ async function updateMarkerV2(page, shouldMark) {
   }
 }
 
+async function loginWithRetry(page, retries = 2) {
+  let lastError;
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      await login(page);
+      return;
+    } catch (error) {
+      lastError = error;
+      if (attempt >= retries) break;
+      console.warn(`AVISO login SimplesVet falhou; nova tentativa ${attempt + 1}/${retries}`);
+      await page.waitForTimeout(2000);
+    }
+  }
+  throw lastError;
+}
+
+async function syncCustomer(page, customerId, shouldMark) {
+  const customer = await getVindiCustomer(customerId);
+  const cpf = customerDocument(customer);
+  if (!cpf) throw new Error('CPF ausente ou invalido na Vindi');
+  await locateResponsible(page, cpf);
+  await updateMarkerV2(page, shouldMark);
+}
+
 let browser;
 let exitCode = 0;
 try {
@@ -306,7 +330,7 @@ try {
     browser = await chromium.launch({ headless: env('SIMPLESVET_HEADLESS', '1') !== '0' });
     const context = await browser.newContext({ locale: 'pt-BR' });
     const page = await context.newPage();
-    await login(page);
+    await loginWithRetry(page);
 
     for (const row of rows) {
       const customerId = Number(row.customer_id);
@@ -317,11 +341,14 @@ try {
                    WHERE customer_id=? AND status IN ('pending','retry')`).run(customerId);
 
       try {
-        const customer = await getVindiCustomer(customerId);
-        const cpf = customerDocument(customer);
-        if (!cpf) throw new Error('CPF ausente ou invalido na Vindi');
-        await locateResponsible(page, cpf);
-        await updateMarkerV2(page, shouldMark);
+        try {
+          await syncCustomer(page, customerId, shouldMark);
+        } catch (firstError) {
+          if (!page.url().includes('/login/')) throw firstError;
+          console.warn(`AVISO customer_id=${customerId} sessao expirada; refazendo login`);
+          await loginWithRetry(page);
+          await syncCustomer(page, customerId, shouldMark);
+        }
         db.prepare(`UPDATE customer_sync
                        SET applied_marked=?, status='synced', attempts=0,
                            next_attempt_at=NULL, last_action=?, last_error=NULL,
