@@ -1,0 +1,15 @@
+{
+  "name": "lisontech-simplesvet-rpa",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "install-browser": "playwright install --with-deps chromium",
+    "reconcile": "node simplesvet-reconcile.js",
+    "simplesvet": "node simplesvet-worker.js",
+    "smoke-test": "node smoke-test.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "playwright": "^1.49.1"
+  }
+}

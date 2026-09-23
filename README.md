@@ -53,3 +53,51 @@ Para testar sem enviar WhatsApp:
 ```text
 https://seu-dominio.com/painel/api/cron_recobranca.php?token=SEU_CRON_TOKEN&dry_run=1&limit=5
 ```
+
+## Marcacao automatica no SimplesVet
+
+O processo e independente do site: roda na VPS, consulta diretamente na Vindi
+e guarda o estado em um banco SQLite privado na propria VPS. Ele identifica
+clientes com pelo menos uma fatura pendente
+vencida ha 30 dias ou mais. Ele enfileira a inclusao da marcacao
+`CONSULTAR GERENCIA`. A remocao so e enfileirada quando nao resta nenhuma
+fatura nessa condicao e apenas para marcacoes que o proprio processo confirmou.
+
+O CPF nao e salvo no SQLite: o worker o consulta na Vindi no momento de
+pesquisar o responsavel no SimplesVet.
+
+Na VPS, instale o worker uma vez:
+
+```bash
+cd /opt/lisontech-simplesvet/rpa
+# Requer Node.js 20 ou superior
+npm install
+npm run install-browser
+chmod +x ../scripts/simplesvet_daily.sh
+```
+
+Preencha as variaveis `SIMPLESVET_*` de `secure/config.env`, principalmente
+`SIMPLESVET_USER`, `SIMPLESVET_PASSWORD`, a URL de pesquisa de responsaveis e
+os seletores da tela. `SIMPLESVET_REPORT_URL` pode apontar para vendas, mas nao
+e usada nesta automacao. Depois teste manualmente:
+
+```bash
+/opt/lisontech-simplesvet/scripts/simplesvet_daily.sh
+```
+
+Para executar todos os dias as 03:00 no horario de Sao Paulo, use `crontab -e`:
+
+```cron
+CRON_TZ=America/Sao_Paulo
+0 3 * * * /usr/bin/flock -n /tmp/lisontech-simplesvet.lock /opt/lisontech-simplesvet/scripts/simplesvet_daily.sh >> /var/log/lisontech-simplesvet.log 2>&1
+```
+
+Os caminhos devem ser ajustados ao diretorio real da aplicacao na VPS.
+
+Como alternativa, o instalador abaixo detecta o caminho atual e adiciona ou
+atualiza o bloco do cron sem duplica-lo:
+
+```bash
+chmod +x /opt/lisontech-simplesvet/scripts/install_simplesvet_cron.sh
+/opt/lisontech-simplesvet/scripts/install_simplesvet_cron.sh
+```
