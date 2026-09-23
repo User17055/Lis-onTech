@@ -69,11 +69,19 @@ try {
             source_updated_at=VALUES(source_updated_at), report_generated_at=VALUES(report_generated_at),
             sync_batch=VALUES(sync_batch), received_at=NOW()
     ");
-    $asDate = static function ($value): ?string {
+    $asDate = static function ($value, bool $sourceIsUtc = false): ?string {
         $value = trim((string)$value);
         if ($value === '') return null;
-        $timestamp = strtotime($value);
-        return $timestamp === false ? null : date('Y-m-d H:i:s', $timestamp);
+        try {
+            $hasTimezone = (bool)preg_match('/(?:Z|[+\-]\d{2}:?\d{2})$/i', $value);
+            $sourceTimezone = $sourceIsUtc && !$hasTimezone
+                ? new DateTimeZone('UTC')
+                : new DateTimeZone('America/Sao_Paulo');
+            $date = new DateTimeImmutable($value, $sourceTimezone);
+            return $date->setTimezone(new DateTimeZone('America/Sao_Paulo'))->format('Y-m-d H:i:s');
+        } catch (Throwable $e) {
+            return null;
+        }
     };
 
     $pdo->beginTransaction();
@@ -95,9 +103,9 @@ try {
             max(0, (int)($item['attempts'] ?? 0)),
             $lastAction === '' ? null : mb_substr($lastAction, 0, 16),
             $lastError === '' ? null : mb_substr($lastError, 0, 8000),
-            $asDate($item['last_attempt_at'] ?? null),
-            $asDate($item['synced_at'] ?? null),
-            $asDate($item['updated_at'] ?? null),
+            $asDate($item['last_attempt_at'] ?? null, true),
+            $asDate($item['synced_at'] ?? null, true),
+            $asDate($item['updated_at'] ?? null, true),
             $asDate($generatedAt),
             $batch,
         ]);

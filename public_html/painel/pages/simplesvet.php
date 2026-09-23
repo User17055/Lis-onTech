@@ -59,23 +59,37 @@ $formatDate = static function ($value): string {
     $timestamp = strtotime((string)$value);
     return $timestamp === false ? '-' : date('d/m/Y H:i', $timestamp);
 };
+
+$panelTimezone = new DateTimeZone('America/Sao_Paulo');
+$now = new DateTimeImmutable('now', $panelTimezone);
+$nextRun = $now->setTime((int)$now->format('H'), 0);
+if ($nextRun <= $now) $nextRun = $nextRun->modify('+1 hour');
+while (((int)$nextRun->format('H')) % 2 !== 0) $nextRun = $nextRun->modify('+1 hour');
+$nextRunLabel = $nextRun->format('d/m/Y') . ' às ' . $nextRun->format('H:i');
 ?>
 <section class="sv-page">
   <style>
     .sv-page{font-family:'Nunito',sans-serif;color:#172033;max-width:1180px;margin:0 auto;padding:4px 24px 40px}
     .sv-head{display:flex;justify-content:space-between;gap:20px;align-items:flex-end;margin-bottom:24px}.sv-head h1{font-size:28px;margin:0 0 6px}.sv-head p{margin:0;color:#68758b}
     .sv-refresh{border:0;border-radius:12px;padding:11px 17px;background:#38b6ff;color:#fff;font-weight:800;cursor:pointer}
+    .sv-next{display:flex;align-items:center;gap:12px;margin:-8px 0 20px;padding:14px 17px;border:1px solid #cfe9ff;border-radius:15px;background:#eef8ff;color:#245477}.sv-next i{width:35px;height:35px;border-radius:11px;background:#38b6ff;color:#fff;display:grid;place-items:center}.sv-next strong{display:block;color:#123b5c}.sv-next span{font-size:12px;color:#5e7890}
     .sv-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:14px;margin-bottom:22px}.sv-card{background:#fff;border:1px solid #e7edf5;border-radius:18px;padding:19px;box-shadow:0 5px 18px rgba(28,48,78,.06)}
     .sv-card span{display:block;color:#718096;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em}.sv-card strong{display:block;font-size:29px;margin-top:5px}.sv-card.ok strong{color:#138a5b}.sv-card.err strong{color:#c24141}.sv-card.warn strong{color:#b7791f}
     .sv-panel{background:#fff;border:1px solid #e7edf5;border-radius:18px;box-shadow:0 5px 18px rgba(28,48,78,.06);overflow:hidden}.sv-panel+.sv-panel{margin-top:22px}.sv-panel-head{padding:18px 20px;border-bottom:1px solid #edf1f6;display:flex;justify-content:space-between;gap:14px;align-items:center;flex-wrap:wrap}.sv-panel-head h2{font-size:18px;margin:0}.sv-updated{font-size:12px;color:#718096}
     .sv-table-wrap{overflow-x:auto}.sv-table{width:100%;border-collapse:collapse}.sv-table th,.sv-table td{padding:14px 18px;text-align:left;border-bottom:1px solid #edf1f6;vertical-align:top}.sv-table th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#718096;background:#f8fafc}.sv-table td{font-size:13px}
-    .sv-name{font-weight:800}.sv-id{font-size:11px;color:#8793a7;margin-top:3px}.sv-reason{max-width:510px;white-space:normal;color:#5c6678}.sv-badge{display:inline-flex;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:900}.sv-badge.retry{background:#fff3cd;color:#8a6300}.sv-badge.manual_review{background:#fee2e2;color:#991b1b}.sv-badge.ADD{background:#d1fae5;color:#06603f}.sv-badge.REMOVE{background:#dbeafe;color:#1e40af}
+    .sv-name{font-weight:800;overflow-wrap:anywhere}.sv-id{font-size:11px;color:#8793a7;margin-top:3px}.sv-reason{min-width:0;white-space:normal;color:#5c6678}.sv-badge{display:inline-flex;align-items:center;border-radius:999px;padding:6px 10px;font-size:11px;line-height:1;font-weight:900;white-space:nowrap}.sv-badge.retry{background:#fff3cd;color:#8a6300}.sv-badge.manual_review{background:#fee2e2;color:#991b1b}.sv-badge.ADD{background:#d1fae5;color:#06603f}.sv-badge.REMOVE{background:#dbeafe;color:#1e40af}
     .sv-tools{display:flex;gap:8px;flex-wrap:wrap}.sv-tools input,.sv-tools select{border:1px solid #dce4ee;border-radius:10px;background:#fff;padding:9px 11px;font:inherit;font-size:12px;color:#344054}.sv-success-list{max-height:620px;overflow:auto}.sv-success-list thead th{position:sticky;top:0;z-index:1}
-    .sv-error-message{display:flex;gap:10px;align-items:flex-start}.sv-error-icon{width:30px;height:30px;border-radius:10px;background:#fff1f1;color:#c24141;display:grid;place-items:center;flex:0 0 auto}.sv-error-title{font-weight:800;color:#3c4658;line-height:1.35}.sv-error-details{margin-top:7px;color:#7a8699;font-size:11px}.sv-error-details summary{cursor:pointer;font-weight:800;color:#667085}.sv-error-details div{margin-top:7px;padding:9px 11px;border-radius:9px;background:#f7f9fc;max-width:520px;overflow-wrap:anywhere}.sv-attempt{font-weight:800;color:#5b6577;white-space:nowrap}.sv-attempt small{display:block;margin-top:3px;color:#98a2b3;font-weight:700}
+    .sv-errors-list{display:grid;gap:12px;padding:16px}.sv-error-card{display:grid;grid-template-columns:minmax(210px,1.4fr) auto auto minmax(135px,.7fr);gap:16px;align-items:center;padding:17px;border:1px solid #e7edf5;border-radius:15px;background:#fff}.sv-error-cell{min-width:0}.sv-error-label{display:block;margin-bottom:6px;color:#98a2b3;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.06em}.sv-error-reason{grid-column:1/-1;padding-top:14px;border-top:1px solid #edf1f6}.sv-error-message{display:flex;gap:10px;align-items:flex-start;min-width:0}.sv-error-icon{width:30px;height:30px;border-radius:10px;background:#fff1f1;color:#c24141;display:grid;place-items:center;flex:0 0 auto}.sv-error-title{font-weight:800;color:#3c4658;line-height:1.35;overflow-wrap:anywhere}.sv-error-details{margin-top:7px;color:#7a8699;font-size:11px;max-width:100%}.sv-error-details summary{cursor:pointer;font-weight:800;color:#667085}.sv-error-details div{box-sizing:border-box;margin-top:7px;padding:9px 11px;border-radius:9px;background:#f7f9fc;max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}.sv-attempt{font-weight:800;color:#5b6577;white-space:nowrap}.sv-attempt small{display:block;margin-top:3px;color:#98a2b3;font-weight:700}
     .sv-empty{padding:42px 22px;text-align:center;color:#68758b}.sv-empty i{display:block;font-size:38px;color:#21a56f;margin-bottom:10px}
+    @media(max-width:900px){.sv-error-card{grid-template-columns:1fr 1fr}.sv-error-reason{grid-column:1/-1}}
     @media(max-width:800px){.sv-cards{grid-template-columns:repeat(2,minmax(0,1fr))}.sv-head{align-items:flex-start;flex-direction:column}.sv-page{padding-left:14px;padding-right:14px}}
+    @media(max-width:520px){.sv-error-card{grid-template-columns:1fr}.sv-error-reason{grid-column:1}.sv-next{align-items:flex-start}}
   </style>
   <div class="sv-head"><div><h1>Sincronização SimplesVet</h1><p>Falhas da marcação automática Vindi → SimplesVet.</p></div><button class="sv-refresh" type="button" onclick="location.reload()"><i class="fa-solid fa-rotate"></i> Atualizar</button></div>
+  <div class="sv-next">
+    <i class="fa-solid fa-clock"></i>
+    <div><strong>Próxima verificação: <?=svh($nextRunLabel)?></strong><span>Execução automática a cada 2 horas, no horário de São Paulo.</span></div>
+  </div>
   <div class="sv-cards">
     <div class="sv-card"><span>Total</span><strong><?=svh($summary['total'])?></strong></div>
     <div class="sv-card ok"><span>Sucesso</span><strong><?=svh($summary['synced'])?></strong></div>
@@ -91,23 +105,26 @@ $formatDate = static function ($value): string {
     <?php elseif (!$errors): ?>
       <div class="sv-empty"><i class="fa-solid fa-circle-check"></i>Nenhum erro ativo na sincronização.</div>
     <?php else: ?>
-      <div class="sv-table-wrap"><table class="sv-table"><thead><tr><th>Cliente</th><th>Status</th><th>Tentativas</th><th>Última tentativa</th><th>Motivo</th></tr></thead><tbody>
-      <?php foreach ($errors as $row): ?><tr>
-        <td><div class="sv-name"><?=svh($row['customer_name'])?></div><div class="sv-id">Vindi #<?=svh($row['customer_id'])?></div></td>
-        <td><span class="sv-badge <?=svh($row['status'])?>"><?= $row['status'] === 'manual_review' ? 'Revisão manual' : 'Nova tentativa' ?></span></td>
-        <td><div class="sv-attempt"><?=svh($row['attempts'])?> de 5<small>tentativas</small></div></td>
-        <td><?=svh($formatDate($row['last_attempt_at']))?></td>
-        <td class="sv-reason">
-          <div class="sv-error-message">
-            <span class="sv-error-icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
-            <div>
-              <div class="sv-error-title"><?=svh(svFriendlyError((string)($row['last_error'] ?? '')))?></div>
-              <details class="sv-error-details"><summary>Ver detalhe técnico</summary><div><?=svh($row['last_error'] ?: 'Erro não informado')?></div></details>
+      <div class="sv-errors-list">
+      <?php foreach ($errors as $row): ?>
+        <article class="sv-error-card">
+          <div class="sv-error-cell"><span class="sv-error-label">Cliente</span><div class="sv-name"><?=svh($row['customer_name'])?></div><div class="sv-id">Vindi #<?=svh($row['customer_id'])?></div></div>
+          <div class="sv-error-cell"><span class="sv-error-label">Status</span><span class="sv-badge <?=svh($row['status'])?>"><?= $row['status'] === 'manual_review' ? 'Revisão manual' : 'Nova tentativa' ?></span></div>
+          <div class="sv-error-cell"><span class="sv-error-label">Tentativas</span><div class="sv-attempt"><?=svh($row['attempts'])?> de 5</div></div>
+          <div class="sv-error-cell"><span class="sv-error-label">Última tentativa</span><?=svh($formatDate($row['last_attempt_at']))?></div>
+          <div class="sv-error-reason">
+            <span class="sv-error-label">Motivo</span>
+            <div class="sv-error-message">
+              <span class="sv-error-icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
+              <div class="sv-reason">
+                <div class="sv-error-title"><?=svh(svFriendlyError((string)($row['last_error'] ?? '')))?></div>
+                <details class="sv-error-details"><summary>Ver detalhe técnico</summary><div><?=svh($row['last_error'] ?: 'Erro não informado')?></div></details>
+              </div>
             </div>
           </div>
-        </td>
-      </tr><?php endforeach; ?>
-      </tbody></table></div>
+        </article>
+      <?php endforeach; ?>
+      </div>
     <?php endif; ?>
   </div>
 
