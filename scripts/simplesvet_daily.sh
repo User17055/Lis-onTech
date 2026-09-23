@@ -10,5 +10,13 @@ if [[ -z "$NODE_BIN" ]]; then
 fi
 
 cd "$ROOT_DIR/rpa"
-"$NODE_BIN" simplesvet-reconcile.js
-"$NODE_BIN" simplesvet-worker.js
+EXIT_CODE=0
+
+if "$NODE_BIN" simplesvet-reconcile.js; then
+  "$NODE_BIN" simplesvet-worker.js || EXIT_CODE=$?
+else
+  EXIT_CODE=$?
+fi
+
+"$NODE_BIN" simplesvet-report.js || true
+exit "$EXIT_CODE"

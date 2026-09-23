@@ -473,6 +473,12 @@ if (!function_exists('isActive')) {
         </li>
 
         <li>
+            <a href="?pagina=simplesvet" class="<?= isActive('simplesvet', $pagina) ?>">
+                <i class='bx bx-pulse'></i> <span>SimplesVet</span>
+            </a>
+        </li>
+
+        <li>
             <a href="?pagina=finance" class="<?= isActive('finance', $pagina) ?>">
                 <i class='bx bx-dollar-circle'></i> <span>Financeiro</span>
             </a>

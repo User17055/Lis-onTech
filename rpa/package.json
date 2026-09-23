@@ -6,6 +6,7 @@
     "install-browser": "playwright install --with-deps chromium",
     "reconcile": "node simplesvet-reconcile.js",
     "simplesvet": "node simplesvet-worker.js",
+    "report": "node simplesvet-report.js",
     "smoke-test": "node smoke-test.js"
   },
   "dependencies": {
