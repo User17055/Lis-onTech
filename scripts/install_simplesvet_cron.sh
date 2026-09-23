@@ -27,9 +27,9 @@ CLEAN="$(printf '%s\n' "$CURRENT" | awk -v start="$START_MARKER" -v end="$END_MA
   printf '%s\n' "$CLEAN"
   printf '%s\n' "$START_MARKER"
   printf '%s\n' 'CRON_TZ=America/Sao_Paulo'
-  printf '0 3 * * * /usr/bin/flock -n /tmp/lisontech-simplesvet.lock %q >> %q 2>&1\n' "$DAILY_SCRIPT" "$LOG_FILE"
+  printf '0 */2 * * * /usr/bin/flock -n /tmp/lisontech-simplesvet.lock %q >> %q 2>&1\n' "$DAILY_SCRIPT" "$LOG_FILE"
   printf '%s\n' "$END_MARKER"
 } | crontab -
 
-echo "Cron do SimplesVet instalado para 03:00 (America/Sao_Paulo)."
+echo "Cron do SimplesVet instalado a cada 2 horas (America/Sao_Paulo)."
 crontab -l

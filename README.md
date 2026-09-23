@@ -85,11 +85,11 @@ e usada nesta automacao. Depois teste manualmente:
 /opt/lisontech-simplesvet/scripts/simplesvet_daily.sh
 ```
 
-Para executar todos os dias as 03:00 no horario de Sao Paulo, use `crontab -e`:
+Para verificar pagamentos e atualizar as marcacoes 12 vezes por dia, use `crontab -e`:
 
 ```cron
 CRON_TZ=America/Sao_Paulo
-0 3 * * * /usr/bin/flock -n /tmp/lisontech-simplesvet.lock /opt/lisontech-simplesvet/scripts/simplesvet_daily.sh >> /var/log/lisontech-simplesvet.log 2>&1
+0 */2 * * * /usr/bin/flock -n /tmp/lisontech-simplesvet.lock /opt/lisontech-simplesvet/scripts/simplesvet_daily.sh >> /var/log/lisontech-simplesvet.log 2>&1
 ```
 
 Os caminhos devem ser ajustados ao diretorio real da aplicacao na VPS.
