@@ -377,10 +377,12 @@ try {
           db.prepare(`UPDATE customer_sync
                          SET applied_marked=?, status='synced', attempts=0,
                              next_attempt_at=NULL, last_action=?, last_error=NULL,
-                             synced_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP
+                             synced_at=CASE WHEN ? THEN CURRENT_TIMESTAMP ELSE synced_at END,
+                             updated_at=CURRENT_TIMESTAMP
                        WHERE customer_id=?`).run(
             shouldMark ? 1 : 0,
             action,
+            changed ? 1 : 0,
             customerId,
           );
           db.exec('COMMIT');

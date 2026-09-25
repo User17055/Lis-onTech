@@ -43,10 +43,25 @@ try {
                 if (array_key_exists($action, $actions)) $actions[$action] = (int)$row['total'];
             }
             $successes = $pdo->query("
-                SELECT customer_id, customer_name, action AS last_action, occurred_at AS synced_at
-                  FROM simplesvet_sync_history
-                 WHERE action IN ('ADD', 'REMOVE', 'VERIFIED')
-                 ORDER BY occurred_at DESC, id DESC
+                SELECT h.customer_id, h.customer_name, h.action AS last_action,
+                       h.occurred_at AS event_at,
+                       CASE WHEN h.action='VERIFIED' THEN COALESCE(
+                           (SELECT MIN(a.occurred_at)
+                              FROM simplesvet_sync_history a
+                             WHERE a.customer_id=h.customer_id
+                               AND a.action='ADD'
+                               AND a.occurred_at<=h.occurred_at),
+                           h.occurred_at
+                       ) ELSE h.occurred_at END AS synced_at,
+                       CASE WHEN NOT EXISTS (
+                           SELECT 1 FROM simplesvet_sync_history newer
+                            WHERE newer.customer_id=h.customer_id
+                              AND (newer.occurred_at>h.occurred_at
+                                   OR (newer.occurred_at=h.occurred_at AND newer.id>h.id))
+                       ) THEN 1 ELSE 0 END AS is_latest
+                  FROM simplesvet_sync_history h
+                 WHERE h.action IN ('ADD', 'REMOVE', 'VERIFIED')
+                 ORDER BY h.occurred_at DESC, h.id DESC
                  LIMIT 2000
             ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
             $dailyStats = $pdo->query("
@@ -66,7 +81,8 @@ try {
                 if (array_key_exists($action, $actions)) $actions[$action] = (int)$row['total'];
             }
             $successes = $pdo->query("
-                SELECT customer_id, customer_name, last_action, synced_at
+                SELECT customer_id, customer_name, last_action, synced_at,
+                       synced_at AS event_at, 1 AS is_latest
                   FROM simplesvet_sync_status
                  WHERE status='synced' AND last_action IN ('ADD', 'REMOVE', 'VERIFIED')
                  ORDER BY synced_at DESC, customer_name ASC
@@ -184,14 +200,21 @@ $nextRunLabel = $nextRun->format('d/m/Y') . ' às ' . $nextRun->format('H:i');
         <thead><tr><th>Cliente</th><th>Ação</th><th>Confirmado em</th></tr></thead>
         <tbody id="svSuccessBody">
         <?php foreach ($successes as $row): ?>
-          <tr data-action="<?=svh($row['last_action'])?>" data-date="<?=svh(date('Y-m-d', strtotime((string)$row['synced_at'])))?>" data-search="<?=svh(mb_strtolower($row['customer_name'] . ' ' . $row['customer_id'], 'UTF-8'))?>">
+          <tr data-action="<?=svh($row['last_action'])?>" data-date="<?=svh(date('Y-m-d', strtotime((string)($row['event_at'] ?? $row['synced_at']))))?>" data-latest="<?=!empty($row['is_latest']) ? '1' : '0'?>" data-search="<?=svh(mb_strtolower($row['customer_name'] . ' ' . $row['customer_id'], 'UTF-8'))?>">
             <td><div class="sv-name"><?=svh($row['customer_name'])?></div><div class="sv-id">Vindi #<?=svh($row['customer_id'])?></div></td>
             <td><span class="sv-badge <?=svh($row['last_action'])?>"><?php
               if ($row['last_action'] === 'REMOVE') echo 'Retirado';
               elseif ($row['last_action'] === 'VERIFIED') echo 'Verificado';
               else echo 'Acrescentado';
             ?></span></td>
-            <td><?=svh($formatDate($row['synced_at']))?></td>
+            <td>
+              <?php if ($row['last_action'] === 'VERIFIED'): ?>
+                <div class="sv-name">Acrescentado em <?=svh($formatDate($row['synced_at']))?></div>
+                <div class="sv-id">Verificado em <?=svh($formatDate($row['event_at'] ?? null))?></div>
+              <?php else: ?>
+                <?=svh($formatDate($row['synced_at']))?>
+              <?php endif; ?>
+            </td>
           </tr>
         <?php endforeach; ?>
         </tbody>
@@ -225,6 +248,7 @@ $nextRunLabel = $nextRun->format('d/m/Y') . ' às ' . $nextRun->format('H:i');
   const body = document.getElementById('svSuccessBody');
   if (!search || !action || !body) return;
   let selectedDay = '';
+  let latestOnly = true;
   const filter = () => {
     const term = search.value.trim().toLocaleLowerCase('pt-BR');
     const selected = action.value;
@@ -232,18 +256,21 @@ $nextRunLabel = $nextRun->format('d/m/Y') . ' às ' . $nextRun->format('H:i');
       const matchesTerm = !term || (row.dataset.search || '').includes(term);
       const matchesAction = !selected || row.dataset.action === selected;
       const matchesDay = !selectedDay || row.dataset.date === selectedDay;
-      row.hidden = !(matchesTerm && matchesAction && matchesDay);
+      const matchesLatest = !latestOnly || row.dataset.latest === '1';
+      row.hidden = !(matchesTerm && matchesAction && matchesDay && matchesLatest);
     });
   };
   search.addEventListener('input', filter);
-  action.addEventListener('change', () => { selectedDay = ''; filter(); });
+  action.addEventListener('change', () => { selectedDay = ''; latestOnly = false; filter(); });
   document.querySelectorAll('[data-sv-filter]').forEach((card) => {
     card.addEventListener('click', () => {
       action.value = card.dataset.svFilter || '';
       selectedDay = card.dataset.svToday || '';
+      latestOnly = false;
       filter();
       document.getElementById('svCompletedPanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   });
+  filter();
 })();
 </script>
