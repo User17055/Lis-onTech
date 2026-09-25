@@ -16,6 +16,13 @@ const rows = db.prepare(`
     FROM customer_sync
    ORDER BY status, customer_name, customer_id
 `).all();
+const events = db.prepare(`
+  SELECT event_key, customer_id, customer_name, action, occurred_at
+    FROM sync_events
+   WHERE reported_at IS NULL
+   ORDER BY occurred_at ASC, id ASC
+   LIMIT 10000
+`).all();
 
 const clean = (value) => String(value ?? '').replace(/[\r\n]+/g, ' ').trim();
 const counts = rows.reduce((result, row) => {
@@ -83,12 +90,27 @@ if (panelUrl && panelToken) {
           manual_review: counts.manual_review || 0,
         },
         items: rows,
+        events,
       }),
       signal: AbortSignal.timeout(30000),
     });
     const result = await response.json().catch(() => ({}));
     if (!response.ok || result.ok !== true) {
       throw new Error(`HTTP ${response.status}: ${clean(result.error || 'resposta invalida')}`);
+    }
+    if (events.length) {
+      if (!Object.prototype.hasOwnProperty.call(result, 'events_saved')) {
+        throw new Error('O painel ainda nao suporta o historico de eventos; eventos mantidos para reenvio');
+      }
+      const markReported = db.prepare('UPDATE sync_events SET reported_at=CURRENT_TIMESTAMP WHERE event_key=?');
+      db.exec('BEGIN IMMEDIATE');
+      try {
+        for (const event of events) markReported.run(event.event_key);
+        db.exec('COMMIT');
+      } catch (markError) {
+        db.exec('ROLLBACK');
+        throw markError;
+      }
     }
     console.log(`REPORT_PANEL_SYNC saved=${Number(result.saved || 0)}`);
   } catch (error) {

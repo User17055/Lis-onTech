@@ -10,8 +10,12 @@ apiRequireBearer($cfg);
 
 $body = apiJsonBody();
 $items = $body['items'] ?? null;
+$events = $body['events'] ?? [];
 if (!is_array($items) || count($items) > 5000) {
     apiOut(['ok' => false, 'error' => 'Lista de itens invalida'], 400);
+}
+if (!is_array($events) || count($events) > 10000) {
+    apiOut(['ok' => false, 'error' => 'Lista de eventos invalida'], 400);
 }
 
 $allowedStatuses = ['pending', 'processing', 'retry', 'synced', 'manual_review'];
@@ -52,6 +56,22 @@ try {
             received_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
             KEY idx_simplesvet_runs_received (received_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    ");
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS simplesvet_sync_history (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            event_key VARCHAR(80) NOT NULL,
+            customer_id BIGINT UNSIGNED NOT NULL,
+            customer_name VARCHAR(220) NOT NULL DEFAULT '',
+            action VARCHAR(16) NOT NULL,
+            occurred_at DATETIME NOT NULL,
+            received_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY uq_simplesvet_event (event_key),
+            KEY idx_simplesvet_history_date (occurred_at),
+            KEY idx_simplesvet_history_action (action, occurred_at),
+            KEY idx_simplesvet_history_customer (customer_id, occurred_at)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     ");
 
@@ -111,6 +131,32 @@ try {
         ]);
         $saved++;
     }
+
+    $eventInsert = $pdo->prepare("
+        INSERT IGNORE INTO simplesvet_sync_history (
+            event_key, customer_id, customer_name, action, occurred_at
+        ) VALUES (?, ?, ?, ?, ?)
+    ");
+    $eventsSaved = 0;
+    foreach ($events as $event) {
+        if (!is_array($event)) continue;
+        $eventKey = trim((string)($event['event_key'] ?? ''));
+        $customerId = (int)($event['customer_id'] ?? 0);
+        $action = strtoupper(trim((string)($event['action'] ?? '')));
+        $occurredAt = $asDate($event['occurred_at'] ?? null, true);
+        if ($eventKey === '' || strlen($eventKey) > 80 || $customerId <= 0
+            || !in_array($action, ['ADD', 'REMOVE', 'VERIFIED'], true) || $occurredAt === null) {
+            continue;
+        }
+        $eventInsert->execute([
+            $eventKey,
+            $customerId,
+            mb_substr(trim((string)($event['customer_name'] ?? '')), 0, 220),
+            $action,
+            $occurredAt,
+        ]);
+        $eventsSaved += $eventInsert->rowCount();
+    }
     if ($saved > 0) {
         $delete = $pdo->prepare('DELETE FROM simplesvet_sync_status WHERE sync_batch <> ?');
         $delete->execute([$batch]);
@@ -128,7 +174,7 @@ try {
         max(0, (int)($summary['retry'] ?? 0)), max(0, (int)($summary['manual_review'] ?? 0)),
     ]);
     $pdo->commit();
-    apiOut(['ok' => true, 'saved' => $saved]);
+    apiOut(['ok' => true, 'saved' => $saved, 'events_saved' => $eventsSaved]);
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
     apiOut(['ok' => false, 'error' => 'Falha ao salvar relatorio do SimplesVet'], 500);

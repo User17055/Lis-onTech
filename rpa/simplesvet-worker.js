@@ -1,5 +1,6 @@
 import path from 'node:path';
 import process from 'node:process';
+import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
 import { chromium } from 'playwright';
@@ -351,19 +352,42 @@ try {
           await loginWithRetry(page);
           changed = await syncCustomer(page, customerId, shouldMark);
         }
-        db.prepare(`UPDATE customer_sync
-                       SET applied_marked=?, status='synced', attempts=0,
-                           next_attempt_at=NULL,
-                           last_action=CASE WHEN ? THEN ? ELSE last_action END,
-                           last_error=NULL,
-                           synced_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP
-                     WHERE customer_id=?`).run(
-          shouldMark ? 1 : 0,
-          changed ? 1 : 0,
-          shouldMark ? 'ADD' : 'REMOVE',
-          customerId,
-        );
         const action = changed ? (shouldMark ? 'ADD' : 'REMOVE') : 'VERIFIED';
+        const occurredAt = new Date().toISOString();
+        const saoPauloDay = new Intl.DateTimeFormat('sv-SE', {
+          timeZone: 'America/Sao_Paulo',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+        }).format(new Date());
+        const eventKey = action === 'VERIFIED'
+          ? `verified:${customerId}:${saoPauloDay}`
+          : randomUUID();
+        db.exec('BEGIN IMMEDIATE');
+        try {
+          db.prepare(`INSERT OR IGNORE INTO sync_events (
+                        event_key, customer_id, customer_name, action, occurred_at
+                      ) VALUES (?, ?, ?, ?, ?)`).run(
+            eventKey,
+            customerId,
+            String(row.customer_name || 'Cliente'),
+            action,
+            occurredAt,
+          );
+          db.prepare(`UPDATE customer_sync
+                         SET applied_marked=?, status='synced', attempts=0,
+                             next_attempt_at=NULL, last_action=?, last_error=NULL,
+                             synced_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP
+                       WHERE customer_id=?`).run(
+            shouldMark ? 1 : 0,
+            action,
+            customerId,
+          );
+          db.exec('COMMIT');
+        } catch (dbError) {
+          db.exec('ROLLBACK');
+          throw dbError;
+        }
         console.log(`OK customer_id=${customerId} action=${action}`);
       } catch (error) {
         exitCode = 1;

@@ -7,6 +7,7 @@
     "reconcile": "node simplesvet-reconcile.js",
     "simplesvet": "node simplesvet-worker.js",
     "report": "node simplesvet-report.js",
+    "backfill-history": "node backfill-events-from-reports.js",
     "smoke-test": "node smoke-test.js"
   },
   "dependencies": {
