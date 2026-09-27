@@ -130,12 +130,13 @@ $nextRunLabel = $nextRun->format('d/m/Y') . ' às ' . $nextRun->format('H:i');
     .sv-table-wrap{overflow-x:auto}.sv-table{width:100%;border-collapse:collapse}.sv-table th,.sv-table td{padding:14px 18px;text-align:left;border-bottom:1px solid #edf1f6;vertical-align:top}.sv-table th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#718096;background:#f8fafc}.sv-table td{font-size:13px}
     .sv-name{font-weight:800;overflow-wrap:anywhere}.sv-id{font-size:11px;color:#8793a7;margin-top:3px}.sv-reason{min-width:0;white-space:normal;color:#5c6678}.sv-badge{display:inline-flex;align-items:center;border-radius:999px;padding:6px 10px;font-size:11px;line-height:1;font-weight:900;white-space:nowrap}.sv-badge.retry{background:#fff3cd;color:#8a6300}.sv-badge.manual_review{background:#fee2e2;color:#991b1b}.sv-badge.ADD{background:#d1fae5;color:#06603f}.sv-badge.REMOVE{background:#dbeafe;color:#1e40af}.sv-badge.VERIFIED{background:#fef3c7;color:#8a5b00}
     .sv-tools{display:flex;gap:8px;flex-wrap:wrap}.sv-tools input,.sv-tools select{border:1px solid #dce4ee;border-radius:10px;background:#fff;padding:9px 11px;font:inherit;font-size:12px;color:#344054}.sv-success-list{max-height:620px;overflow:auto}.sv-success-list thead th{position:sticky;top:0;z-index:1}
-    .sv-day-list{display:grid;gap:10px;padding:16px}.sv-day{display:grid;grid-template-columns:minmax(100px,1.4fr) repeat(4,minmax(80px,1fr));gap:10px;align-items:center;padding:13px 15px;border:1px solid #edf1f6;border-radius:13px}.sv-day strong{font-size:13px}.sv-day-metric span{display:block;color:#98a2b3;font-size:9px;font-weight:900;text-transform:uppercase}.sv-day-metric b{font-size:16px;color:#344054}
+    .sv-period-tools{display:grid;grid-template-columns:minmax(180px,1.5fr) repeat(3,minmax(130px,1fr)) auto;gap:10px;width:100%;padding-top:4px}.sv-field{display:flex;flex-direction:column;gap:5px}.sv-field label{color:#718096;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.05em}.sv-period-tools input{box-sizing:border-box;width:100%;height:39px;border:1px solid #dce4ee;border-radius:10px;background:#fff;padding:8px 10px;font:inherit;font-size:12px;color:#344054}.sv-clear{align-self:end;height:39px;border:1px solid #dce4ee;border-radius:10px;background:#f8fafc;color:#475467;padding:0 14px;font:inherit;font-size:12px;font-weight:900;cursor:pointer}.sv-clear:hover{border-color:#8ed7ff;background:#eef8ff;color:#245477}.sv-results{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 20px;background:#f8fafc;border-bottom:1px solid #edf1f6;color:#667085;font-size:12px;font-weight:800}.sv-results strong{color:#172033}.sv-no-results{padding:42px 22px;text-align:center;color:#68758b}.sv-day-list{display:grid;gap:10px;padding:16px}.sv-day{display:grid;grid-template-columns:minmax(100px,1.4fr) repeat(4,minmax(80px,1fr));gap:10px;align-items:center;padding:13px 15px;border:1px solid #edf1f6;border-radius:13px;background:#fff;color:inherit;text-align:left;width:100%;cursor:pointer;transition:border-color .16s ease,background .16s ease,transform .16s ease}.sv-day:hover,.sv-day:focus-visible{border-color:#8ed7ff;background:#f7fcff;transform:translateY(-1px);outline:none}.sv-day strong{font-size:13px}.sv-day-metric span{display:block;color:#98a2b3;font-size:9px;font-weight:900;text-transform:uppercase}.sv-day-metric b{font-size:16px;color:#344054}
     .sv-errors-list{display:grid;gap:12px;padding:16px}.sv-error-card{display:grid;grid-template-columns:minmax(210px,1.4fr) auto auto minmax(135px,.7fr);gap:16px;align-items:center;padding:17px;border:1px solid #e7edf5;border-radius:15px;background:#fff}.sv-error-cell{min-width:0}.sv-error-label{display:block;margin-bottom:6px;color:#98a2b3;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.06em}.sv-error-reason{grid-column:1/-1;padding-top:14px;border-top:1px solid #edf1f6}.sv-error-message{display:flex;gap:10px;align-items:flex-start;min-width:0}.sv-error-icon{width:30px;height:30px;border-radius:10px;background:#fff1f1;color:#c24141;display:grid;place-items:center;flex:0 0 auto}.sv-error-title{font-weight:800;color:#3c4658;line-height:1.35;overflow-wrap:anywhere}.sv-error-details{margin-top:7px;color:#7a8699;font-size:11px;max-width:100%}.sv-error-details summary{cursor:pointer;font-weight:800;color:#667085}.sv-error-details div{box-sizing:border-box;margin-top:7px;padding:9px 11px;border-radius:9px;background:#f7f9fc;max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}.sv-attempt{font-weight:800;color:#5b6577;white-space:nowrap}.sv-attempt small{display:block;margin-top:3px;color:#98a2b3;font-weight:700}
     .sv-empty{padding:42px 22px;text-align:center;color:#68758b}.sv-empty i{display:block;font-size:38px;color:#21a56f;margin-bottom:10px}
+    @media(max-width:1050px){.sv-period-tools{grid-template-columns:repeat(2,minmax(0,1fr))}.sv-clear{width:max-content}}
     @media(max-width:900px){.sv-error-card{grid-template-columns:1fr 1fr}.sv-error-reason{grid-column:1/-1}}
     @media(max-width:800px){.sv-cards{grid-template-columns:repeat(2,minmax(0,1fr))}.sv-head{align-items:flex-start;flex-direction:column}.sv-page{padding-left:14px;padding-right:14px}}
-    @media(max-width:520px){.sv-error-card{grid-template-columns:1fr}.sv-error-reason{grid-column:1}.sv-next{align-items:flex-start}.sv-day{grid-template-columns:1fr 1fr}.sv-day>strong{grid-column:1/-1}}
+    @media(max-width:520px){.sv-error-card{grid-template-columns:1fr}.sv-error-reason{grid-column:1}.sv-next{align-items:flex-start}.sv-period-tools{grid-template-columns:1fr}.sv-clear{width:100%}.sv-results{align-items:flex-start;flex-direction:column}.sv-day{grid-template-columns:1fr 1fr}.sv-day>strong{grid-column:1/-1}}
   </style>
   <div class="sv-head"><div><h1>Sincronização SimplesVet</h1><p>Falhas da marcação automática Vindi → SimplesVet.</p></div><button class="sv-refresh" type="button" onclick="location.reload()"><i class="fa-solid fa-rotate"></i> Atualizar</button></div>
   <div class="sv-next">
@@ -192,10 +193,18 @@ $nextRunLabel = $nextRun->format('d/m/Y') . ' às ' . $nextRun->format('H:i');
           <option value="VERIFIED">Verificados</option>
         </select>
       </div>
+      <div class="sv-period-tools" aria-label="Filtros por data">
+        <div class="sv-field"><label for="svMonthFilter">Mês</label><input id="svMonthFilter" type="month"></div>
+        <div class="sv-field"><label for="svDayFilter">Dia específico</label><input id="svDayFilter" type="date"></div>
+        <div class="sv-field"><label for="svDateStart">Data inicial</label><input id="svDateStart" type="date"></div>
+        <div class="sv-field"><label for="svDateEnd">Data final</label><input id="svDateEnd" type="date"></div>
+        <button class="sv-clear" id="svClearFilters" type="button"><i class="fa-solid fa-filter-circle-xmark"></i> Limpar filtros</button>
+      </div>
     </div>
     <?php if (!$tableExists || !$successes): ?>
       <div class="sv-empty">Nenhuma alteração concluída foi recebida.</div>
     <?php else: ?>
+      <div class="sv-results"><span id="svResultCount" aria-live="polite"></span><span id="svPeriodLabel"></span></div>
       <div class="sv-table-wrap sv-success-list"><table class="sv-table">
         <thead><tr><th>Cliente</th><th>Ação</th><th>Confirmado em</th></tr></thead>
         <tbody id="svSuccessBody">
@@ -218,7 +227,7 @@ $nextRunLabel = $nextRun->format('d/m/Y') . ' às ' . $nextRun->format('H:i');
           </tr>
         <?php endforeach; ?>
         </tbody>
-      </table></div>
+      </table><div class="sv-no-results" id="svNoResults" hidden>Nenhuma pessoa encontrada para os filtros selecionados.</div></div>
     <?php endif; ?>
   </div>
 
@@ -229,7 +238,7 @@ $nextRunLabel = $nextRun->format('d/m/Y') . ' às ' . $nextRun->format('H:i');
     <?php else: ?>
       <div class="sv-day-list">
       <?php foreach ($dailyStats as $day): ?>
-        <div class="sv-day">
+        <div class="sv-day" role="button" tabindex="0" data-sv-day="<?=svh($day['stat_date'])?>" title="Ver alterações deste dia">
           <strong><?=svh($formatDay($day['stat_date']))?></strong>
           <div class="sv-day-metric"><span>Sucesso</span><b><?=svh($day['success_count'])?></b></div>
           <div class="sv-day-metric"><span>Acrescentados</span><b><?=svh($day['add_count'])?></b></div>
@@ -245,30 +254,103 @@ $nextRunLabel = $nextRun->format('d/m/Y') . ' às ' . $nextRun->format('H:i');
 (() => {
   const search = document.getElementById('svSuccessSearch');
   const action = document.getElementById('svActionFilter');
+  const month = document.getElementById('svMonthFilter');
+  const day = document.getElementById('svDayFilter');
+  const start = document.getElementById('svDateStart');
+  const end = document.getElementById('svDateEnd');
+  const clear = document.getElementById('svClearFilters');
+  const resultCount = document.getElementById('svResultCount');
+  const periodLabel = document.getElementById('svPeriodLabel');
+  const noResults = document.getElementById('svNoResults');
   const body = document.getElementById('svSuccessBody');
-  if (!search || !action || !body) return;
-  let selectedDay = '';
-  let latestOnly = true;
+  if (!search || !action || !month || !day || !start || !end || !clear || !body) return;
+
+  const formatDate = (value) => {
+    if (!value) return '';
+    const [year, monthNumber, date] = value.split('-');
+    return date ? `${date}/${monthNumber}/${year}` : `${monthNumber}/${year}`;
+  };
+
+  const describePeriod = () => {
+    if (day.value) return `Dia ${formatDate(day.value)}`;
+    if (month.value) return `Mês ${formatDate(month.value)}`;
+    if (start.value && end.value) return `${formatDate(start.value)} a ${formatDate(end.value)}`;
+    if (start.value) return `A partir de ${formatDate(start.value)}`;
+    if (end.value) return `Até ${formatDate(end.value)}`;
+    return 'Todo o histórico disponível';
+  };
+
   const filter = () => {
     const term = search.value.trim().toLocaleLowerCase('pt-BR');
     const selected = action.value;
+    let visible = 0;
     body.querySelectorAll('tr').forEach((row) => {
+      const rowDate = row.dataset.date || '';
       const matchesTerm = !term || (row.dataset.search || '').includes(term);
       const matchesAction = !selected || row.dataset.action === selected;
-      const matchesDay = !selectedDay || row.dataset.date === selectedDay;
-      const matchesLatest = !latestOnly || row.dataset.latest === '1';
-      row.hidden = !(matchesTerm && matchesAction && matchesDay && matchesLatest);
+      const matchesMonth = !month.value || rowDate.startsWith(`${month.value}-`);
+      const matchesDay = !day.value || rowDate === day.value;
+      const matchesStart = !start.value || rowDate >= start.value;
+      const matchesEnd = !end.value || rowDate <= end.value;
+      row.hidden = !(matchesTerm && matchesAction && matchesMonth && matchesDay && matchesStart && matchesEnd);
+      if (!row.hidden) visible += 1;
     });
+    if (resultCount) resultCount.innerHTML = `<strong>${visible}</strong> ${visible === 1 ? 'alteração encontrada' : 'alterações encontradas'}`;
+    if (periodLabel) periodLabel.textContent = describePeriod();
+    if (noResults) noResults.hidden = visible !== 0;
   };
+
+  const useMonth = () => {
+    if (month.value) day.value = start.value = end.value = '';
+    filter();
+  };
+  const useDay = () => {
+    if (day.value) month.value = start.value = end.value = '';
+    filter();
+  };
+  const useRange = (changed) => {
+    if (start.value || end.value) month.value = day.value = '';
+    if (start.value && end.value && start.value > end.value) {
+      if (changed === start) end.value = start.value;
+      else start.value = end.value;
+    }
+    filter();
+  };
+
   search.addEventListener('input', filter);
-  action.addEventListener('change', () => { selectedDay = ''; latestOnly = false; filter(); });
+  action.addEventListener('change', filter);
+  month.addEventListener('change', useMonth);
+  day.addEventListener('change', useDay);
+  start.addEventListener('change', () => useRange(start));
+  end.addEventListener('change', () => useRange(end));
+  clear.addEventListener('click', () => {
+    search.value = action.value = month.value = day.value = start.value = end.value = '';
+    filter();
+  });
+
   document.querySelectorAll('[data-sv-filter]').forEach((card) => {
     card.addEventListener('click', () => {
       action.value = card.dataset.svFilter || '';
-      selectedDay = card.dataset.svToday || '';
-      latestOnly = false;
+      day.value = card.dataset.svToday || '';
+      month.value = start.value = end.value = '';
       filter();
       document.getElementById('svCompletedPanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+  document.querySelectorAll('[data-sv-day]').forEach((dayButton) => {
+    const openDay = () => {
+      action.value = '';
+      day.value = dayButton.dataset.svDay || '';
+      month.value = start.value = end.value = '';
+      filter();
+      document.getElementById('svCompletedPanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+    dayButton.addEventListener('click', openDay);
+    dayButton.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        openDay();
+      }
     });
   });
   filter();
