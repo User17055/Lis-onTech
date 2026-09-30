@@ -172,9 +172,12 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       background:#fff;border:2px solid var(--border-color);border-radius:22px;padding:14px 16px 8px;box-shadow:var(--shadow-soft);transition:box-shadow .25s,border-color .25s;
     }
     .report-list-panel:hover{border-color:#dbeafe;box-shadow:var(--shadow-hover);}
-    .report-list-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 8px;padding:3px 2px 7px;border-bottom:1px solid #edf2f7;}
+    .report-list-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 8px;padding:3px 2px 12px;border-bottom:1px solid #edf2f7;flex-wrap:wrap;}
     .report-list-title strong{font-size:15px;font-weight:1000;color:#0f172a;text-transform:uppercase;}
     .report-list-title span{font-size:13px;font-weight:900;color:#64748b;background:#fff;border:1px solid var(--border-color);border-radius:999px;padding:7px 12px;box-shadow:var(--shadow-soft);}
+    .report-list-tools{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-left:auto;}
+    .report-list-tools .filter-select{height:40px;min-width:190px;font-size:13px;box-shadow:none;}
+    .report-list-tools #pageSizeFilter{min-width:150px;}
     .report-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 2px 8px;border-top:1px solid #edf2f7;flex-wrap:wrap;}
     .report-pagination[hidden]{display:none;}
     .pagination-summary{color:var(--text-muted);font-size:13px;font-weight:900;}
@@ -303,6 +306,10 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       .report-pagination{align-items:stretch;flex-direction:column;}
       .pagination-controls{justify-content:center;}
       .pagination-summary{text-align:center;}
+      .report-list-title{align-items:stretch;flex-direction:column;}
+      .report-list-tools{width:100%;margin-left:0;justify-content:stretch;}
+      .report-list-tools .filter-select{min-width:0;flex:1 1 100%;}
+      .report-list-title #reportListCount{align-self:flex-start;}
       .summary-grid,.leader-strip,.bill-line{grid-template-columns:1fr;}
       .month-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
       .month-board-head{align-items:stretch;flex-direction:column;}
@@ -371,18 +378,6 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         <option value="f">(F)</option>
         <option value="none">Sem prefixo</option>
       </select>
-      <select id="sortFilter" class="filter-select" title="Ordenar relatorios">
-        <option value="amount_desc">Valor: maior para menor</option>
-        <option value="amount_asc">Valor: menor para maior</option>
-        <option value="time_desc">Tempo em atraso: maior para menor</option>
-        <option value="time_asc">Tempo em atraso: menor para maior</option>
-      </select>
-      <select id="pageSizeFilter" class="filter-select" title="Registros por pagina">
-        <option value="25">25 por pagina</option>
-        <option value="50">50 por pagina</option>
-        <option value="100">100 por pagina</option>
-        <option value="all">Mostrar todos</option>
-      </select>
       <button id="btnLoadReports" class="btn-primary" type="button"><i class="fa-solid fa-rotate"></i> Atualizar</button>
       <button id="btnSyncReports" class="btn-secondary" type="button"><i class="fa-solid fa-cloud-arrow-down"></i> Sincronizar Vindi</button>
     </div>
@@ -435,6 +430,20 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     <div class="report-list-panel">
       <div class="report-list-title">
         <strong>Clientes em atraso</strong>
+        <div class="report-list-tools">
+          <select id="sortFilter" class="filter-select" title="Ordenar relatorios">
+            <option value="amount_desc">Valor: maior para menor</option>
+            <option value="amount_asc">Valor: menor para maior</option>
+            <option value="time_desc">Tempo em atraso: maior para menor</option>
+            <option value="time_asc">Tempo em atraso: menor para maior</option>
+          </select>
+          <select id="pageSizeFilter" class="filter-select" title="Registros por pagina">
+            <option value="25">25 por pagina</option>
+            <option value="50">50 por pagina</option>
+            <option value="100">100 por pagina</option>
+            <option value="all">Mostrar todos</option>
+          </select>
+        </div>
         <span id="reportListCount">0 registro(s)</span>
       </div>
       <div class="table-scroll">
@@ -505,8 +514,6 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     $rep('pageSizeFilter').value = String(repState.pageSize);
     markFilter = $rep('markFilter').value;
     prefixFilter = $rep('prefixFilter').value;
-    const debtHead = document.querySelectorAll('.report-list-panel thead th')[2];
-    if (debtHead) debtHead.textContent = 'Divida';
 
     function esc(value){
       return String(value ?? '').replace(/[&<>"']/g, m => ({
