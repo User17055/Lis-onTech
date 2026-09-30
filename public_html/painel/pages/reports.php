@@ -175,6 +175,15 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     .report-list-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 8px;padding:3px 2px 7px;border-bottom:1px solid #edf2f7;}
     .report-list-title strong{font-size:15px;font-weight:1000;color:#0f172a;text-transform:uppercase;}
     .report-list-title span{font-size:13px;font-weight:900;color:#64748b;background:#fff;border:1px solid var(--border-color);border-radius:999px;padding:7px 12px;box-shadow:var(--shadow-soft);}
+    .report-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 2px 8px;border-top:1px solid #edf2f7;flex-wrap:wrap;}
+    .report-pagination[hidden]{display:none;}
+    .pagination-summary{color:var(--text-muted);font-size:13px;font-weight:900;}
+    .pagination-controls{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+    .page-btn{min-width:38px;height:38px;padding:0 11px;border:2px solid var(--border-color);border-radius:12px;background:#fff;color:var(--text-main);font-family:'Nunito',sans-serif;font-weight:1000;cursor:pointer;transition:.18s;}
+    .page-btn:hover:not(:disabled){border-color:#9bdcff;color:#12628f;background:#eef8ff;}
+    .page-btn.active{border-color:#38b6ff;background:#38b6ff;color:#fff;}
+    .page-btn:disabled{opacity:.45;cursor:not-allowed;}
+    .page-ellipsis{min-width:28px;text-align:center;color:var(--text-muted);font-weight:1000;}
     table{width:100%;border-collapse:separate;border-spacing:0 12px;}
     thead th{color:#526985;font-size:12px;text-transform:uppercase;font-weight:1000;padding:8px 24px 2px;text-align:left;}
     tbody tr{background:white;box-shadow:0 3px 8px rgba(15,23,42,.04);border:2px solid var(--border-color);border-radius:20px;transition:.22s ease;cursor:pointer;}
@@ -291,6 +300,9 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       .search-box{min-width:0;width:100%;}
       .month-control{width:100%;flex:auto;}
       .filter-select{width:100%;}
+      .report-pagination{align-items:stretch;flex-direction:column;}
+      .pagination-controls{justify-content:center;}
+      .pagination-summary{text-align:center;}
       .summary-grid,.leader-strip,.bill-line{grid-template-columns:1fr;}
       .month-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
       .month-board-head{align-items:stretch;flex-direction:column;}
@@ -359,6 +371,18 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         <option value="f">(F)</option>
         <option value="none">Sem prefixo</option>
       </select>
+      <select id="sortFilter" class="filter-select" title="Ordenar relatorios">
+        <option value="amount_desc">Valor: maior para menor</option>
+        <option value="amount_asc">Valor: menor para maior</option>
+        <option value="time_desc">Tempo em atraso: maior para menor</option>
+        <option value="time_asc">Tempo em atraso: menor para maior</option>
+      </select>
+      <select id="pageSizeFilter" class="filter-select" title="Registros por pagina">
+        <option value="25">25 por pagina</option>
+        <option value="50">50 por pagina</option>
+        <option value="100">100 por pagina</option>
+        <option value="all">Mostrar todos</option>
+      </select>
       <button id="btnLoadReports" class="btn-primary" type="button"><i class="fa-solid fa-rotate"></i> Atualizar</button>
       <button id="btnSyncReports" class="btn-secondary" type="button"><i class="fa-solid fa-cloud-arrow-down"></i> Sincronizar Vindi</button>
     </div>
@@ -425,6 +449,10 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
         <tbody id="repBody"></tbody>
         </table>
       </div>
+      <div class="report-pagination" id="reportPagination" hidden>
+        <div class="pagination-summary" id="paginationSummary"></div>
+        <div class="pagination-controls" id="paginationControls" aria-label="Paginacao dos relatorios"></div>
+      </div>
     </div>
   </div>
 
@@ -457,7 +485,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
   </div>
 
   <script>
-    const repState = { rows: [], expanded: new Set(), contextRowKey: '', scrollRestored: false };
+    const repState = { rows: [], expanded: new Set(), contextRowKey: '', scrollRestored: false, page: 1, pageSize: 25, sort: 'amount_desc' };
     const $rep = (id) => document.getElementById(id);
     let reportsLoading = false;
     let reportsRequestId = 0;
@@ -469,6 +497,12 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     $rep('repQ').value = reportUrlParams.get('q') || '';
     $rep('markFilter').value = ['all','marked','unmarked'].includes(markFilter) ? markFilter : 'all';
     $rep('prefixFilter').value = ['all','p','f','none'].includes(prefixFilter) ? prefixFilter : 'all';
+    repState.sort = ['amount_desc','amount_asc','time_desc','time_asc'].includes(reportUrlParams.get('sort')) ? reportUrlParams.get('sort') : 'amount_desc';
+    const requestedPageSize = reportUrlParams.get('page_size') || '25';
+    repState.pageSize = requestedPageSize === 'all' ? 'all' : ([25,50,100].includes(Number(requestedPageSize)) ? Number(requestedPageSize) : 25);
+    repState.page = Math.max(1, parseInt(reportUrlParams.get('page') || '1', 10) || 1);
+    $rep('sortFilter').value = repState.sort;
+    $rep('pageSizeFilter').value = String(repState.pageSize);
     markFilter = $rep('markFilter').value;
     prefixFilter = $rep('prefixFilter').value;
     const debtHead = document.querySelectorAll('.report-list-panel thead th')[2];
@@ -587,6 +621,9 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       if (selectedMonth) url.searchParams.set('month', selectedMonth);
       if (markFilter !== 'all') url.searchParams.set('mark_filter', markFilter);
       if (prefixFilter !== 'all') url.searchParams.set('prefix_filter', prefixFilter);
+      if (repState.sort !== 'amount_desc') url.searchParams.set('sort', repState.sort);
+      if (repState.pageSize !== 25) url.searchParams.set('page_size', String(repState.pageSize));
+      if (repState.page > 1) url.searchParams.set('page', String(repState.page));
       return url.toString();
     }
 
@@ -649,6 +686,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       selectedMonth = '';
       markFilter = 'all';
       prefixFilter = 'all';
+      repState.page = 1;
       monthsExpanded = false;
       const q = $rep('repQ');
       if (q) q.value = '';
@@ -862,15 +900,74 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       return top + lines;
     }
 
-    function renderRows(){
-      const body = $rep('repBody');
-      const rows = repState.rows;
-      if (!rows.length) {
-        body.innerHTML = `<tr style="cursor:default; pointer-events:none;"><td colspan="3" style="text-align:center; padding:40px; color:var(--text-muted); background:transparent; box-shadow:none; border:none; font-weight:600;">Nenhum cliente devendo encontrado.</td></tr>`;
+    function sortedReportRows(){
+      const rows = [...repState.rows];
+      const direction = repState.sort.endsWith('_asc') ? 1 : -1;
+      const isTime = repState.sort.startsWith('time_');
+      rows.sort((a, b) => {
+        const av = isTime ? Number(a.max_days_overdue || 0) : Number(a.total_amount || 0);
+        const bv = isTime ? Number(b.max_days_overdue || 0) : Number(b.total_amount || 0);
+        if (av !== bv) return (av - bv) * direction;
+        const amountTie = Number(b.total_amount || 0) - Number(a.total_amount || 0);
+        if (amountTie !== 0) return amountTie;
+        return String(a.customer_name || '').localeCompare(String(b.customer_name || ''), 'pt-BR');
+      });
+      return rows;
+    }
+
+    function paginationItems(current, total){
+      if (total <= 7) return Array.from({length: total}, (_, index) => index + 1);
+      const pages = new Set([1, total, current - 1, current, current + 1]);
+      if (current <= 3) [2,3,4].forEach(page => pages.add(page));
+      if (current >= total - 2) [total - 3,total - 2,total - 1].forEach(page => pages.add(page));
+      const ordered = [...pages].filter(page => page >= 1 && page <= total).sort((a, b) => a - b);
+      const items = [];
+      ordered.forEach((page, index) => {
+        if (index && page - ordered[index - 1] > 1) items.push('ellipsis-' + page);
+        items.push(page);
+      });
+      return items;
+    }
+
+    function renderPagination(totalRows, totalPages, start, end){
+      const pagination = $rep('reportPagination');
+      const summary = $rep('paginationSummary');
+      const controls = $rep('paginationControls');
+      if (!pagination || !summary || !controls) return;
+      pagination.hidden = totalRows === 0;
+      if (!totalRows) return;
+      summary.textContent = `Mostrando ${brNumber(start + 1)} a ${brNumber(end)} de ${brNumber(totalRows)} cliente(s)`;
+      if (repState.pageSize === 'all' || totalPages <= 1) {
+        controls.innerHTML = '';
         return;
       }
+      const items = paginationItems(repState.page, totalPages).map(item => {
+        if (typeof item === 'string') return '<span class="page-ellipsis">...</span>';
+        return `<button type="button" class="page-btn ${item === repState.page ? 'active' : ''}" data-page="${item}" ${item === repState.page ? 'aria-current="page"' : ''}>${item}</button>`;
+      }).join('');
+      controls.innerHTML = `
+        <button type="button" class="page-btn" data-page="${repState.page - 1}" ${repState.page <= 1 ? 'disabled' : ''} aria-label="Pagina anterior"><i class="fa-solid fa-chevron-left"></i></button>
+        ${items}
+        <button type="button" class="page-btn" data-page="${repState.page + 1}" ${repState.page >= totalPages ? 'disabled' : ''} aria-label="Proxima pagina"><i class="fa-solid fa-chevron-right"></i></button>
+      `;
+    }
+
+    function renderRows(){
+      const body = $rep('repBody');
+      const allRows = sortedReportRows();
+      if (!allRows.length) {
+        body.innerHTML = `<tr style="cursor:default; pointer-events:none;"><td colspan="3" style="text-align:center; padding:40px; color:var(--text-muted); background:transparent; box-shadow:none; border:none; font-weight:600;">Nenhum cliente devendo encontrado.</td></tr>`;
+        renderPagination(0, 0, 0, 0);
+        return;
+      }
+      const pageSize = repState.pageSize === 'all' ? allRows.length : Number(repState.pageSize);
+      const totalPages = Math.max(1, Math.ceil(allRows.length / pageSize));
+      repState.page = Math.min(Math.max(1, repState.page), totalPages);
+      const start = repState.pageSize === 'all' ? 0 : (repState.page - 1) * pageSize;
+      const end = repState.pageSize === 'all' ? allRows.length : Math.min(start + pageSize, allRows.length);
+      const rows = allRows.slice(start, end);
       body.innerHTML = rows.map((row, idx) => {
-        const key = String(row.customer_key || idx);
+        const key = String(row.customer_key || (start + idx));
         const detailsHref = reportDetailsHref(row);
         const marked = !!row?.mark?.marked;
         const reason = String(row?.mark?.reason || '').trim();
@@ -907,6 +1004,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
           </tr>
         `;
       }).join('');
+      renderPagination(allRows.length, totalPages, start, end);
     }
 
     function applyData(data){
@@ -1045,6 +1143,12 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       else url.searchParams.delete('mark_filter');
       if (prefixFilter !== 'all') url.searchParams.set('prefix_filter', prefixFilter);
       else url.searchParams.delete('prefix_filter');
+      if (repState.sort !== 'amount_desc') url.searchParams.set('sort', repState.sort);
+      else url.searchParams.delete('sort');
+      if (repState.pageSize !== 25) url.searchParams.set('page_size', String(repState.pageSize));
+      else url.searchParams.delete('page_size');
+      if (repState.page > 1) url.searchParams.set('page', String(repState.page));
+      else url.searchParams.delete('page');
       history.replaceState(null, '', url.toString());
     }
 
@@ -1295,18 +1399,21 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     $rep('btnSyncReports').onclick = () => loadReports(true);
     $rep('markFilter').addEventListener('change', () => {
       markFilter = $rep('markFilter').value;
+      repState.page = 1;
       repState.expanded.clear();
       closeContextMenu();
       loadReports(false, true);
     });
     $rep('prefixFilter').addEventListener('change', () => {
       prefixFilter = $rep('prefixFilter').value;
+      repState.page = 1;
       repState.expanded.clear();
       closeContextMenu();
       loadReports(false, true);
     });
     $rep('monthFilter').addEventListener('change', () => {
       selectedMonth = $rep('monthFilter').value;
+      repState.page = 1;
       repState.expanded.clear();
       closeContextMenu();
       loadReports(false, true);
@@ -1315,6 +1422,7 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
       const btn = event.target.closest('button[data-month]');
       if (!btn) return;
       selectedMonth = btn.getAttribute('data-month') || '';
+      repState.page = 1;
       monthsExpanded = false;
       repState.expanded.clear();
       closeContextMenu();
@@ -1333,10 +1441,32 @@ if (!authIsLoggedIn()) { http_response_code(403); exit('Sem login'); }
     });
     $rep('repQ').addEventListener('keydown', (event) => {
       if (event.key === 'Enter') {
+        repState.page = 1;
         repState.expanded.clear();
         closeContextMenu();
         loadReports(false, true);
       }
+    });
+    $rep('sortFilter').addEventListener('change', () => {
+      repState.sort = $rep('sortFilter').value;
+      repState.page = 1;
+      renderRows();
+      syncUrlState();
+    });
+    $rep('pageSizeFilter').addEventListener('change', () => {
+      const value = $rep('pageSizeFilter').value;
+      repState.pageSize = value === 'all' ? 'all' : Number(value);
+      repState.page = 1;
+      renderRows();
+      syncUrlState();
+    });
+    $rep('paginationControls').addEventListener('click', (event) => {
+      const button = event.target.closest('button[data-page]');
+      if (!button || button.disabled) return;
+      repState.page = Math.max(1, Number(button.getAttribute('data-page')) || 1);
+      renderRows();
+      syncUrlState();
+      document.querySelector('.report-list-panel')?.scrollIntoView({behavior:'smooth', block:'start'});
     });
 
     loadReports(false);
