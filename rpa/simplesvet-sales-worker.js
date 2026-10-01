@@ -186,8 +186,12 @@ async function locateCustomer(page, cpf, customerName) {
   };
   const find = async (term, type) => {
     await input.fill(term);
-    await search.click();
-    await page.locator('#pesquisa').waitFor({ state: 'visible', timeout: 15000 });
+    const drawer = page.locator('#pesquisa');
+    if (!(await drawer.isVisible().catch(() => false))) {
+      await page.locator('.blockUI.blockOverlay').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => undefined);
+      await search.click();
+    }
+    await drawer.waitFor({ state: 'visible', timeout: 15000 });
     const drawerSelector = type === 'cpf'
       ? env('SIMPLESVET_SALE_CUSTOMER_CPF_SELECTOR', '#pesquisa input#cpf:visible')
       : env('SIMPLESVET_SALE_CUSTOMER_NAME_SELECTOR', '#pesquisa input#nome:visible');
