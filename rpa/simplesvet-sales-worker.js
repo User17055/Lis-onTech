@@ -70,10 +70,33 @@ async function selectConfigured(locator, value) {
 }
 
 async function login(page) {
-  await page.goto(required('SIMPLESVET_LOGIN_URL'), { waitUntil: 'commit', timeout: 90000 });
   const userSelector = env('SIMPLESVET_USERNAME_SELECTOR', 'input[name="usuario"], input[name="username"], input[type="email"]');
   const passwordSelector = env('SIMPLESVET_PASSWORD_SELECTOR', 'input[name="senha"], input[name="password"], input[type="password"]');
-  await page.locator(userSelector).first().waitFor({ state: 'visible', timeout: 60000 });
+  let opened = false;
+  let lastError;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      await page.goto(required('SIMPLESVET_LOGIN_URL'), { waitUntil: 'commit', timeout: 90000 });
+      if (!page.url().includes('/login/')) {
+        opened = true;
+        break;
+      }
+      await page.locator(userSelector).first().waitFor({ state: 'visible', timeout: 45000 });
+      opened = true;
+      break;
+    } catch (error) {
+      lastError = error;
+      if (attempt < 3) {
+        await page.goto('about:blank', { waitUntil: 'commit', timeout: 10000 }).catch(() => undefined);
+        await page.waitForTimeout(2500 * attempt);
+      }
+    }
+  }
+  if (!opened) throw lastError || new Error('Pagina de login do SimplesVet indisponivel');
+  if (!page.url().includes('/login/')) {
+    await selectUnit(page);
+    return;
+  }
   const username = clean(salesAccount?.username);
   if (!username) throw new Error('SIMPLESVET_SALES_USER nao configurada');
   await page.locator(userSelector).first().fill(username);
@@ -356,7 +379,10 @@ try {
         error: message, manual_review: error?.manualReview === true,
       }).catch((queueError) => console.error(`VENDA_SV_ACK_ERRO ${clean(queueError?.message || queueError)}`));
       console.error(`VENDA_SV_ERRO bill_id=${job.bill_id} ${message}`);
-      if (page?.url().includes('/login/')) await login(page).catch(() => undefined);
+      if (page) {
+        await page.context().close().catch(() => undefined);
+        page = null;
+      }
     }
   }
   if (processed === 0) console.log('VENDAS_SV fila vazia');
