@@ -204,6 +204,69 @@ function billAmountOrNull(array $bill): ?string
     return null;
 }
 
+function ensureSimplesVetSaleJobsTable(PDO $pdo): void
+{
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS simplesvet_sale_jobs (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            bill_id BIGINT UNSIGNED NOT NULL,
+            customer_id BIGINT UNSIGNED NULL,
+            customer_name VARCHAR(220) NOT NULL DEFAULT '',
+            amount DECIMAL(14,2) NULL,
+            paid_at DATETIME NULL,
+            status VARCHAR(32) NOT NULL DEFAULT 'pending',
+            attempts INT UNSIGNED NOT NULL DEFAULT 0,
+            next_attempt_at DATETIME NULL,
+            lease_token CHAR(36) NULL,
+            leased_at DATETIME NULL,
+            simplesvet_sale_id VARCHAR(80) NULL,
+            last_error TEXT NULL,
+            source_payload MEDIUMTEXT NULL,
+            result_payload MEDIUMTEXT NULL,
+            completed_at DATETIME NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY uq_simplesvet_sale_bill (bill_id),
+            KEY idx_simplesvet_sale_queue (status, next_attempt_at),
+            KEY idx_simplesvet_sale_paid (paid_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    ");
+}
+
+function enqueueSimplesVetSale(PDO $pdo, array $bill, array $payload, ?string $paidAt): void
+{
+    $billId = (int)($bill['id'] ?? 0);
+    if ($billId <= 0) return;
+
+    ensureSimplesVetSaleJobsTable($pdo);
+    $customer = is_array($bill['customer'] ?? null) ? $bill['customer'] : [];
+    $sourcePayload = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    if ($sourcePayload === false) $sourcePayload = null;
+
+    $stmt = $pdo->prepare("
+        INSERT INTO simplesvet_sale_jobs (
+            bill_id, customer_id, customer_name, amount, paid_at, status,
+            next_attempt_at, source_payload
+        ) VALUES (?, ?, ?, ?, ?, 'pending', NOW(), ?)
+        ON DUPLICATE KEY UPDATE
+            customer_id=COALESCE(VALUES(customer_id), customer_id),
+            customer_name=IF(VALUES(customer_name) <> '', VALUES(customer_name), customer_name),
+            amount=COALESCE(VALUES(amount), amount),
+            paid_at=COALESCE(VALUES(paid_at), paid_at),
+            source_payload=COALESCE(VALUES(source_payload), source_payload),
+            next_attempt_at=CASE WHEN status IN ('pending','retry') THEN NOW() ELSE next_attempt_at END
+    ");
+    $stmt->execute([
+        $billId,
+        !empty($customer['id']) ? (int)$customer['id'] : null,
+        mb_substr(trim((string)($customer['name'] ?? '')), 0, 220),
+        billAmountOrNull($bill),
+        $paidAt,
+        $sourcePayload,
+    ]);
+}
+
 function isPaidStatus($value): bool
 {
     $status = strtolower(trim((string) $value));
@@ -365,6 +428,15 @@ if ($evento === 'bill_paid' || $evento === 'bill_canceled') {
             ON DUPLICATE KEY UPDATE active=0, status=VALUES(status), paid_at=COALESCE(VALUES(paid_at), paid_at), amount=COALESCE(VALUES(amount), amount)
         ");
         $st->execute([$billIdInt, $statusEvento, $paidAt, $paidAmount]);
+
+        if ($evento === 'bill_paid' && is_array($bill)) {
+            try {
+                enqueueSimplesVetSale($pdo, $bill, $dados, $paidAt);
+                logLine($LOG_FILE, "Baixa SimplesVet enfileirada | bill_id={$billIdInt}");
+            } catch (Throwable $e) {
+                logLine($LOG_FILE, "ERRO ao enfileirar baixa SimplesVet | bill_id={$billIdInt} | " . $e->getMessage());
+            }
+        }
 
         logLine($LOG_FILE, "bill_reminders desativado por {$evento} | bill_id={$billIdInt} | status={$statusEvento}");
     } else {

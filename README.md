@@ -101,3 +101,24 @@ atualiza o bloco do cron sem duplica-lo:
 chmod +x /opt/lisontech-simplesvet/scripts/install_simplesvet_cron.sh
 /opt/lisontech-simplesvet/scripts/install_simplesvet_cron.sh
 ```
+
+## Vendas pagas da Vindi no SimplesVet
+
+Ao receber o webhook `bill_paid`, o Lis-onTech cria uma tarefa unica por fatura.
+O worker `rpa/simplesvet-sales-worker.js` consulta essa fila, localiza o cliente
+no SimplesVet pelo CPF da Vindi, cria a venda com os itens da fatura e registra
+o recebimento. O andamento fica disponivel em **Realizados > Baixas SV**.
+
+Antes de ativar, configure os campos `SIMPLESVET_SALE_*` do
+`secure/config.env`, principalmente a URL do PDV, seletores de cliente/produto,
+forma de recebimento, caixa e confirmacao de sucesso. Valide primeiro com
+`SIMPLESVET_HEADLESS=0` e depois habilite:
+
+```env
+SIMPLESVET_SALES_ENABLED=1
+```
+
+Teste manualmente com `npm run sales` na pasta `rpa`. O instalador do cron
+executa o worker a cada cinco minutos. Falhas anteriores a confirmacao entram
+em nova tentativa; uma falha depois do clique final vai para revisao manual,
+evitando que uma venda potencialmente concluida seja criada novamente.

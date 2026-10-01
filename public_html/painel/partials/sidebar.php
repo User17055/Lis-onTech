@@ -264,6 +264,16 @@ if (!function_exists('isActive')) {
         padding-top: 10px;
     }
 
+    .nav-links .sidebar-section-label {
+        margin: 20px 20px 7px;
+        color: #9aa8ba;
+        font-size: .68rem;
+        font-weight: 700;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+    }
+
+
     .main-content {
         padding: 40px;
         margin-left: 0;
@@ -475,6 +485,14 @@ if (!function_exists('isActive')) {
         <li>
             <a href="?pagina=simplesvet" class="<?= isActive('simplesvet', $pagina) ?>">
                 <i class='bx bx-pulse'></i> <span>SimplesVet</span>
+            </a>
+        </li>
+
+        <li class="sidebar-section-label"><span>Realizados</span></li>
+
+        <li>
+            <a href="?pagina=baixas_sv" class="<?= isActive('baixas_sv', $pagina) ?>">
+                <i class='bx bx-receipt'></i> <span>Baixas SV</span>
             </a>
         </li>
 
