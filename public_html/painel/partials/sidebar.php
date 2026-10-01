@@ -497,6 +497,12 @@ if (!function_exists('isActive')) {
         </li>
 
         <li>
+            <a href="?pagina=conciliacao_planos" class="<?= isActive('conciliacao_planos', $pagina) ?>">
+                <i class='bx bx-link-alt'></i> <span>Concilia&ccedil;&atilde;o de planos</span>
+            </a>
+        </li>
+
+        <li>
             <a href="?pagina=finance" class="<?= isActive('finance', $pagina) ?>">
                 <i class='bx bx-dollar-circle'></i> <span>Financeiro</span>
             </a>

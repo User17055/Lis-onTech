@@ -1,5 +1,6 @@
 import path from 'node:path';
 import process from 'node:process';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
 import { chromium } from 'playwright';
@@ -17,6 +18,8 @@ const required = (name) => {
 const firstEnv = (...names) => names.map((name) => env(name)).find(Boolean) || '';
 const clean = (value) => String(value ?? '').replace(/[\r\n]+/g, ' ').trim();
 const digits = (value) => String(value ?? '').replace(/\D/g, '');
+const normalizedName = (value) => clean(value).toLocaleUpperCase('pt-BR')
+  .normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ');
 
 if (env('SIMPLESVET_SALES_ENABLED', '0') !== '1') {
   console.log('VENDAS_SV desativadas (SIMPLESVET_SALES_ENABLED=0)');
@@ -64,10 +67,12 @@ async function login(page) {
   await page.goto(required('SIMPLESVET_LOGIN_URL'), { waitUntil: 'domcontentloaded', timeout: 60000 });
   const userSelector = env('SIMPLESVET_USERNAME_SELECTOR', 'input[name="usuario"], input[name="username"], input[type="email"]');
   const passwordSelector = env('SIMPLESVET_PASSWORD_SELECTOR', 'input[name="senha"], input[name="password"], input[type="password"]');
-  const username = firstEnv('SIMPLESVET_USER', 'SIMPLESVET_USERNAME');
-  if (!username) throw new Error('SIMPLESVET_USER nao configurada');
+  const username = firstEnv('SIMPLESVET_SALES_USER', 'SIMPLESVET_USER', 'SIMPLESVET_USERNAME');
+  if (!username) throw new Error('SIMPLESVET_SALES_USER nao configurada');
   await page.locator(userSelector).first().fill(username);
-  await page.locator(passwordSelector).first().fill(required('SIMPLESVET_PASSWORD'));
+  const password = firstEnv('SIMPLESVET_SALES_PASSWORD', 'SIMPLESVET_PASSWORD');
+  if (!password) throw new Error('SIMPLESVET_SALES_PASSWORD nao configurada');
+  await page.locator(passwordSelector).first().fill(password);
   const submitSelector = env('SIMPLESVET_SUBMIT_SELECTOR');
   if (submitSelector) await page.locator(submitSelector).first().click();
   else await page.getByRole('button', { name: /entrar|acessar|login/i }).first().click();
@@ -76,7 +81,7 @@ async function login(page) {
 }
 
 async function selectUnit(page) {
-  const unitName = env('SIMPLESVET_UNIT_NAME');
+  const unitName = firstEnv('SIMPLESVET_SALES_UNIT_NAME', 'SIMPLESVET_UNIT_NAME');
   if (!unitName) return;
   const configured = env('SIMPLESVET_UNIT_SELECTOR');
   if (configured) {
@@ -130,31 +135,63 @@ function billFromJob(job) {
   return job?.source?.event?.data?.bill ?? {};
 }
 
-function billItems(bill) {
+function itemMappingKey(item) {
+  const productId = Number(item?.product?.id ?? item?.product_id ?? 0);
+  const code = clean(item?.product?.code);
+  const name = clean(item?.product?.name || item?.description || code);
+  const identity = productId > 0 ? `id:${productId}` : (code ? `code:${normalizedName(code)}` : `name:${normalizedName(name)}`);
+  return createHash('sha256').update(identity).digest('hex');
+}
+
+function billItems(bill, mappings) {
   const items = Array.isArray(bill?.bill_items) ? bill.bill_items : [];
   return items.map((item) => {
+    const mapping = mappings?.[itemMappingKey(item)] ?? null;
+    if (!mapping || mapping.mapping_status === 'pending') {
+      throw new Error(`Produto Vindi sem conciliacao: ${clean(item?.product?.name || item?.description || 'sem nome')}`);
+    }
+    if (mapping.mapping_status === 'ignored') return null;
     const quantity = Math.max(1, Number(item?.quantity ?? 1) || 1);
     const total = Number(item?.amount ?? item?.pricing_schema?.price ?? 0) || 0;
+    const name = clean(mapping.simplesvet_product_name || item?.product?.name || item?.description);
     return {
-      key: clean(item?.product?.code || item?.product?.name || item?.description),
-      name: clean(item?.product?.name || item?.description || item?.product?.code),
+      key: clean(mapping.simplesvet_product_code || mapping.simplesvet_product_name),
+      name,
       quantity,
       unitPrice: Number(item?.pricing_schema?.price ?? (total / quantity)) || 0,
     };
-  }).filter((item) => item.key);
+  }).filter(Boolean);
 }
 
-async function locateCustomer(page, cpf) {
+async function locateCustomer(page, cpf, customerName) {
   const input = page.locator(required('SIMPLESVET_SALE_CUSTOMER_SELECTOR')).first();
   await input.waitFor({ state: 'visible', timeout: 20000 });
-  await input.fill(cpf);
   const search = env('SIMPLESVET_SALE_CUSTOMER_SEARCH_SELECTOR');
-  if (search) await page.locator(search).first().click();
-  else await input.press('Enter');
-  const rows = page.locator(required('SIMPLESVET_SALE_CUSTOMER_RESULTS_SELECTOR'));
-  await rows.first().waitFor({ state: 'visible', timeout: 20000 });
-  const count = await rows.count();
-  if (count !== 1) throw new Error(`CPF retornou ${count} clientes no SimplesVet; revisao manual necessaria`);
+  const rowsSelector = required('SIMPLESVET_SALE_CUSTOMER_RESULTS_SELECTOR');
+
+  const find = async (term) => {
+    await input.fill(term);
+    if (search) await page.locator(search).first().click();
+    else await input.press('Enter');
+    await page.waitForFunction(
+      (selector) => document.querySelectorAll(selector).length > 0
+        || document.body.innerText.includes('Nenhum cliente foi encontrado'),
+      rowsSelector,
+      { timeout: 20000 },
+    );
+    return page.locator(rowsSelector);
+  };
+
+  let rows = await find(cpf);
+  let count = await rows.count();
+  if (count === 0 && customerName) {
+    const retry = page.getByText('Fazer uma nova busca', { exact: false }).first();
+    if (await retry.count()) await retry.click();
+    await input.waitFor({ state: 'visible', timeout: 10000 });
+    rows = await find(customerName);
+    count = await rows.count();
+  }
+  if (count !== 1) throw new Error(`Cliente retornou ${count} resultados no SimplesVet; revisao manual necessaria`);
   await rows.first().click();
 }
 
@@ -189,11 +226,11 @@ async function createAndReceiveSale(page, job) {
   const customer = await getVindiCustomer(Number(job.customer_id || bill?.customer?.id || 0));
   const cpf = customerCpf(customer);
   if (!cpf) throw new Error('CPF ausente ou invalido na Vindi');
-  const items = billItems(bill);
-  if (!items.length) throw new Error('Fatura Vindi sem itens identificaveis');
+  const items = billItems(bill, job.product_mappings);
+  if (!items.length) throw new Error('Fatura Vindi sem produtos habilitados na conciliacao');
 
   await page.goto(required('SIMPLESVET_SALES_URL'), { waitUntil: 'domcontentloaded', timeout: 60000 });
-  await locateCustomer(page, cpf);
+  await locateCustomer(page, cpf, clean(customer?.name || job.customer_name));
   for (const item of items) await addItem(page, item);
 
   const referenceSelector = env('SIMPLESVET_SALE_REFERENCE_SELECTOR');
@@ -201,66 +238,81 @@ async function createAndReceiveSale(page, job) {
     await page.locator(referenceSelector).first().fill(`VINDI #${job.bill_id}`);
   }
 
-  await page.locator(required('SIMPLESVET_SALE_SAVE_RECEIVE_SELECTOR')).first().click();
-  const payment = page.locator(required('SIMPLESVET_SALE_PAYMENT_SELECTOR')).first();
-  await payment.waitFor({ state: 'visible', timeout: 20000 });
-  const cashierSelector = env('SIMPLESVET_SALE_CASHIER_SELECTOR');
-  if (cashierSelector) await selectConfigured(page.locator(cashierSelector).first(), required('SIMPLESVET_SALE_CASHIER_VALUE'));
-  await selectConfigured(payment, required('SIMPLESVET_SALE_PAYMENT_VALUE'));
-  const amountSelector = env('SIMPLESVET_SALE_RECEIVED_AMOUNT_SELECTOR');
-  if (amountSelector) {
-    const amount = Number(job.amount ?? bill.amount ?? 0);
-    if (amount > 0) await page.locator(amountSelector).first().fill(amount.toFixed(2).replace('.', ','));
-  }
-
-  let submitted = false;
+  let saleCreated = false;
   try {
+    await page.locator(required('SIMPLESVET_SALE_SAVE_RECEIVE_SELECTOR')).first().click();
+    saleCreated = true;
+    const payment = page.locator(required('SIMPLESVET_SALE_PAYMENT_SELECTOR')).first();
+    await payment.waitFor({ state: 'visible', timeout: 20000 });
+    const cashierSelector = env('SIMPLESVET_SALE_CASHIER_SELECTOR');
+    if (cashierSelector) {
+      const cashier = page.locator(cashierSelector).first();
+      const configuredCashier = env('SIMPLESVET_SALE_CASHIER_VALUE');
+      if (configuredCashier) {
+        await selectConfigured(cashier, configuredCashier);
+      } else {
+        const available = await cashier.locator('option:not([disabled])').evaluateAll((options) => options
+          .map((option) => ({ value: option.value, text: option.textContent.trim() }))
+          .filter((option) => option.value && !/selecione/i.test(option.text)));
+        if (!available.length) throw new Error('Nenhum caixa aberto no SimplesVet');
+        await cashier.selectOption(available[0].value);
+      }
+    }
+    await selectConfigured(payment, env('SIMPLESVET_SALE_PAYMENT_VALUE', 'Vindi'));
+    const amountSelector = env('SIMPLESVET_SALE_RECEIVED_AMOUNT_SELECTOR');
+    if (amountSelector) {
+      const amount = items.reduce((total, item) => total + (item.unitPrice * item.quantity), 0);
+      if (amount > 0) await page.locator(amountSelector).first().fill(amount.toFixed(2).replace('.', ','));
+    }
     await page.locator(required('SIMPLESVET_SALE_CONFIRM_SELECTOR')).first().click();
-    submitted = true;
     const success = page.locator(required('SIMPLESVET_SALE_SUCCESS_SELECTOR')).first();
     await success.waitFor({ state: 'visible', timeout: 30000 });
     const idSelector = env('SIMPLESVET_SALE_ID_SELECTOR');
     const saleId = idSelector ? clean(await page.locator(idSelector).first().textContent()) : '';
     return { saleId, items, confirmation: clean(await success.textContent()) };
   } catch (error) {
-    if (submitted) error.manualReview = true;
+    if (saleCreated) error.manualReview = true;
     throw error;
   }
 }
 
 let browser;
+let page;
 let exitCode = 0;
+let processed = 0;
 try {
-  const claimed = await queueRequest({ action: 'claim', limit: batchSize });
-  const jobs = Array.isArray(claimed.jobs) ? claimed.jobs : [];
-  if (!jobs.length) {
-    console.log('VENDAS_SV fila vazia');
-  } else {
-    browser = await chromium.launch({ headless: env('SIMPLESVET_HEADLESS', '1') !== '0' });
-    const context = await browser.newContext({ locale: 'pt-BR' });
-    const page = await context.newPage();
-    await login(page);
+  for (let index = 0; index < batchSize; index++) {
+    // Reserva apenas uma tarefa. As demais continuam na fila ate a venda atual terminar.
+    const claimed = await queueRequest({ action: 'claim', limit: 1 });
+    const job = Array.isArray(claimed.jobs) ? claimed.jobs[0] : null;
+    if (!job) break;
+    processed++;
 
-    for (const job of jobs) {
-      try {
-        const result = await createAndReceiveSale(page, job);
-        await queueRequest({
-          action: 'complete', id: job.id, lease_token: job.lease_token,
-          simplesvet_sale_id: result.saleId, result,
-        });
-        console.log(`VENDA_SV_OK bill_id=${job.bill_id} sale_id=${result.saleId || '-'}`);
-      } catch (error) {
-        exitCode = 1;
-        const message = clean(error?.message || error).slice(0, 8000);
-        await queueRequest({
-          action: 'fail', id: job.id, lease_token: job.lease_token,
-          error: message, manual_review: error?.manualReview === true,
-        }).catch((queueError) => console.error(`VENDA_SV_ACK_ERRO ${clean(queueError?.message || queueError)}`));
-        console.error(`VENDA_SV_ERRO bill_id=${job.bill_id} ${message}`);
-        if (page.url().includes('/login/')) await login(page);
+    try {
+      if (!page) {
+        browser = await chromium.launch({ headless: env('SIMPLESVET_HEADLESS', '1') !== '0' });
+        const context = await browser.newContext({ locale: 'pt-BR' });
+        page = await context.newPage();
+        await login(page);
       }
+      const result = await createAndReceiveSale(page, job);
+      await queueRequest({
+        action: 'complete', id: job.id, lease_token: job.lease_token,
+        simplesvet_sale_id: result.saleId, result,
+      });
+      console.log(`VENDA_SV_OK bill_id=${job.bill_id} sale_id=${result.saleId || '-'}`);
+    } catch (error) {
+      exitCode = 1;
+      const message = clean(error?.message || error).slice(0, 8000);
+      await queueRequest({
+        action: 'fail', id: job.id, lease_token: job.lease_token,
+        error: message, manual_review: error?.manualReview === true,
+      }).catch((queueError) => console.error(`VENDA_SV_ACK_ERRO ${clean(queueError?.message || queueError)}`));
+      console.error(`VENDA_SV_ERRO bill_id=${job.bill_id} ${message}`);
+      if (page?.url().includes('/login/')) await login(page).catch(() => undefined);
     }
   }
+  if (processed === 0) console.log('VENDAS_SV fila vazia');
 } finally {
   if (browser) await browser.close();
 }

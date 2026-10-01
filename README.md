@@ -118,7 +118,24 @@ forma de recebimento, caixa e confirmacao de sucesso. Valide primeiro com
 SIMPLESVET_SALES_ENABLED=1
 ```
 
+Use `SIMPLESVET_SALES_USER`, `SIMPLESVET_SALES_PASSWORD` e
+`SIMPLESVET_SALES_UNIT_NAME` para a conta exclusiva do bot. Essas credenciais
+ficam separadas da conta usada pelo sincronizador de marcacoes.
+
 Teste manualmente com `npm run sales` na pasta `rpa`. O instalador do cron
 executa o worker a cada cinco minutos. Falhas anteriores a confirmacao entram
 em nova tentativa; uma falha depois do clique final vai para revisao manual,
 evitando que uma venda potencialmente concluida seja criada novamente.
+
+Pagamentos simultaneos sao gravados individualmente na fila. O worker reserva
+e finaliza uma unica venda por vez, em ordem de pagamento, e o `flock` do cron
+impede duas instancias de operarem o PDV ao mesmo tempo. As proximas tarefas
+permanecem aguardando sem bloquear o webhook da Vindi.
+
+Na pagina **Conciliacao de planos**, cada produto da Vindi deve ser vinculado
+ao codigo correspondente no SimplesVet ou marcado como **Nao usar**. Produtos
+novos ficam pendentes e seguram o pagamento na fila ate que sejam classificados.
+Quando uma fatura mistura itens vinculados e ignorados, somente os vinculados e
+seus valores entram na venda. O worker usa um caixa que ja esteja aberto e envia
+a tarefa para revisao manual se nao encontrar nenhum, sem tentar abrir um caixa
+por conta propria.

@@ -58,6 +58,7 @@ $paginasPermitidas = [
   'reports',
   'simplesvet',
   'baixas_sv',
+  'conciliacao_planos',
   'report_details',
   'finance',
   'config',

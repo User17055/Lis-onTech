@@ -3,40 +3,11 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/_bootstrap.php';
 require_once __DIR__ . '/../db.php';
+require_once __DIR__ . '/../includes/simplesvet_sales.php';
 
 apiCors($cfg);
 apiRequirePost();
 apiRequireBearer($cfg);
-
-function svSalesEnsureTable(PDO $pdo): void
-{
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS simplesvet_sale_jobs (
-            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-            bill_id BIGINT UNSIGNED NOT NULL,
-            customer_id BIGINT UNSIGNED NULL,
-            customer_name VARCHAR(220) NOT NULL DEFAULT '',
-            amount DECIMAL(14,2) NULL,
-            paid_at DATETIME NULL,
-            status VARCHAR(32) NOT NULL DEFAULT 'pending',
-            attempts INT UNSIGNED NOT NULL DEFAULT 0,
-            next_attempt_at DATETIME NULL,
-            lease_token CHAR(36) NULL,
-            leased_at DATETIME NULL,
-            simplesvet_sale_id VARCHAR(80) NULL,
-            last_error TEXT NULL,
-            source_payload MEDIUMTEXT NULL,
-            result_payload MEDIUMTEXT NULL,
-            completed_at DATETIME NULL,
-            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            PRIMARY KEY (id),
-            UNIQUE KEY uq_simplesvet_sale_bill (bill_id),
-            KEY idx_simplesvet_sale_queue (status, next_attempt_at),
-            KEY idx_simplesvet_sale_paid (paid_at)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-    ");
-}
 
 function svSalesUuid(): string
 {
@@ -46,7 +17,7 @@ function svSalesUuid(): string
         . '-' . substr($hex, 20, 12);
 }
 
-svSalesEnsureTable($pdo);
+svSalesEnsureTables($pdo);
 $body = apiJsonBody();
 $action = strtolower(trim((string)($body['action'] ?? '')));
 $maxAttempts = max(1, min(20, (int)cfg($cfg, 'SIMPLESVET_SALES_MAX_ATTEMPTS', '5')));
@@ -98,6 +69,10 @@ try {
             foreach ($jobs as &$job) {
                 $decoded = json_decode((string)($job['source_payload'] ?? ''), true);
                 $job['source'] = is_array($decoded) ? $decoded : null;
+                $bill = is_array($decoded) ? ($decoded['event']['data']['bill'] ?? []) : [];
+                $job['product_mappings'] = is_array($bill)
+                    ? svSalesMappingsForItems($pdo, svSalesBillItems($bill))
+                    : [];
                 unset($job['source_payload']);
             }
             unset($job);
