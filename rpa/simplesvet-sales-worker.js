@@ -70,9 +70,10 @@ async function selectConfigured(locator, value) {
 }
 
 async function login(page) {
-  await page.goto(required('SIMPLESVET_LOGIN_URL'), { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.goto(required('SIMPLESVET_LOGIN_URL'), { waitUntil: 'commit', timeout: 90000 });
   const userSelector = env('SIMPLESVET_USERNAME_SELECTOR', 'input[name="usuario"], input[name="username"], input[type="email"]');
   const passwordSelector = env('SIMPLESVET_PASSWORD_SELECTOR', 'input[name="senha"], input[name="password"], input[type="password"]');
+  await page.locator(userSelector).first().waitFor({ state: 'visible', timeout: 60000 });
   const username = clean(salesAccount?.username);
   if (!username) throw new Error('SIMPLESVET_SALES_USER nao configurada');
   await page.locator(userSelector).first().fill(username);
