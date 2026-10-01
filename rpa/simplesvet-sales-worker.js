@@ -172,53 +172,63 @@ function billItems(bill, mappings) {
 async function locateCustomer(page, cpf, customerName) {
   const input = page.locator(required('SIMPLESVET_SALE_CUSTOMER_SELECTOR')).first();
   await input.waitFor({ state: 'visible', timeout: 20000 });
-  const search = env('SIMPLESVET_SALE_CUSTOMER_SEARCH_SELECTOR');
+  const search = page.locator(required('SIMPLESVET_SALE_CUSTOMER_SEARCH_SELECTOR')).first();
   const rowsSelector = required('SIMPLESVET_SALE_CUSTOMER_RESULTS_SELECTOR');
 
-  const find = async (term) => {
+  const closeDrawer = async () => {
+    const close = page.locator('#pesquisa button.btn-white.sv-pop:visible').last();
+    if (await close.count()) await close.evaluate((element) => element.click());
+    await page.waitForTimeout(500);
+  };
+  const find = async (term, type) => {
     await input.fill(term);
-    if (search) await page.locator(search).first().click();
-    else await input.press('Enter');
+    await search.click();
+    await page.locator('#pesquisa').waitFor({ state: 'visible', timeout: 15000 });
+    const drawerSelector = type === 'cpf'
+      ? env('SIMPLESVET_SALE_CUSTOMER_CPF_SELECTOR', '#pesquisa input#cpf:visible')
+      : env('SIMPLESVET_SALE_CUSTOMER_NAME_SELECTOR', '#pesquisa input#nome:visible');
+    const drawerInput = page.locator(drawerSelector).last();
+    await drawerInput.waitFor({ state: 'visible', timeout: 15000 });
+    await drawerInput.fill(term);
+    await drawerInput.press('Enter');
     await page.waitForFunction(
       (selector) => document.querySelectorAll(selector).length > 0
         || document.body.innerText.includes('Nenhum cliente foi encontrado'),
       rowsSelector,
       { timeout: 20000 },
     );
-    return page.locator(rowsSelector);
+    return page.locator(`${rowsSelector}:visible`);
   };
 
-  let rows = await find(cpf);
+  let rows = await find(cpf, 'cpf');
   let count = await rows.count();
   if (count === 0 && customerName) {
-    const retry = page.getByText('Fazer uma nova busca', { exact: false }).first();
-    if (await retry.count()) await retry.click();
-    await input.waitFor({ state: 'visible', timeout: 10000 });
-    rows = await find(customerName);
+    await closeDrawer();
+    rows = await find(customerName, 'name');
     count = await rows.count();
   }
   if (count !== 1) throw new Error(`Cliente retornou ${count} resultados no SimplesVet; revisao manual necessaria`);
-  await rows.first().click();
+  const customerLink = rows.first().locator('a.item_pesquisa').first();
+  if (await customerLink.count()) await customerLink.click();
+  else await rows.first().click();
 }
 
 async function addItem(page, item) {
   const productInput = page.locator(required('SIMPLESVET_SALE_PRODUCT_SELECTOR')).first();
   await productInput.waitFor({ state: 'visible', timeout: 15000 });
-  await productInput.fill(item.key);
-  await productInput.press('Enter').catch(() => undefined);
-  const results = page.locator(required('SIMPLESVET_SALE_PRODUCT_RESULTS_SELECTOR'));
-  await results.first().waitFor({ state: 'visible', timeout: 15000 });
-  const exact = results.filter({ hasText: item.key });
-  const exactCount = await exact.count();
-  const resultCount = await results.count();
-  if (exactCount !== 1 && resultCount !== 1) {
-    throw new Error(`Produto "${item.key}" retornou ${resultCount} opcoes; revisao manual necessaria`);
-  }
-  const target = exactCount === 1 ? exact.first() : results.first();
-  await target.click();
-
   const quantitySelector = env('SIMPLESVET_SALE_QUANTITY_SELECTOR');
-  if (quantitySelector) await page.locator(quantitySelector).last().fill(String(item.quantity));
+  if (quantitySelector) await page.locator(quantitySelector).first().fill(String(item.quantity));
+  const rowsSelector = required('SIMPLESVET_SALE_PRODUCT_RESULTS_SELECTOR');
+  const rows = page.locator(rowsSelector);
+  const before = await rows.count();
+  await productInput.fill(item.key);
+  await productInput.press('Enter');
+  await page.waitForFunction(
+    ({ selector, previous, key }) => Array.from(document.querySelectorAll(selector))
+      .slice(previous).some((row) => row.textContent.includes(key)),
+    { selector: rowsSelector, previous: before, key: item.key },
+    { timeout: 20000 },
+  );
   const priceSelector = env('SIMPLESVET_SALE_PRICE_SELECTOR');
   if (priceSelector && item.unitPrice > 0) {
     await page.locator(priceSelector).last().fill(item.unitPrice.toFixed(2).replace('.', ','));
@@ -256,9 +266,14 @@ async function createAndReceiveSale(page, job) {
     saleCreated = true;
     const payment = page.locator(required('SIMPLESVET_SALE_PAYMENT_SELECTOR')).first();
     await payment.waitFor({ state: 'visible', timeout: 20000 });
-    const idField = page.locator(required('SIMPLESVET_SALE_ID_SELECTOR')).first();
-    await idField.waitFor({ state: 'visible', timeout: 15000 });
-    const saleId = clean(await idField.textContent());
+    const idSelector = required('SIMPLESVET_SALE_ID_SELECTOR');
+    const idField = page.locator(idSelector).first();
+    await idField.waitFor({ state: 'attached', timeout: 15000 });
+    await page.waitForFunction((selector) => {
+      const field = document.querySelector(selector);
+      return Boolean(field && String('value' in field ? field.value : field.textContent).trim());
+    }, idSelector, { timeout: 15000 });
+    const saleId = clean(await idField.inputValue().catch(() => idField.textContent()));
     if (!saleId) throw new Error('SimplesVet criou a venda sem informar o codigo');
     await queueRequest({
       action: 'checkpoint', id: job.id, lease_token: job.lease_token,

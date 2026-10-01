@@ -36,6 +36,18 @@ try {
         ]);
     }
 
+    if ($action === 'stats') {
+        $counts = [];
+        foreach ($pdo->query('SELECT status, COUNT(*) total FROM simplesvet_sale_jobs GROUP BY status')->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $counts[(string)$row['status']] = (int)$row['total'];
+        }
+        $mappingCounts = [];
+        foreach ($pdo->query('SELECT mapping_status, COUNT(*) total FROM simplesvet_product_mappings GROUP BY mapping_status')->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $mappingCounts[(string)$row['mapping_status']] = (int)$row['total'];
+        }
+        apiOut(['ok' => true, 'jobs' => $counts, 'mappings' => $mappingCounts]);
+    }
+
     if ($action === 'claim') {
         $limit = max(1, min(20, (int)($body['limit'] ?? 5)));
         $leaseToken = svSalesUuid();
