@@ -109,6 +109,11 @@ O worker `rpa/simplesvet-sales-worker.js` consulta essa fila, localiza o cliente
 no SimplesVet pelo CPF da Vindi, cria a venda com os itens da fatura e registra
 o recebimento. O andamento fica disponivel em **Realizados > Baixas SV**.
 
+Para recuperar pagamentos feitos antes da ativacao do webhook, use
+**Conciliacao de planos > Importar pagos de hoje**. A consulta considera o dia
+de Sao Paulo e pode ser repetida: `bill_id` e unico, portanto uma fatura que ja
+entrou pelo webhook nao gera uma segunda tarefa.
+
 Antes de ativar, configure os campos `SIMPLESVET_SALE_*` do
 `secure/config.env`, principalmente a URL do PDV, seletores de cliente/produto,
 forma de recebimento, caixa e confirmacao de sucesso. Valide primeiro com

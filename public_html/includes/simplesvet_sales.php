@@ -136,6 +136,45 @@ function svSalesResolveBill(PDO $pdo, array $bill): array
     ];
 }
 
+function svSalesEnqueueBill(PDO $pdo, array $bill, array $payload, ?string $paidAt): string
+{
+    $billId = (int)($bill['id'] ?? 0);
+    if ($billId <= 0) return 'invalid';
+
+    svSalesEnsureTables($pdo);
+    svSalesObserveItems($pdo, svSalesBillItems($bill));
+    $resolved = svSalesResolveBill($pdo, $bill);
+    $customer = is_array($bill['customer'] ?? null) ? $bill['customer'] : [];
+    $sourcePayload = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    if ($sourcePayload === false) $sourcePayload = null;
+
+    $stmt = $pdo->prepare("
+        INSERT INTO simplesvet_sale_jobs (
+            bill_id, customer_id, customer_name, amount, paid_at, status,
+            next_attempt_at, source_payload
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+            customer_id=COALESCE(VALUES(customer_id), customer_id),
+            customer_name=IF(VALUES(customer_name) <> '', VALUES(customer_name), customer_name),
+            amount=VALUES(amount),
+            paid_at=COALESCE(VALUES(paid_at), paid_at),
+            source_payload=COALESCE(VALUES(source_payload), source_payload),
+            status=CASE WHEN status IN ('completed','processing','awaiting_receipt','manual_review') THEN status ELSE VALUES(status) END,
+            next_attempt_at=CASE WHEN status IN ('completed','processing','awaiting_receipt','manual_review') THEN next_attempt_at ELSE VALUES(next_attempt_at) END
+    ");
+    $stmt->execute([
+        $billId,
+        !empty($customer['id']) ? (int)$customer['id'] : null,
+        mb_substr(trim((string)($customer['name'] ?? '')), 0, 220),
+        $resolved['amount'],
+        $paidAt,
+        $resolved['status'],
+        $resolved['status'] === 'pending' ? date('Y-m-d H:i:s') : null,
+        $sourcePayload,
+    ]);
+    return $resolved['status'];
+}
+
 function svSalesRefreshJobs(PDO $pdo): int
 {
     $rows = $pdo->query("
