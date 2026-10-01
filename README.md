@@ -120,7 +120,8 @@ SIMPLESVET_SALES_ENABLED=1
 
 Use `SIMPLESVET_SALES_USER`, `SIMPLESVET_SALES_PASSWORD` e
 `SIMPLESVET_SALES_UNIT_NAME` para a conta exclusiva do bot. Essas credenciais
-ficam separadas da conta usada pelo sincronizador de marcacoes.
+ficam separadas da conta usada pelo sincronizador de marcacoes. O worker de
+vendas nao inicia se a conta exclusiva nao estiver configurada.
 
 Cada venda recebe obrigatoriamente a observacao `VINDI #<bill_id>`. Antes de
 salvar, o worker compara o total montado no SimplesVet com o total dos itens

@@ -73,10 +73,10 @@ async function login(page) {
   await page.goto(required('SIMPLESVET_LOGIN_URL'), { waitUntil: 'domcontentloaded', timeout: 60000 });
   const userSelector = env('SIMPLESVET_USERNAME_SELECTOR', 'input[name="usuario"], input[name="username"], input[type="email"]');
   const passwordSelector = env('SIMPLESVET_PASSWORD_SELECTOR', 'input[name="senha"], input[name="password"], input[type="password"]');
-  const username = firstEnv('SIMPLESVET_SALES_USER', 'SIMPLESVET_USER', 'SIMPLESVET_USERNAME');
+  const username = env('SIMPLESVET_SALES_USER');
   if (!username) throw new Error('SIMPLESVET_SALES_USER nao configurada');
   await page.locator(userSelector).first().fill(username);
-  const password = firstEnv('SIMPLESVET_SALES_PASSWORD', 'SIMPLESVET_PASSWORD');
+  const password = env('SIMPLESVET_SALES_PASSWORD');
   if (!password) throw new Error('SIMPLESVET_SALES_PASSWORD nao configurada');
   await page.locator(passwordSelector).first().fill(password);
   const submitSelector = env('SIMPLESVET_SUBMIT_SELECTOR');
