@@ -51,10 +51,11 @@ try {
     if ($action === 'retry_now') {
         $billId = (int)($body['bill_id'] ?? 0);
         if ($billId <= 0) apiOut(['ok' => false, 'error' => 'bill_id invalido'], 400);
+        $allowedStatus = !empty($body['confirm_no_sale']) ? "('retry','manual_review')" : "('retry')";
         $stmt = $pdo->prepare("
             UPDATE simplesvet_sale_jobs
-               SET status='pending', next_attempt_at=NOW(), last_error=NULL
-             WHERE bill_id=? AND status='retry' AND simplesvet_sale_id IS NULL
+               SET status='pending', attempts=0, next_attempt_at=NOW(), last_error=NULL
+             WHERE bill_id=? AND status IN {$allowedStatus} AND simplesvet_sale_id IS NULL
         ");
         $stmt->execute([$billId]);
         apiOut(['ok' => true, 'released' => $stmt->rowCount()]);
