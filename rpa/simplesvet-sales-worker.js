@@ -18,6 +18,12 @@ const required = (name) => {
 const firstEnv = (...names) => names.map((name) => env(name)).find(Boolean) || '';
 const clean = (value) => String(value ?? '').replace(/[\r\n]+/g, ' ').trim();
 const digits = (value) => String(value ?? '').replace(/\D/g, '');
+const moneyNumber = (value) => {
+  let text = String(value ?? '').replace(/[^\d,.-]/g, '');
+  if (text.includes(',') && text.includes('.')) text = text.replace(/\./g, '').replace(',', '.');
+  else if (text.includes(',')) text = text.replace(',', '.');
+  return Number(text);
+};
 const normalizedName = (value) => clean(value).toLocaleUpperCase('pt-BR')
   .normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ');
 
@@ -158,7 +164,7 @@ function billItems(bill, mappings) {
       key: clean(mapping.simplesvet_product_code || mapping.simplesvet_product_name),
       name,
       quantity,
-      unitPrice: Number(item?.pricing_schema?.price ?? (total / quantity)) || 0,
+      unitPrice: Number(total / quantity) || 0,
     };
   }).filter(Boolean);
 }
@@ -233,9 +239,15 @@ async function createAndReceiveSale(page, job) {
   await locateCustomer(page, cpf, clean(customer?.name || job.customer_name));
   for (const item of items) await addItem(page, item);
 
-  const referenceSelector = env('SIMPLESVET_SALE_REFERENCE_SELECTOR');
-  if (referenceSelector) {
-    await page.locator(referenceSelector).first().fill(`VINDI #${job.bill_id}`);
+  const referenceSelector = required('SIMPLESVET_SALE_REFERENCE_SELECTOR');
+  await page.locator(referenceSelector).first().fill(`VINDI #${job.bill_id}`);
+
+  const expectedTotal = items.reduce((total, item) => total + (item.unitPrice * item.quantity), 0);
+  const totalField = page.locator(required('SIMPLESVET_SALE_TOTAL_SELECTOR')).first();
+  await totalField.waitFor({ state: 'visible', timeout: 15000 });
+  const displayedTotal = moneyNumber(await totalField.textContent());
+  if (!Number.isFinite(displayedTotal) || Math.abs(displayedTotal - expectedTotal) > 0.01) {
+    throw new Error(`Total divergente: Vindi R$ ${expectedTotal.toFixed(2)}; SimplesVet R$ ${Number.isFinite(displayedTotal) ? displayedTotal.toFixed(2) : 'invalido'}`);
   }
 
   let saleCreated = false;
@@ -244,6 +256,14 @@ async function createAndReceiveSale(page, job) {
     saleCreated = true;
     const payment = page.locator(required('SIMPLESVET_SALE_PAYMENT_SELECTOR')).first();
     await payment.waitFor({ state: 'visible', timeout: 20000 });
+    const idField = page.locator(required('SIMPLESVET_SALE_ID_SELECTOR')).first();
+    await idField.waitFor({ state: 'visible', timeout: 15000 });
+    const saleId = clean(await idField.textContent());
+    if (!saleId) throw new Error('SimplesVet criou a venda sem informar o codigo');
+    await queueRequest({
+      action: 'checkpoint', id: job.id, lease_token: job.lease_token,
+      simplesvet_sale_id: saleId, result: { stage: 'sale_created', reference: `VINDI #${job.bill_id}` },
+    });
     const cashierSelector = env('SIMPLESVET_SALE_CASHIER_SELECTOR');
     if (cashierSelector) {
       const cashier = page.locator(cashierSelector).first();
@@ -267,8 +287,6 @@ async function createAndReceiveSale(page, job) {
     await page.locator(required('SIMPLESVET_SALE_CONFIRM_SELECTOR')).first().click();
     const success = page.locator(required('SIMPLESVET_SALE_SUCCESS_SELECTOR')).first();
     await success.waitFor({ state: 'visible', timeout: 30000 });
-    const idSelector = env('SIMPLESVET_SALE_ID_SELECTOR');
-    const saleId = idSelector ? clean(await page.locator(idSelector).first().textContent()) : '';
     return { saleId, items, confirmation: clean(await success.textContent()) };
   } catch (error) {
     if (saleCreated) error.manualReview = true;

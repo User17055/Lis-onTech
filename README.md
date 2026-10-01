@@ -122,6 +122,13 @@ Use `SIMPLESVET_SALES_USER`, `SIMPLESVET_SALES_PASSWORD` e
 `SIMPLESVET_SALES_UNIT_NAME` para a conta exclusiva do bot. Essas credenciais
 ficam separadas da conta usada pelo sincronizador de marcacoes.
 
+Cada venda recebe obrigatoriamente a observacao `VINDI #<bill_id>`. Antes de
+salvar, o worker compara o total montado no SimplesVet com o total dos itens
+vinculados da Vindi. Logo depois que o SimplesVet cria o codigo da venda, o
+worker grava um checkpoint no Lis-onTech. Se houver queda antes da baixa, a
+tarefa fica em **Venda criada / baixa pendente** e nao volta automaticamente
+para a criacao, evitando uma segunda venda.
+
 Teste manualmente com `npm run sales` na pasta `rpa`. O instalador do cron
 executa o worker a cada cinco minutos. Falhas anteriores a confirmacao entram
 em nova tentativa; uma falha depois do clique final vai para revisao manual,

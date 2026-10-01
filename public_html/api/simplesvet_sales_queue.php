@@ -27,15 +27,20 @@ try {
         $limit = max(1, min(20, (int)($body['limit'] ?? 5)));
         $leaseToken = svSalesUuid();
         $pdo->beginTransaction();
+        // Uma queda pode ocorrer depois de a venda ter sido criada no SimplesVet.
+        // Por seguranca, tarefa abandonada nunca volta automaticamente para criacao.
+        $pdo->exec("
+            UPDATE simplesvet_sale_jobs
+               SET status='manual_review',
+                   last_error='Execucao interrompida; confirme no SimplesVet usando a referencia VINDI antes de tentar novamente',
+                   lease_token=NULL, leased_at=NULL, next_attempt_at=NULL
+             WHERE status='processing' AND leased_at < DATE_SUB(NOW(), INTERVAL 20 MINUTE)
+        ");
         $stmt = $pdo->prepare("
             SELECT id
               FROM simplesvet_sale_jobs
-             WHERE (
-                    status IN ('pending','retry')
-                    AND (next_attempt_at IS NULL OR next_attempt_at <= NOW())
-                   ) OR (
-                    status='processing' AND leased_at < DATE_SUB(NOW(), INTERVAL 20 MINUTE)
-                   )
+             WHERE status IN ('pending','retry')
+               AND (next_attempt_at IS NULL OR next_attempt_at <= NOW())
              ORDER BY paid_at ASC, id ASC
              LIMIT {$limit}
              FOR UPDATE
@@ -80,7 +85,7 @@ try {
         apiOut(['ok' => true, 'jobs' => $jobs]);
     }
 
-    if (!in_array($action, ['complete', 'fail'], true)) {
+    if (!in_array($action, ['checkpoint', 'complete', 'fail'], true)) {
         apiOut(['ok' => false, 'error' => 'Acao invalida'], 400);
     }
 
@@ -90,10 +95,25 @@ try {
         apiOut(['ok' => false, 'error' => 'Id ou lease_token invalido'], 400);
     }
 
-    $check = $pdo->prepare('SELECT attempts FROM simplesvet_sale_jobs WHERE id=? AND status=\'processing\' AND lease_token=? LIMIT 1');
+    $check = $pdo->prepare("SELECT attempts, status FROM simplesvet_sale_jobs WHERE id=? AND status IN ('processing','awaiting_receipt') AND lease_token=? LIMIT 1");
     $check->execute([$id, $leaseToken]);
-    $attempts = $check->fetchColumn();
-    if ($attempts === false) apiOut(['ok' => false, 'error' => 'Tarefa nao encontrada ou lease expirado'], 409);
+    $activeJob = $check->fetch(PDO::FETCH_ASSOC);
+    if (!$activeJob) apiOut(['ok' => false, 'error' => 'Tarefa nao encontrada ou lease expirado'], 409);
+    $attempts = (int)$activeJob['attempts'];
+
+    if ($action === 'checkpoint') {
+        if ($activeJob['status'] !== 'processing') apiOut(['ok' => false, 'error' => 'Checkpoint ja registrado'], 409);
+        $saleId = mb_substr(trim((string)($body['simplesvet_sale_id'] ?? '')), 0, 80);
+        if ($saleId === '') apiOut(['ok' => false, 'error' => 'Codigo da venda SimplesVet obrigatorio'], 400);
+        $result = json_encode($body['result'] ?? ['stage' => 'sale_created'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $stmt = $pdo->prepare("
+            UPDATE simplesvet_sale_jobs
+               SET status='awaiting_receipt', simplesvet_sale_id=?, result_payload=?
+             WHERE id=? AND status='processing' AND lease_token=?
+        ");
+        $stmt->execute([$saleId, $result ?: null, $id, $leaseToken]);
+        apiOut(['ok' => true, 'status' => 'awaiting_receipt']);
+    }
 
     if ($action === 'complete') {
         $result = json_encode($body['result'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
@@ -102,7 +122,7 @@ try {
             UPDATE simplesvet_sale_jobs
                SET status='completed', simplesvet_sale_id=?, result_payload=?,
                    completed_at=NOW(), next_attempt_at=NULL, lease_token=NULL, leased_at=NULL
-             WHERE id=? AND status='processing' AND lease_token=?
+             WHERE id=? AND status IN ('processing','awaiting_receipt') AND lease_token=?
         ");
         $stmt->execute([$saleId !== '' ? $saleId : null, $result ?: null, $id, $leaseToken]);
         apiOut(['ok' => true]);
@@ -113,7 +133,7 @@ try {
     $stmt = $pdo->prepare("
         UPDATE simplesvet_sale_jobs
            SET status=?, last_error=?, next_attempt_at=?, lease_token=NULL, leased_at=NULL
-         WHERE id=? AND status='processing' AND lease_token=?
+         WHERE id=? AND status IN ('processing','awaiting_receipt') AND lease_token=?
     ");
     $stmt->execute([
         $manualReview ? 'manual_review' : 'retry',

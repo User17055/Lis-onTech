@@ -19,7 +19,7 @@ function bsvMoney($value): string {
 
 $tableExists = false;
 $rows = [];
-$stats = ['waiting_mapping' => 0, 'pending' => 0, 'processing' => 0, 'retry' => 0, 'completed' => 0, 'manual_review' => 0, 'ignored' => 0];
+$stats = ['waiting_mapping' => 0, 'pending' => 0, 'processing' => 0, 'awaiting_receipt' => 0, 'retry' => 0, 'completed' => 0, 'manual_review' => 0, 'ignored' => 0];
 $totalAmount = 0.0;
 $page = max(1, (int)($_GET['p'] ?? 1));
 $perPage = 50;
@@ -77,7 +77,7 @@ $totalPages = max(1, (int)ceil($total / $perPage));
 $labels = [
     'pending' => 'Na fila', 'processing' => 'Processando', 'retry' => 'Nova tentativa',
     'completed' => 'Concluída', 'manual_review' => 'Revisão manual',
-    'waiting_mapping' => 'Aguardando conciliação', 'ignored' => 'Não usar',
+    'waiting_mapping' => 'Aguardando conciliação', 'awaiting_receipt' => 'Venda criada; baixa pendente', 'ignored' => 'Não usar',
 ];
 $pageUrl = static function (int $target) use ($status, $query, $month): string {
     return '?' . http_build_query(array_filter([
@@ -87,6 +87,7 @@ $pageUrl = static function (int $target) use ($status, $query, $month): string {
 ?>
 <section class="bsv-page">
   <style>
+    .bsv-badge.awaiting_receipt{background:#fef3c7;color:#8a5b00}
     .bsv-page{font-family:'Nunito',sans-serif;color:#172033;max-width:1180px;margin:0 auto;padding:4px 24px 40px}.bsv-head{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;margin-bottom:22px}.bsv-head h1{font-size:28px;margin:0 0 5px}.bsv-head p{margin:0;color:#68758b}.bsv-refresh{border:0;border-radius:12px;padding:11px 17px;background:#38b6ff;color:#fff;font-weight:800;cursor:pointer}.bsv-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:13px;margin-bottom:20px}.bsv-card{padding:18px;background:#fff;border:1px solid #e6edf5;border-radius:17px;box-shadow:0 5px 18px rgba(28,48,78,.05)}.bsv-card span{display:block;color:#7b8799;font-size:11px;font-weight:900;text-transform:uppercase}.bsv-card strong{display:block;margin-top:5px;font-size:27px}.bsv-card.ok strong{color:#138a5b}.bsv-card.warn strong{color:#b7791f}.bsv-card.err strong{color:#c24141}.bsv-panel{overflow:hidden;background:#fff;border:1px solid #e6edf5;border-radius:18px;box-shadow:0 5px 18px rgba(28,48,78,.05)}.bsv-tools{display:grid;grid-template-columns:minmax(220px,1fr) 190px 170px auto;gap:10px;padding:17px;border-bottom:1px solid #edf1f6}.bsv-tools input,.bsv-tools select,.bsv-tools button{box-sizing:border-box;height:42px;border:1px solid #dce4ee;border-radius:10px;background:#fff;padding:0 12px;font:inherit;color:#344054}.bsv-tools button{background:#38b6ff;border-color:#38b6ff;color:#fff;font-weight:900;cursor:pointer}.bsv-table-wrap{overflow-x:auto}.bsv-table{width:100%;border-collapse:collapse}.bsv-table th,.bsv-table td{padding:14px 17px;text-align:left;border-bottom:1px solid #edf1f6}.bsv-table th{background:#f8fafc;color:#718096;font-size:10px;text-transform:uppercase;letter-spacing:.05em}.bsv-table td{font-size:13px;vertical-align:top}.bsv-name{font-weight:900}.bsv-sub{margin-top:3px;color:#8a96a8;font-size:11px}.bsv-badge{display:inline-flex;padding:6px 10px;border-radius:999px;font-size:10px;font-weight:900;white-space:nowrap}.bsv-badge.completed{background:#d1fae5;color:#06603f}.bsv-badge.pending,.bsv-badge.processing{background:#dbeafe;color:#1e40af}.bsv-badge.retry,.bsv-badge.waiting_mapping{background:#fef3c7;color:#8a5b00}.bsv-badge.manual_review{background:#fee2e2;color:#991b1b}.bsv-badge.ignored{background:#e5e7eb;color:#475467}.bsv-error{max-width:270px;color:#7a4650;overflow-wrap:anywhere}.bsv-empty{padding:46px 20px;text-align:center;color:#68758b}.bsv-pager{display:flex;justify-content:center;gap:7px;padding:16px}.bsv-pager a,.bsv-pager span{padding:8px 12px;border:1px solid #dce4ee;border-radius:9px;color:#475467;text-decoration:none;font-size:12px;font-weight:900}.bsv-pager .active{background:#38b6ff;border-color:#38b6ff;color:#fff}@media(max-width:800px){.bsv-page{padding-left:10px;padding-right:10px}.bsv-head{align-items:flex-start;flex-direction:column}.bsv-tools{grid-template-columns:1fr 1fr}.bsv-table{min-width:850px}}@media(max-width:520px){.bsv-tools{grid-template-columns:1fr}.bsv-cards{grid-template-columns:1fr 1fr}}
   </style>
   <div class="bsv-head">
@@ -97,6 +98,7 @@ $pageUrl = static function (int $target) use ($status, $query, $month): string {
     <div class="bsv-card ok"><span>Concluídas</span><strong><?=bsvh($stats['completed'])?></strong></div>
     <div class="bsv-card"><span>Na fila</span><strong><?=bsvh($stats['pending'] + $stats['processing'])?></strong></div>
     <div class="bsv-card warn"><span>Aguardando conciliação</span><strong><?=bsvh($stats['waiting_mapping'])?></strong></div>
+    <div class="bsv-card warn"><span>Venda criada / baixa pendente</span><strong><?=bsvh($stats['awaiting_receipt'])?></strong></div>
     <div class="bsv-card warn"><span>Nova tentativa</span><strong><?=bsvh($stats['retry'])?></strong></div>
     <div class="bsv-card err"><span>Revisão manual</span><strong><?=bsvh($stats['manual_review'])?></strong></div>
     <div class="bsv-card"><span>Não usar</span><strong><?=bsvh($stats['ignored'])?></strong></div>
