@@ -112,10 +112,8 @@ async function selectUnit(page) {
     await page.waitForLoadState('domcontentloaded').catch(() => undefined);
     return;
   }
-  if (!page.url().includes('/login/')) {
-    const bodyText = clean(await page.locator('body').innerText());
-    if (normalizedName(bodyText).includes(normalizedName(unitName))) return;
-  }
+  // Contas com uma unica unidade entram diretamente no dashboard.
+  if (!page.url().includes('/login/')) return;
   throw new Error(`Unidade nao encontrada: ${unitName}`);
 }
 
