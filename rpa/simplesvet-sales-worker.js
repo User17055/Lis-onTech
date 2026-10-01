@@ -89,7 +89,7 @@ async function login(page) {
 async function selectUnit(page) {
   const unitName = clean(salesAccount?.unit_name);
   if (!unitName) return;
-  const configured = env('SIMPLESVET_UNIT_SELECTOR');
+  const configured = env('SIMPLESVET_SALES_UNIT_SELECTOR');
   if (configured) {
     const field = page.locator(configured).first();
     await field.waitFor({ state: 'visible', timeout: 15000 });
@@ -111,6 +111,10 @@ async function selectUnit(page) {
     await text.click();
     await page.waitForLoadState('domcontentloaded').catch(() => undefined);
     return;
+  }
+  if (!page.url().includes('/login/')) {
+    const bodyText = clean(await page.locator('body').innerText());
+    if (normalizedName(bodyText).includes(normalizedName(unitName))) return;
   }
   throw new Error(`Unidade nao encontrada: ${unitName}`);
 }

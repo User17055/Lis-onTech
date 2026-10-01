@@ -48,6 +48,18 @@ try {
         apiOut(['ok' => true, 'jobs' => $counts, 'mappings' => $mappingCounts]);
     }
 
+    if ($action === 'retry_now') {
+        $billId = (int)($body['bill_id'] ?? 0);
+        if ($billId <= 0) apiOut(['ok' => false, 'error' => 'bill_id invalido'], 400);
+        $stmt = $pdo->prepare("
+            UPDATE simplesvet_sale_jobs
+               SET status='pending', next_attempt_at=NOW(), last_error=NULL
+             WHERE bill_id=? AND status='retry' AND simplesvet_sale_id IS NULL
+        ");
+        $stmt->execute([$billId]);
+        apiOut(['ok' => true, 'released' => $stmt->rowCount()]);
+    }
+
     if ($action === 'claim') {
         $limit = max(1, min(20, (int)($body['limit'] ?? 5)));
         $leaseToken = svSalesUuid();
