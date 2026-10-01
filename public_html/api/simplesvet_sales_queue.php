@@ -23,6 +23,19 @@ $action = strtolower(trim((string)($body['action'] ?? '')));
 $maxAttempts = max(1, min(20, (int)cfg($cfg, 'SIMPLESVET_SALES_MAX_ATTEMPTS', '5')));
 
 try {
+    if ($action === 'config') {
+        $settings = svSalesGetSettings($pdo, $cfg);
+        apiOut([
+            'ok' => true,
+            'configured' => $settings['configured'],
+            'settings' => $settings['configured'] ? [
+                'username' => $settings['username'],
+                'password' => $settings['password'],
+                'unit_name' => $settings['unit_name'],
+            ] : null,
+        ]);
+    }
+
     if ($action === 'claim') {
         $limit = max(1, min(20, (int)($body['limit'] ?? 5)));
         $leaseToken = svSalesUuid();

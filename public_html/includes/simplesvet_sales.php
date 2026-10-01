@@ -49,6 +49,81 @@ function svSalesEnsureTables(PDO $pdo): void
             KEY idx_simplesvet_sale_paid (paid_at)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     ");
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS simplesvet_sales_settings (
+            id TINYINT UNSIGNED NOT NULL,
+            username_secret TEXT NULL,
+            password_secret TEXT NULL,
+            unit_name VARCHAR(180) NULL,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    ");
+}
+
+function svSalesSettingsKey(array $cfg): string
+{
+    $secret = cfg($cfg, 'API_BEARER_TOKEN');
+    if ($secret === '') throw new RuntimeException('API_BEARER_TOKEN nao configurado para proteger as credenciais.');
+    return hash('sha256', 'lisontech-simplesvet-sales:' . $secret, true);
+}
+
+function svSalesEncryptSetting(array $cfg, string $value): string
+{
+    if ($value === '') return '';
+    $iv = random_bytes(12);
+    $tag = '';
+    $ciphertext = openssl_encrypt($value, 'aes-256-gcm', svSalesSettingsKey($cfg), OPENSSL_RAW_DATA, $iv, $tag);
+    if ($ciphertext === false) throw new RuntimeException('Nao foi possivel proteger a credencial.');
+    return base64_encode($iv . $tag . $ciphertext);
+}
+
+function svSalesDecryptSetting(array $cfg, ?string $encoded): string
+{
+    if (!$encoded) return '';
+    $raw = base64_decode($encoded, true);
+    if ($raw === false || strlen($raw) < 29) return '';
+    $iv = substr($raw, 0, 12);
+    $tag = substr($raw, 12, 16);
+    $ciphertext = substr($raw, 28);
+    $plain = openssl_decrypt($ciphertext, 'aes-256-gcm', svSalesSettingsKey($cfg), OPENSSL_RAW_DATA, $iv, $tag);
+    return is_string($plain) ? $plain : '';
+}
+
+function svSalesGetSettings(PDO $pdo, array $cfg): array
+{
+    svSalesEnsureTables($pdo);
+    $row = $pdo->query('SELECT username_secret, password_secret, unit_name, updated_at FROM simplesvet_sales_settings WHERE id=1 LIMIT 1')->fetch(PDO::FETCH_ASSOC);
+    if (!$row) return ['username' => '', 'password' => '', 'unit_name' => '', 'configured' => false, 'updated_at' => null];
+    $username = svSalesDecryptSetting($cfg, $row['username_secret'] ?? null);
+    $password = svSalesDecryptSetting($cfg, $row['password_secret'] ?? null);
+    return [
+        'username' => $username,
+        'password' => $password,
+        'unit_name' => trim((string)($row['unit_name'] ?? '')),
+        'configured' => $username !== '' && $password !== '',
+        'updated_at' => $row['updated_at'] ?? null,
+    ];
+}
+
+function svSalesSaveSettings(PDO $pdo, array $cfg, string $username, string $password, string $unitName): void
+{
+    svSalesEnsureTables($pdo);
+    $current = svSalesGetSettings($pdo, $cfg);
+    if ($password === '') $password = (string)$current['password'];
+    if ($username === '' || $password === '') throw new RuntimeException('Informe o usuario e a senha da conta exclusiva do SimplesVet.');
+    $stmt = $pdo->prepare("
+        INSERT INTO simplesvet_sales_settings (id, username_secret, password_secret, unit_name)
+        VALUES (1, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+            username_secret=VALUES(username_secret), password_secret=VALUES(password_secret),
+            unit_name=VALUES(unit_name), updated_at=NOW()
+    ");
+    $stmt->execute([
+        svSalesEncryptSetting($cfg, $username),
+        svSalesEncryptSetting($cfg, $password),
+        $unitName !== '' ? $unitName : null,
+    ]);
 }
 
 function svSalesNormalize($value): string

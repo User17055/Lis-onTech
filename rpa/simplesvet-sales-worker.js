@@ -15,7 +15,6 @@ const required = (name) => {
   if (!value) throw new Error(`${name} nao configurada`);
   return value;
 };
-const firstEnv = (...names) => names.map((name) => env(name)).find(Boolean) || '';
 const clean = (value) => String(value ?? '').replace(/[\r\n]+/g, ' ').trim();
 const digits = (value) => String(value ?? '').replace(/\D/g, '');
 const moneyNumber = (value) => {
@@ -35,6 +34,7 @@ if (env('SIMPLESVET_SALES_ENABLED', '0') !== '1') {
 const queueUrl = required('SIMPLESVET_SALES_QUEUE_URL');
 const apiToken = required('API_BEARER_TOKEN');
 const batchSize = Math.max(1, Math.min(20, Number(env('SIMPLESVET_SALES_BATCH_SIZE', '5')) || 5));
+let salesAccount = null;
 
 async function queueRequest(body) {
   const response = await fetch(queueUrl, {
@@ -73,10 +73,10 @@ async function login(page) {
   await page.goto(required('SIMPLESVET_LOGIN_URL'), { waitUntil: 'domcontentloaded', timeout: 60000 });
   const userSelector = env('SIMPLESVET_USERNAME_SELECTOR', 'input[name="usuario"], input[name="username"], input[type="email"]');
   const passwordSelector = env('SIMPLESVET_PASSWORD_SELECTOR', 'input[name="senha"], input[name="password"], input[type="password"]');
-  const username = env('SIMPLESVET_SALES_USER');
+  const username = clean(salesAccount?.username);
   if (!username) throw new Error('SIMPLESVET_SALES_USER nao configurada');
   await page.locator(userSelector).first().fill(username);
-  const password = env('SIMPLESVET_SALES_PASSWORD');
+  const password = String(salesAccount?.password ?? '');
   if (!password) throw new Error('SIMPLESVET_SALES_PASSWORD nao configurada');
   await page.locator(passwordSelector).first().fill(password);
   const submitSelector = env('SIMPLESVET_SUBMIT_SELECTOR');
@@ -87,7 +87,7 @@ async function login(page) {
 }
 
 async function selectUnit(page) {
-  const unitName = firstEnv('SIMPLESVET_SALES_UNIT_NAME', 'SIMPLESVET_UNIT_NAME');
+  const unitName = clean(salesAccount?.unit_name);
   if (!unitName) return;
   const configured = env('SIMPLESVET_UNIT_SELECTOR');
   if (configured) {
@@ -299,6 +299,11 @@ let page;
 let exitCode = 0;
 let processed = 0;
 try {
+  const remoteConfig = await queueRequest({ action: 'config' });
+  if (!remoteConfig.configured || !remoteConfig.settings) {
+    throw new Error('Conta exclusiva do SimplesVet nao configurada no painel Lis-onTech');
+  }
+  salesAccount = remoteConfig.settings;
   for (let index = 0; index < batchSize; index++) {
     // Reserva apenas uma tarefa. As demais continuam na fila ate a venda atual terminar.
     const claimed = await queueRequest({ action: 'claim', limit: 1 });
