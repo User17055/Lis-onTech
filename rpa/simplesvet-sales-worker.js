@@ -82,7 +82,9 @@ async function login(page) {
   const submitSelector = env('SIMPLESVET_SUBMIT_SELECTOR');
   if (submitSelector) await page.locator(submitSelector).first().click();
   else await page.getByRole('button', { name: /entrar|acessar|login/i }).first().click();
-  await page.waitForLoadState('domcontentloaded');
+  await page.waitForURL((url) => !url.pathname.startsWith('/login/'), {
+    waitUntil: 'domcontentloaded', timeout: 60000,
+  });
   await selectUnit(page);
 }
 
