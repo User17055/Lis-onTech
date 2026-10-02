@@ -173,6 +173,146 @@ function svSalesManualPaymentMethod(array $bill): ?string
     return null;
 }
 
+function svSalesJobBill(?string $sourcePayload): array
+{
+    $decoded = json_decode((string)$sourcePayload, true);
+    $bill = is_array($decoded) ? ($decoded['event']['data']['bill'] ?? null) : null;
+    return is_array($bill) ? $bill : [];
+}
+
+// Forma de pagamento da cobranca paga (ou da ultima informada), ex.: "Dinheiro", "Pix".
+function svSalesPaymentMethodName(array $bill): string
+{
+    $charges = is_array($bill['charges'] ?? null) ? $bill['charges'] : [];
+    foreach (['charge', 'last_charge'] as $key) {
+        if (is_array($bill[$key] ?? null)) $charges[] = $bill[$key];
+    }
+    $method = null;
+    foreach ($charges as $charge) {
+        if (!is_array($charge) || !is_array($charge['payment_method'] ?? null)) continue;
+        $method = $charge['payment_method'];
+        if (($charge['status'] ?? '') === 'paid') break;
+    }
+    if (!$method) return '';
+    return trim((string)($method['public_name'] ?? $method['name'] ?? $method['code'] ?? ''));
+}
+
+// A Vindi devolve alguns nomes com espacos invisiveis (U+2800) no final.
+function svSalesCleanName($value): string
+{
+    $clean = preg_replace('/[\s\x{00A0}\x{2800}]+/u', ' ', (string)$value);
+    return trim($clean ?? (string)$value);
+}
+
+function svSalesBillItemsSummary(array $bill): array
+{
+    $summary = [];
+    foreach (svSalesBillItems($bill) as $item) {
+        if (!is_array($item)) continue;
+        $summary[] = [
+            'name' => svSalesCleanName(svSalesItemIdentity($item)['vindi_product_name']),
+            'quantity' => max(1, (int)($item['quantity'] ?? 1)),
+            'amount' => isset($item['amount']) && $item['amount'] !== '' ? (float)$item['amount'] : null,
+        ];
+    }
+    return $summary;
+}
+
+// Tarefas em dinheiro nos status informados. O LIKE so reduz a busca;
+// quem decide e svSalesManualPaymentMethod.
+function svSalesCashJobs(PDO $pdo, array $statuses): array
+{
+    if (!$statuses) return [];
+    $marks = implode(',', array_fill(0, count($statuses), '?'));
+    $stmt = $pdo->prepare("
+        SELECT id, status, simplesvet_sale_id, source_payload FROM simplesvet_sale_jobs
+         WHERE status IN ({$marks})
+           AND (source_payload LIKE '%\"code\":\"cash\"%'
+                OR source_payload LIKE '%PaymentMethod::Cash%'
+                OR source_payload LIKE '%Dinheiro%')
+    ");
+    $stmt->execute(array_values($statuses));
+    $jobs = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
+        if (svSalesManualPaymentMethod(svSalesJobBill($row['source_payload'])) === null) continue;
+        unset($row['source_payload']);
+        $jobs[] = $row;
+    }
+    return $jobs;
+}
+
+// Pagamentos em dinheiro que entraram antes da regra e ainda nao viraram venda.
+function svSalesCashOpenJobIds(PDO $pdo): array
+{
+    $ids = [];
+    foreach (svSalesCashJobs($pdo, ['waiting_mapping', 'pending', 'retry', 'ignored']) as $job) {
+        if ($job['simplesvet_sale_id'] === null || $job['simplesvet_sale_id'] === '') $ids[] = (int)$job['id'];
+    }
+    return $ids;
+}
+
+function svSalesReclassifyCashJobs(PDO $pdo): int
+{
+    $ids = svSalesCashOpenJobIds($pdo);
+    if (!$ids) return 0;
+    $marks = implode(',', array_fill(0, count($ids), '?'));
+    $stmt = $pdo->prepare("
+        UPDATE simplesvet_sale_jobs
+           SET status='manual_payment', next_attempt_at=NULL
+         WHERE id IN ({$marks})
+           AND status IN ('waiting_mapping','pending','retry','ignored')
+           AND simplesvet_sale_id IS NULL
+    ");
+    $stmt->execute($ids);
+    return $stmt->rowCount();
+}
+
+// Pagamentos em dinheiro em que o robo chegou a criar (ou pode ter criado) venda.
+function svSalesCashRobotJobIds(PDO $pdo): array
+{
+    $ids = [];
+    foreach (svSalesCashJobs($pdo, ['completed', 'awaiting_receipt', 'manual_review', 'processing', 'retry']) as $job) {
+        $hasSale = $job['simplesvet_sale_id'] !== null && $job['simplesvet_sale_id'] !== '';
+        if ($job['status'] !== 'retry' || $hasSale) $ids[] = (int)$job['id'];
+    }
+    return $ids;
+}
+
+function svSalesStatusLabels(): array
+{
+    return [
+        'pending' => 'Na fila', 'processing' => 'Processando', 'retry' => 'Nova tentativa',
+        'completed' => 'Concluída', 'manual_review' => 'Revisão manual',
+        'waiting_mapping' => 'Aguardando conciliação', 'awaiting_receipt' => 'Venda criada; baixa pendente', 'ignored' => 'Não usar',
+        'manual_payment' => 'Pago em dinheiro',
+    ];
+}
+
+// Filtros da tela Baixas SV, compartilhados com a exportacao CSV.
+function svSalesJobsWhere(PDO $pdo, string $status, string $query, string $month): array
+{
+    $where = ['1=1'];
+    $params = [];
+    if ($status === 'queue') {
+        $where[] = "status IN ('pending','processing')";
+    } elseif ($status === 'cash_robot') {
+        $ids = svSalesCashRobotJobIds($pdo);
+        $where[] = $ids ? 'id IN (' . implode(',', $ids) . ')' : '1=0';
+    } elseif ($status !== '' && array_key_exists($status, svSalesStatusLabels())) {
+        $where[] = 'status = :status';
+        $params[':status'] = $status;
+    }
+    if ($query !== '') {
+        $where[] = '(customer_name LIKE :q OR CAST(bill_id AS CHAR) LIKE :q OR simplesvet_sale_id LIKE :q)';
+        $params[':q'] = '%' . $query . '%';
+    }
+    if (preg_match('/^\d{4}-\d{2}$/', $month)) {
+        $where[] = "DATE_FORMAT(COALESCE(paid_at, created_at), '%Y-%m') = :month";
+        $params[':month'] = $month;
+    }
+    return [implode(' AND ', $where), $params];
+}
+
 function svSalesObserveItems(PDO $pdo, array $items): void
 {
     $stmt = $pdo->prepare("
