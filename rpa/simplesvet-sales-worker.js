@@ -384,6 +384,10 @@ try {
     } catch (error) {
       exitCode = 1;
       const message = clean(error?.message || error).slice(0, 8000);
+      if (page) {
+        const screenshot = path.join(root, 'logs', `simplesvet-sales-error-${job.bill_id}.png`);
+        await page.screenshot({ path: screenshot, fullPage: true }).catch(() => undefined);
+      }
       await queueRequest({
         action: 'fail', id: job.id, lease_token: job.lease_token,
         error: message, manual_review: error?.manualReview === true,
