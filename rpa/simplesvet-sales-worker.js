@@ -356,6 +356,15 @@ let browser;
 let page;
 let exitCode = 0;
 let processed = 0;
+async function openSalesSession() {
+  if (page) await page.context().close().catch(() => undefined);
+  page = null;
+  if (!browser) browser = await chromium.launch({ headless: env('SIMPLESVET_HEADLESS', '1') !== '0' });
+  const context = await browser.newContext({ locale: 'pt-BR' });
+  page = await context.newPage();
+  await login(page);
+}
+
 try {
   const remoteConfig = await queueRequest({ action: 'config' });
   if (!remoteConfig.configured || !remoteConfig.settings) {
@@ -370,13 +379,26 @@ try {
     processed++;
 
     try {
-      if (!page) {
-        browser = await chromium.launch({ headless: env('SIMPLESVET_HEADLESS', '1') !== '0' });
-        const context = await browser.newContext({ locale: 'pt-BR' });
-        page = await context.newPage();
-        await login(page);
+      let result;
+      let lastError;
+      for (let runAttempt = 1; runAttempt <= 3; runAttempt++) {
+        try {
+          if (!page) await openSalesSession();
+          result = await createAndReceiveSale(page, job);
+          break;
+        } catch (error) {
+          lastError = error;
+          if (page) {
+            const screenshot = path.join(root, 'logs', `simplesvet-sales-error-${job.bill_id}-tentativa-${runAttempt}.png`);
+            await page.screenshot({ path: screenshot, fullPage: true }).catch(() => undefined);
+          }
+          if (error?.manualReview === true || runAttempt === 3) throw error;
+          console.warn(`VENDA_SV_REPETIR bill_id=${job.bill_id} tentativa=${runAttempt} motivo=${clean(error?.message || error)}`);
+          await openSalesSession();
+          await page.waitForTimeout(2000 * runAttempt);
+        }
       }
-      const result = await createAndReceiveSale(page, job);
+      if (!result) throw lastError || new Error('Venda nao processada');
       await queueRequest({
         action: 'complete', id: job.id, lease_token: job.lease_token,
         simplesvet_sale_id: result.saleId, result,
@@ -385,10 +407,6 @@ try {
     } catch (error) {
       exitCode = 1;
       const message = clean(error?.message || error).slice(0, 8000);
-      if (page) {
-        const screenshot = path.join(root, 'logs', `simplesvet-sales-error-${job.bill_id}.png`);
-        await page.screenshot({ path: screenshot, fullPage: true }).catch(() => undefined);
-      }
       await queueRequest({
         action: 'fail', id: job.id, lease_token: job.lease_token,
         error: message, manual_review: error?.manualReview === true,
