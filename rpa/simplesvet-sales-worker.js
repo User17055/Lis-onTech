@@ -277,9 +277,16 @@ async function createAndReceiveSale(page, job) {
   const items = billItems(bill, job.product_mappings);
   if (!items.length) throw new Error('Fatura Vindi sem produtos habilitados na conciliacao');
 
+  console.log(`VENDA_SV_ETAPA bill_id=${job.bill_id} etapa=abrir_pdv`);
   await page.goto(required('SIMPLESVET_SALES_URL'), { waitUntil: 'domcontentloaded', timeout: 60000 });
+  console.log(`VENDA_SV_ETAPA bill_id=${job.bill_id} etapa=localizar_cliente`);
   await locateCustomer(page, cpf, clean(customer?.name || job.customer_name));
-  for (const item of items) await addItem(page, item);
+  console.log(`VENDA_SV_ETAPA bill_id=${job.bill_id} etapa=cliente_ok`);
+  for (const item of items) {
+    console.log(`VENDA_SV_ETAPA bill_id=${job.bill_id} etapa=adicionar_produto codigo=${item.key}`);
+    await addItem(page, item);
+  }
+  console.log(`VENDA_SV_ETAPA bill_id=${job.bill_id} etapa=produtos_ok`);
 
   const referenceSelector = required('SIMPLESVET_SALE_REFERENCE_SELECTOR');
   await page.locator(referenceSelector).first().fill(`VINDI #${job.bill_id}`);
@@ -294,6 +301,7 @@ async function createAndReceiveSale(page, job) {
 
   let saleCreated = false;
   try {
+    console.log(`VENDA_SV_ETAPA bill_id=${job.bill_id} etapa=criar_venda`);
     await page.locator(required('SIMPLESVET_SALE_SAVE_RECEIVE_SELECTOR')).first().click();
     saleCreated = true;
     const payment = page.locator(required('SIMPLESVET_SALE_PAYMENT_SELECTOR')).first();
@@ -311,6 +319,7 @@ async function createAndReceiveSale(page, job) {
       action: 'checkpoint', id: job.id, lease_token: job.lease_token,
       simplesvet_sale_id: saleId, result: { stage: 'sale_created', reference: `VINDI #${job.bill_id}` },
     });
+    console.log(`VENDA_SV_ETAPA bill_id=${job.bill_id} etapa=venda_criada sale_id=${saleId}`);
     const cashierSelector = env('SIMPLESVET_SALE_CASHIER_SELECTOR');
     if (cashierSelector) {
       const cashier = page.locator(cashierSelector).first();
@@ -332,6 +341,7 @@ async function createAndReceiveSale(page, job) {
       if (amount > 0) await page.locator(amountSelector).first().fill(amount.toFixed(2).replace('.', ','));
     }
     await page.locator(required('SIMPLESVET_SALE_CONFIRM_SELECTOR')).first().click();
+    console.log(`VENDA_SV_ETAPA bill_id=${job.bill_id} etapa=confirmar_baixa`);
     const success = page.locator(required('SIMPLESVET_SALE_SUCCESS_SELECTOR')).first();
     await success.waitFor({ state: 'visible', timeout: 30000 });
     return { saleId, items, confirmation: clean(await success.textContent()) };
