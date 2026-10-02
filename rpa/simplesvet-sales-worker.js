@@ -227,20 +227,26 @@ async function locateCustomer(page, cpf, customerName) {
     await drawerInput.press('Enter');
     const links = page.locator(`${customerLinkSelector}:visible`);
     const rows = page.locator(`${rowsSelector}:visible`);
-    const exactCustomer = customerName
-      ? page.locator('#pesquisa').getByText(customerName, { exact: true })
+    const customerText = customerName
+      ? page.locator('#pesquisa').getByText(customerName, { exact: false })
       : null;
     try {
       const waits = [
-        links.first().waitFor({ state: 'visible', timeout: 60000 }),
-        rows.first().waitFor({ state: 'visible', timeout: 60000 }),
+        links.first().waitFor({ state: 'visible', timeout: 120000 }),
+        rows.first().waitFor({ state: 'visible', timeout: 120000 }),
       ];
-      if (exactCustomer) waits.push(exactCustomer.first().waitFor({ state: 'visible', timeout: 60000 }));
+      if (customerText) {
+        waits.push(page.waitForFunction((name) => {
+          const normalize = (value) => String(value || '').normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/\s+/g, ' ');
+          return normalize(document.body.innerText).includes(normalize(name));
+        }, customerName, { timeout: 120000 }));
+      }
       await Promise.any(waits);
     } catch {
       return page.locator(`${customerLinkSelector}:not(*)`);
     }
-    if (exactCustomer && await exactCustomer.count() > 0) return exactCustomer;
+    if (customerText && await customerText.count() > 0) return customerText.last();
     return (await links.count()) > 0 ? links : rows;
   };
 
