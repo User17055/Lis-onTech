@@ -153,6 +153,26 @@ function svSalesBillItems(array $bill): array
     return is_array($bill['bill_items'] ?? null) ? $bill['bill_items'] : [];
 }
 
+// Pagamentos em dinheiro sao baixados manualmente na Vindi e a venda ja foi
+// lancada no balcao do SimplesVet; o robo nao pode criar outra venda.
+function svSalesManualPaymentMethod(array $bill): ?string
+{
+    $manualMethods = ['CASH', 'DINHEIRO', 'PAYMENTMETHOD::CASH'];
+    $charges = is_array($bill['charges'] ?? null) ? $bill['charges'] : [];
+    foreach (['charge', 'last_charge'] as $key) {
+        if (is_array($bill[$key] ?? null)) $charges[] = $bill[$key];
+    }
+    foreach ($charges as $charge) {
+        $method = is_array($charge['payment_method'] ?? null) ? $charge['payment_method'] : [];
+        foreach (['code', 'type', 'public_name', 'name'] as $field) {
+            if (in_array(svSalesNormalize($method[$field] ?? ''), $manualMethods, true)) {
+                return trim((string)($method['public_name'] ?? $method['name'] ?? $method['code'] ?? 'Dinheiro'));
+            }
+        }
+    }
+    return null;
+}
+
 function svSalesObserveItems(PDO $pdo, array $items): void
 {
     $stmt = $pdo->prepare("
@@ -190,6 +210,9 @@ function svSalesMappingsForItems(PDO $pdo, array $items): array
 
 function svSalesResolveBill(PDO $pdo, array $bill): array
 {
+    if (svSalesManualPaymentMethod($bill) !== null) {
+        return ['status' => 'manual_payment', 'amount' => isset($bill['amount']) ? (float)$bill['amount'] : null, 'mappings' => []];
+    }
     $items = svSalesBillItems($bill);
     $mappings = svSalesMappingsForItems($pdo, $items);
     $mapped = 0;

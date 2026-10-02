@@ -75,7 +75,7 @@ try {
              WHERE status='processing' AND leased_at < DATE_SUB(NOW(), INTERVAL 20 MINUTE)
         ");
         $stmt = $pdo->prepare("
-            SELECT id
+            SELECT id, source_payload
               FROM simplesvet_sale_jobs
              WHERE status IN ('pending','retry')
                AND (next_attempt_at IS NULL OR next_attempt_at <= NOW())
@@ -84,7 +84,22 @@ try {
              FOR UPDATE
         ");
         $stmt->execute();
-        $ids = array_map('intval', array_column($stmt->fetchAll(PDO::FETCH_ASSOC), 'id'));
+        $ids = [];
+        $markManual = $pdo->prepare("
+            UPDATE simplesvet_sale_jobs
+               SET status='manual_payment', next_attempt_at=NULL
+             WHERE id=? AND status IN ('pending','retry')
+        ");
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            // Ultima verificacao antes do robo: pagamento em dinheiro nunca vira venda automatica.
+            $decoded = json_decode((string)($row['source_payload'] ?? ''), true);
+            $bill = is_array($decoded) ? ($decoded['event']['data']['bill'] ?? []) : [];
+            if (is_array($bill) && svSalesManualPaymentMethod($bill) !== null) {
+                $markManual->execute([(int)$row['id']]);
+                continue;
+            }
+            $ids[] = (int)$row['id'];
+        }
         if ($ids) {
             $marks = implode(',', array_fill(0, count($ids), '?'));
             $update = $pdo->prepare("

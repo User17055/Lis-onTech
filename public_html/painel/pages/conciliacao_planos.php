@@ -72,7 +72,7 @@ function cpImportPaidToday(PDO $pdo, array $cfg): array
     $timezone = new DateTimeZone('America/Sao_Paulo');
     $start = new DateTimeImmutable('today', $timezone);
     $end = $start->modify('+1 day');
-    $counts = ['found' => 0, 'new' => 0, 'existing' => 0, 'waiting_mapping' => 0, 'pending' => 0, 'ignored' => 0];
+    $counts = ['found' => 0, 'new' => 0, 'existing' => 0, 'waiting_mapping' => 0, 'pending' => 0, 'ignored' => 0, 'manual_payment' => 0];
     $seenBills = [];
     $reachedOlder = false;
 
@@ -152,7 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mapping_action'])) {
                 $flash = $import['found'] . ' pagamento(s) de ' . $import['date'] . ' encontrado(s): '
                     . $import['new'] . ' novo(s), ' . $import['existing'] . ' ja existente(s). '
                     . $import['waiting_mapping'] . ' aguardando conciliacao, ' . $import['pending'] . ' pronto(s) para a fila e '
-                    . $import['ignored'] . ' ignorado(s).';
+                    . $import['ignored'] . ' ignorado(s). ' . $import['manual_payment'] . ' pago(s) em dinheiro (sem venda automatica).';
             } else {
                 $id = (int)($_POST['mapping_id'] ?? 0);
                 $status = in_array($action, ['mapped', 'ignored', 'pending'], true) ? $action : '';
