@@ -210,6 +210,19 @@ async function locateCustomer(page, cpf, customerName) {
     if (await close.count()) await close.evaluate((element) => element.click());
     await page.waitForTimeout(500);
   };
+  const visibleResults = () => page.locator(`${rowsSelector}:visible`);
+  const visibleLinks = () => page.locator(`${customerLinkSelector}:visible`);
+  const waitForResult = async () => {
+    try {
+      await Promise.any([
+        visibleResults().first().waitFor({ state: 'visible', timeout: 12000 }),
+        visibleLinks().first().waitFor({ state: 'visible', timeout: 12000 }),
+      ]);
+    } catch {
+      return page.locator(`${rowsSelector}:not(*)`);
+    }
+    return (await visibleResults().count()) > 0 ? visibleResults() : visibleLinks();
+  };
   const find = async (term, type) => {
     await input.fill(term);
     const drawer = page.locator('#pesquisa');
@@ -218,36 +231,21 @@ async function locateCustomer(page, cpf, customerName) {
       await search.click();
     }
     await drawer.waitFor({ state: 'visible', timeout: 15000 });
+
+    // O SimplesVet normalmente abre o painel já com o resultado do termo
+    // informado no campo principal. Esse é o mesmo fluxo usado manualmente.
+    let results = await waitForResult();
+    if (await results.count()) return results;
+
+    // Alternativa para contas em que o botão abre primeiro o filtro avançado.
     const drawerSelector = type === 'cpf'
       ? env('SIMPLESVET_SALE_CUSTOMER_CPF_SELECTOR', '#pesquisa input#cpf:visible')
       : env('SIMPLESVET_SALE_CUSTOMER_NAME_SELECTOR', '#pesquisa input#nome:visible');
     const drawerInput = page.locator(drawerSelector).last();
-    await drawerInput.waitFor({ state: 'visible', timeout: 15000 });
+    await drawerInput.waitFor({ state: 'visible', timeout: 5000 });
     await drawerInput.fill(term);
     await drawerInput.press('Enter');
-    const links = page.locator(`${customerLinkSelector}:visible`);
-    const rows = page.locator(`${rowsSelector}:visible`);
-    const customerText = customerName
-      ? page.locator('#pesquisa').getByText(customerName, { exact: false })
-      : null;
-    try {
-      const waits = [
-        links.first().waitFor({ state: 'visible', timeout: 120000 }),
-        rows.first().waitFor({ state: 'visible', timeout: 120000 }),
-      ];
-      if (customerText) {
-        waits.push(page.waitForFunction((name) => {
-          const normalize = (value) => String(value || '').normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/\s+/g, ' ');
-          return normalize(document.body.innerText).includes(normalize(name));
-        }, customerName, { timeout: 120000 }));
-      }
-      await Promise.any(waits);
-    } catch {
-      return page.locator(`${customerLinkSelector}:not(*)`);
-    }
-    if (customerText && await customerText.count() > 0) return customerText.last();
-    return (await links.count()) > 0 ? links : rows;
+    return waitForResult();
   };
 
   let rows = await find(cpf, 'cpf');
@@ -258,7 +256,10 @@ async function locateCustomer(page, cpf, customerName) {
     count = await rows.count();
   }
   if (count !== 1) throw new Error(`Cliente retornou ${count} resultados no SimplesVet; revisao manual necessaria`);
-  await rows.first().click();
+  const result = rows.first();
+  const link = result.locator('a.item_pesquisa:visible, a:visible').first();
+  if (await link.count()) await link.click();
+  else await result.click();
 }
 
 async function addItem(page, item) {
