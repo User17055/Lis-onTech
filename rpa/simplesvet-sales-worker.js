@@ -34,6 +34,7 @@ if (env('SIMPLESVET_SALES_ENABLED', '0') !== '1') {
 const queueUrl = required('SIMPLESVET_SALES_QUEUE_URL');
 const apiToken = required('API_BEARER_TOKEN');
 const batchSize = Math.max(1, Math.min(20, Number(env('SIMPLESVET_SALES_BATCH_SIZE', '5')) || 5));
+const sessionAttempts = Math.max(1, Math.min(3, Number(env('SIMPLESVET_SALES_SESSION_ATTEMPTS', '3')) || 3));
 let salesAccount = null;
 
 async function queueRequest(body) {
@@ -226,14 +227,20 @@ async function locateCustomer(page, cpf, customerName) {
     await drawerInput.press('Enter');
     const links = page.locator(`${customerLinkSelector}:visible`);
     const rows = page.locator(`${rowsSelector}:visible`);
+    const exactCustomer = customerName
+      ? page.locator('#pesquisa').getByText(customerName, { exact: true })
+      : null;
     try {
-      await Promise.any([
+      const waits = [
         links.first().waitFor({ state: 'visible', timeout: 60000 }),
         rows.first().waitFor({ state: 'visible', timeout: 60000 }),
-      ]);
+      ];
+      if (exactCustomer) waits.push(exactCustomer.first().waitFor({ state: 'visible', timeout: 60000 }));
+      await Promise.any(waits);
     } catch {
       return page.locator(`${customerLinkSelector}:not(*)`);
     }
+    if (exactCustomer && await exactCustomer.count() > 0) return exactCustomer;
     return (await links.count()) > 0 ? links : rows;
   };
 
@@ -383,7 +390,7 @@ try {
     try {
       let result;
       let lastError;
-      for (let runAttempt = 1; runAttempt <= 3; runAttempt++) {
+      for (let runAttempt = 1; runAttempt <= sessionAttempts; runAttempt++) {
         try {
           if (!page) await openSalesSession();
           result = await createAndReceiveSale(page, job);
@@ -394,7 +401,7 @@ try {
             const screenshot = path.join(root, 'logs', `simplesvet-sales-error-${job.bill_id}-tentativa-${runAttempt}.png`);
             await page.screenshot({ path: screenshot, fullPage: true }).catch(() => undefined);
           }
-          if (error?.manualReview === true || runAttempt === 3) throw error;
+          if (error?.manualReview === true || runAttempt === sessionAttempts) throw error;
           console.warn(`VENDA_SV_REPETIR bill_id=${job.bill_id} tentativa=${runAttempt} motivo=${clean(error?.message || error)}`);
           await openSalesSession();
           await page.waitForTimeout(2000 * runAttempt);
@@ -409,6 +416,11 @@ try {
     } catch (error) {
       exitCode = 1;
       const message = clean(error?.message || error).slice(0, 8000);
+      if (env('SIMPLESVET_SALES_DEBUG_DOM') === '1' && page) {
+        const drawerHtml = await page.locator('#pesquisa').evaluate((element) => element.outerHTML).catch(() => '');
+        const fs = await import('node:fs/promises');
+        await fs.writeFile(path.join(root, 'logs', `simplesvet-sales-drawer-${job.bill_id}.html`), drawerHtml).catch(() => undefined);
+      }
       await queueRequest({
         action: 'fail', id: job.id, lease_token: job.lease_token,
         error: message, manual_review: error?.manualReview === true,
