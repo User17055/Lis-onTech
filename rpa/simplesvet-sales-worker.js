@@ -224,15 +224,17 @@ async function locateCustomer(page, cpf, customerName) {
     await drawerInput.waitFor({ state: 'visible', timeout: 15000 });
     await drawerInput.fill(term);
     await drawerInput.press('Enter');
-    await page.waitForFunction(
-      ({ rows, links }) => document.querySelectorAll(rows).length > 0
-        || document.querySelectorAll(links).length > 0
-        || document.body.innerText.includes('Nenhum cliente foi encontrado'),
-      { rows: rowsSelector, links: customerLinkSelector },
-      { timeout: 20000 },
-    );
     const links = page.locator(`${customerLinkSelector}:visible`);
-    return (await links.count()) > 0 ? links : page.locator(`${rowsSelector}:visible`);
+    const rows = page.locator(`${rowsSelector}:visible`);
+    try {
+      await Promise.any([
+        links.first().waitFor({ state: 'visible', timeout: 60000 }),
+        rows.first().waitFor({ state: 'visible', timeout: 60000 }),
+      ]);
+    } catch {
+      return page.locator(`${customerLinkSelector}:not(*)`);
+    }
+    return (await links.count()) > 0 ? links : rows;
   };
 
   let rows = await find(cpf, 'cpf');
