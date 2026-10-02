@@ -202,6 +202,7 @@ async function locateCustomer(page, cpf, customerName) {
   await input.waitFor({ state: 'visible', timeout: 20000 });
   const search = page.locator(required('SIMPLESVET_SALE_CUSTOMER_SEARCH_SELECTOR')).first();
   const rowsSelector = required('SIMPLESVET_SALE_CUSTOMER_RESULTS_SELECTOR');
+  const customerLinkSelector = '#pesquisa a.item_pesquisa';
 
   const closeDrawer = async () => {
     const close = page.locator('#pesquisa button.btn-white.sv-pop:visible').last();
@@ -224,12 +225,14 @@ async function locateCustomer(page, cpf, customerName) {
     await drawerInput.fill(term);
     await drawerInput.press('Enter');
     await page.waitForFunction(
-      (selector) => document.querySelectorAll(selector).length > 0
+      ({ rows, links }) => document.querySelectorAll(rows).length > 0
+        || document.querySelectorAll(links).length > 0
         || document.body.innerText.includes('Nenhum cliente foi encontrado'),
-      rowsSelector,
+      { rows: rowsSelector, links: customerLinkSelector },
       { timeout: 20000 },
     );
-    return page.locator(`${rowsSelector}:visible`);
+    const links = page.locator(`${customerLinkSelector}:visible`);
+    return (await links.count()) > 0 ? links : page.locator(`${rowsSelector}:visible`);
   };
 
   let rows = await find(cpf, 'cpf');
@@ -240,9 +243,7 @@ async function locateCustomer(page, cpf, customerName) {
     count = await rows.count();
   }
   if (count !== 1) throw new Error(`Cliente retornou ${count} resultados no SimplesVet; revisao manual necessaria`);
-  const customerLink = rows.first().locator('a.item_pesquisa').first();
-  if (await customerLink.count()) await customerLink.click();
-  else await rows.first().click();
+  await rows.first().click();
 }
 
 async function addItem(page, item) {
